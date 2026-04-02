@@ -75,7 +75,7 @@ studentModelCharacterMap = {}
 
 def is_nvidia_gpu():
     try:
-        # 获取显卡名称列表
+        # Get list of graphics card names
         output = subprocess.check_output("wmic path Win32_VideoController get Name", shell=True).decode('gbk')
         return "NVIDIA" in output.upper()
     except Exception:
@@ -126,25 +126,25 @@ scanStudentModels()
 
 def min_cutoff_mapper(value, revert=False):
     """
-    非线性映射函数：0-100整数 <-> 0-100浮点数
-    使用平方函数，使得越接近0数字越密集
+    Non-linear mapping function: 0-100 integer <-> 0-100 float
+    Uses square function so numbers are denser closer to 0
     """
     if revert:
-        # 浮点 -> 整数: 使用平方根反向映射
+        # Float -> Int: Use square root inverse mapping
         return int((value / 100.0) ** 0.5 * 100)
-    # 整数 -> 浮点: 使用平方映射
+    # Int -> Float: Use square mapping
     return (value / 100.0) ** 2 * 100.0
 
 
 def beta_mapper(value, revert=False):
     """
-    非线性映射函数：0-100整数 <-> 0-1浮点数
-    使用平方函数，使得越接近0数字越密集
+    Non-linear mapping function: 0-100 integer <-> 0-1 float
+    Uses square function so numbers are denser closer to 0
     """
     if revert:
-        # 浮点 -> 整数: 使用平方根反向映射
+        # Float -> Int: Use square root inverse mapping
         return int((value ** 0.5) * 100)
-    # 整数 -> 浮点: 使用平方映射
+    # Int -> Float: Use square mapping
     return (value / 100.0) ** 2
 
 
@@ -235,7 +235,6 @@ class OptionPanel(wx.Panel):
 
         if not (self.type == 3 and hasattr(self.control, '_slider_added')):
             mainSizer.Add(self.control, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 20)
-        # self.SetBackgroundColour('#000000') 
 
     def GetValue(self):
         if self.type == 0:
@@ -253,7 +252,7 @@ class OptionPanel(wx.Panel):
 
 
 def _important_log_line(line):
-    """从 main 的一行日志中提取“重要”的简短描述，用于状态栏；无关行返回 None。"""
+    """Extract 'important' short descriptions from main log lines for status bar; returns None for irrelevant lines."""
     line = line.strip()
     if not line:
         return None
@@ -296,14 +295,14 @@ def _important_log_line(line):
 
 
 def _on_main_log_line(panel, line):
-    """在子线程中调用：若该行是重要日志，则用 wx.CallAfter 更新 panel 的状态框。"""
+    """Called in sub-thread: update panel status box if line is important."""
     display = _important_log_line(line)
     if display is not None:
         wx.CallAfter(panel.statusCtrl.SetValue, display)
 
 
 def _read_pipe_to_stream(pipe, dest_stream, out_lines=None, on_line_callback=None):
-    """从 pipe 读行，写回 dest_stream，可选追加到 out_lines，并对每行调用 on_line_callback(line)。"""
+    """Read from pipe, write to dest_stream, optionally append to out_lines and callback."""
     if pipe is None:
         return
     try:
@@ -316,13 +315,12 @@ def _read_pipe_to_stream(pipe, dest_stream, out_lines=None, on_line_callback=Non
                 out_lines.append(text)
             if on_line_callback is not None:
                 on_line_callback(text)
-            # 检查dest_stream是否可用（pythonw环境下可能不可用）
+            # Check if dest_stream is available (might not be in pythonw)
             if dest_stream is not None:
                 try:
                     dest_stream.write(text)
                     dest_stream.flush()
                 except (AttributeError, OSError, ValueError):
-                    # pythonw环境下sys.stdout/sys.stderr可能不可用，忽略错误
                     pass
     except Exception:
         pass
@@ -339,8 +337,8 @@ class LauncherPanel(wx.Panel):
         self.number_of_buttons = 0
         self.frame = parent
         self.optionDict = {}
-        self.main_output_lines = []   # main 的 stdout 副本
-        self.main_stderr_lines = []   # main 的 stderr 副本
+        self.main_output_lines = []   # Copy of main stdout
+        self.main_stderr_lines = []   # Copy of main stderr
         self.mainSizer = wx.BoxSizer(wx.VERTICAL)
         controlSizer = wx.BoxSizer(wx.HORIZONTAL)
         self.widgetSizer = wx.BoxSizer(wx.VERTICAL)
@@ -362,7 +360,7 @@ class LauncherPanel(wx.Panel):
             self, wx.ID_ANY, '',
             style=wx.TE_READONLY | wx.BORDER_NONE | wx.TE_RIGHT,
         )
-        self.statusCtrl.SetHint('当前操作')
+        self.statusCtrl.SetHint('Status')
         f = self.statusCtrl.GetFont()
         self.statusCtrl.SetFont(f.Smaller())
         controlSizer.Add(self.statusCtrl, 1, wx.ALIGN_CENTER_VERTICAL | wx.LEFT | wx.RIGHT, 8)
@@ -370,12 +368,7 @@ class LauncherPanel(wx.Panel):
         self.btnLaunch = wx.Button(self, label="Save && Launch")
         self.btnLaunch.Bind(wx.EVT_BUTTON, self.OnLaunch)
         controlSizer.Add(self.btnLaunch, 0, wx.CENTER | wx.ALL, 10)
-        # self.btnAdd = wx.Button(self, label="添加") 
-        # self.btnAdd.Bind(wx.EVT_BUTTON, self.OnAddWidget) 
-        # controlSizer.Add(self.btnAdd, 0, wx.CENTER | wx.ALL, 5) 
-        # self.btnRemove = wx.Button(self, label="删除") 
-        # self.btnRemove.Bind(wx.EVT_BUTTON, self.OnRemoveWidget) 
-        # controlSizer.Add(self.btnRemove, 0, wx.CENTER | wx.ALL, 5) 
+
         self.mainSizer.Add(self.widgetSizer, 0, wx.CENTER | wx.ALL, 10)
         self.mainSizer.Add(controlSizer, 0, wx.CENTER | wx.EXPAND | wx.LEFT, 10)
         self.mainSizer.Add(wx.StaticLine(self), 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 8)
@@ -390,42 +383,42 @@ class LauncherPanel(wx.Panel):
             self.optionDict[key] = t
             return t
 
-        addOption('character', title='Character', desc='选择需要使用的角色图片，位于data/images内',
+        addOption('character', title='Character', desc='Select character image from data/images',
                   choices=characterList)
 
-        addOption('input', title='Input Device', desc='选择希望使用的面捕数据源',
+        addOption('input', title='Input Device', desc='Select face tracking source',
                   choices=['iFacialMocap', 'OpenSeeFace', 'OpenCV(Webcam)', 'Mouse Input', 'Debug Input'],
                   mapping=[0, 4, 1, 3, 2])
-        addOption('ifm', title='iFacialMocap IP', desc='输入iFacialMocap连接使用的IP地址，默认连接 49983 端口', type=2)
-        addOption('is_eyebrow', title='Eyebrow', desc='使用眉毛输入，对性能有一定影响', type=1,
+        addOption('ifm', title='iFacialMocap IP', desc='IP address for iFacialMocap (default port 49983)', type=2)
+        addOption('is_eyebrow', title='Eyebrow', desc='Enable eyebrow tracking (affects performance)', type=1,
                   default=True)
-        addOption('osf', title='OpenSeeFace IP:Port', desc='输入OpenSeeFace连接使用的IP:端口号', type=2)
-        addOption('mouse_audio_input', title='Audio Input', desc='启用WASAPI音频输入控制嘴部动作', type=1)
-        addOption('audio_sensitivity', title='Audio Sensitivity', desc='音频灵敏度，控制音频对嘴部动作的影响程度', type=2)
-        addOption('audio_threshold', title='Audio Threshold', desc='音频阈值，低于此值的音频将被忽略', type=2)
-        addOption('blink_interval', title='Blink Interval', desc='设置眨眼间隔时间',
+        addOption('osf', title='OpenSeeFace IP:Port', desc='IP and port for OpenSeeFace connection', type=2)
+        addOption('mouse_audio_input', title='Audio Input', desc='Enable WASAPI audio input for lip sync', type=1)
+        addOption('audio_sensitivity', title='Audio Sensitivity', desc='Sensitivity of lip sync to audio level', type=2)
+        addOption('audio_threshold', title='Audio Threshold', desc='Noise gate threshold for audio input', type=2)
+        addOption('blink_interval', title='Blink Interval', desc='Auto-blink frequency for mouse input',
                   choices=['No Blink', '3 seconds', '5 seconds', '7 seconds'],
                   mapping=['inf', '3.0', '5.0', '7.0'])
-        addOption('min_cutoff', title='Min CutOff', desc='输入滤波频率截断，\n越小越平滑，越大静止时越灵敏', 
+        addOption('min_cutoff', title='Min CutOff', desc='Filter frequency cutoff (Lower = smoother, Higher = responsive)', 
                   type=3, mapper=min_cutoff_mapper)
-        addOption('beta', title='Beta', desc='输入滤波速度补偿，\n越小越平滑，越大运动时越灵敏', 
+        addOption('beta', title='Beta', desc='Filter speed compensation (Lower = smoother, Higher = responsive)', 
                   type=3, mapper=beta_mapper)
 
-        addOption('breath_cycle', title='Breath Cycle', desc='设置呼吸循环时间(会增加占用)',
+        addOption('breath_cycle', title='Breath Cycle', desc='Auto-breath cycle (increases CPU usage)',
                   choices=['No Breath', '3 seconds', '5 seconds', '7 seconds'],
                   mapping=['inf', '3.0', '5.0', '7.0'])
 
-        addOption('output', title='Output', desc='选择输出目标',
+        addOption('output', title='Output', desc='Select video output target',
                   choices=['Spout2', 'OBS VirtualCam', 'Debug Output'],
                   mapping=[0, 1, 2])
 
-        addOption('use_tensorrt', title='TensorRT加速',
-                  desc='需要更长启动和预热时间（仅NVIDIA显卡支持）',
+        addOption('use_tensorrt', title='TensorRT Acceleration',
+                  desc='Faster performance, longer startup (NVIDIA GPU only)',
                   type=1)
 
-        addOption('frame_rate_limit', title='FPS Limit', desc='选择帧率限制目标',
+        addOption('frame_rate_limit', title='FPS Limit', desc='Frame rate cap',
                   choices=['10', '15', '20', '30', '60'])
-        addOption('preset', title='Performance Preset', desc='性能预设，注意修改后会覆盖后续配置',
+        addOption('preset', title='Performance Preset', desc='Presets will override detailed settings below',
                   choices=['Low', 'Medium', 'High', 'Ultra', 'Custom'])
 
         # Build model_select choices
@@ -441,32 +434,32 @@ class LauncherPanel(wx.Panel):
             model_mapping.append(f'tha4_student_{student_model}')
 
         addOption('model_select', title='Model Select',
-                  desc='选择使用的模型\nStandard Full精度较高性能较低',
+                  desc='Select AI model version (Standard Full is higher quality)',
                   choices=model_choices,
                   mapping=model_mapping)
-        addOption('ram_cache_size', title='RAM Cache Size', desc='分配内存缓存大小\n用于存储最终运算结果',
+        addOption('ram_cache_size', title='RAM Cache Size', desc='Memory for final result caching',
                   choices=['Off', '1GB', '2GB', '4GB', '8GB', '16GB'],
                   mapping=['0b', '1gb', '2gb', '4gb', '8gb', '16gb'])
-        addOption('vram_cache_size', title='VRAM Cache Size', desc='分配显存缓存大小\n用于存储中间结果',
+        addOption('vram_cache_size', title='VRAM Cache Size', desc='GPU memory for intermediate caching',
                   choices=['Off', '1GB', '2GB', '4GB', '8GB', '16GB'],
                   mapping=['0b', '1gb', '2gb', '4gb', '8gb', '16gb'])
         addOption('cache_simplify', title='Input Simplify',
-                  desc='设置输入简化级别\n输入越简化，缓存命中率越高，动作越不平滑',
+                  desc='Higher simplification = more cache hits but less smooth',
                   choices=['Off', 'Low', 'Medium', 'High', 'Higher', 'Highest', 'Gaming'])
 
-        addOption('sr', title='SuperResolution', desc='选择使用的超分模型\n由于性能原因，real-esrgan会进行裁切',
+        addOption('sr', title='SuperResolution', desc='AI upscaling model (ESRGAN is high quality but heavy)',
                   choices=['Off', 'anime4k_x2', 'waifu2x_x2_half', 'real-esrgan_x4_half', 'waifu2x_x2_full',
                            'real-esrgan_x4_full'])
-        addOption('interpolation', title='Frame Interpolation', desc='选择使用的补帧模型',
+        addOption('interpolation', title='Frame Interpolation', desc='RIFE model for smoother FPS',
                   choices=['Off', 'x2_half', 'x3_half', 'x4_half', 'x2_full', 'x3_full', 'x4_full'])
 
         addOption('is_alpha_clean', title='Alpha Preprocessing',
-                  desc='预处理Alpha通道\n代替LayerDiffusion生图后PS蒙版清理操作',
+                  desc='Clean up character edges (useful for LayerDiffusion)',
                   type=1)
-        addOption('is_extend_movement', title='Extend Movement', desc='基于面捕的XY输入移动、缩放输出图像提升可动性',
+        addOption('is_extend_movement', title='Extend Movement', desc='Enable virtual X/Y movement and scaling based on face tracking',
                   type=1)
-        addOption('is_bongo', title='Bongocat Mode', desc='适当旋转输出以适配Bongocat桌宠', type=1)
-        addOption('is_alpha_split', title='Alpha Split', desc='分离透明通道到视频流右侧\n你需要自行进行后续处理',
+        addOption('is_bongo', title='Bongocat Mode', desc='Rotate output to fit Bongocat desktop pet', type=1)
+        addOption('is_alpha_split', title='Alpha Split', desc='Split alpha channel to right side of video stream',
                   type=1)
 
         def inputChoice(e=None):
@@ -488,7 +481,6 @@ class LauncherPanel(wx.Panel):
             else:
                 self.optionSizer.Show(self.optionDict['min_cutoff'])
                 self.optionSizer.Show(self.optionDict['beta'])
-            # Show/hide audio input options for Mouse Input (s == 3)
             if s != 3:
                 self.optionSizer.Hide(self.optionDict['mouse_audio_input'])
                 self.optionSizer.Hide(self.optionDict['audio_sensitivity'])
@@ -497,7 +489,6 @@ class LauncherPanel(wx.Panel):
             else:
                 self.optionSizer.Show(self.optionDict['mouse_audio_input'])
                 self.optionSizer.Show(self.optionDict['blink_interval'])
-                # Update audio fields based on checkbox state
                 audioInputChoice()
 
             self.frame.fSizer.Layout()
@@ -558,13 +549,10 @@ class LauncherPanel(wx.Panel):
             char_ctrl = self.optionDict['character']
 
             if is_student_model:
-                # Disable character selection for student models
-                # Student models have their own built-in character
                 char_ctrl.control.Enable(False)
                 char_ctrl.control.SetToolTip(
                     'Locked: Student model includes built-in character')
             else:
-                # Re-enable character selection for non-student models
                 char_ctrl.control.Enable(True)
                 char_ctrl.control.SetToolTip(
                     'Select a character from data/images')
@@ -572,17 +560,15 @@ class LauncherPanel(wx.Panel):
         self.optionDict['model_select'].Bind(
             wx.EVT_CHOICE, onModelSelect)
 
-        # Check initial model selection and lock character if needed
         onModelSelect()
 
         def onActivate(e):
             global characterList
-            # 用控件当前选中字符串，避免 GetValue() 用旧 mapping 按下标取导致 IndexError
             char_ctrl = self.optionDict['character'].control
             tName = char_ctrl.GetStringSelection() if char_ctrl.GetSelection() >= 0 else ''
             refreshList()
             scanStudentModels()
-            self.optionDict['character'].mapping = characterList  # 同步 mapping，后续 GetValue() 才正确
+            self.optionDict['character'].mapping = characterList
             char_ctrl.SetItems(characterList)
             try:
                 idx = characterList.index(tName)
@@ -590,14 +576,13 @@ class LauncherPanel(wx.Panel):
             except (ValueError, TypeError):
                 if characterList:
                     char_ctrl.SetSelection(0)
-            # 重新应用“当前模型 → 是否锁定 character”的规则
             onModelSelect()
 
         if not hasTRTSupport:
             self.optionDict['use_tensorrt'].control.SetValue(False)
             self.optionDict['use_tensorrt'].control.Enable(False)
             self.optionDict['use_tensorrt'].control.SetToolTip(
-                '需要NVIDIA显卡支持才能使用TensorRT')
+                'NVIDIA GPU required for TensorRT acceleration')
 
         self.frame.Bind(wx.EVT_ACTIVATE, onActivate)
 
@@ -614,7 +599,6 @@ class LauncherPanel(wx.Panel):
         if p is not None:
             creation_flags = 0
             if sys.platform == 'win32':
-                # CREATE_NO_WINDOW = 0x08000000
                 creation_flags = 0x08000000
             subprocess.run(['taskkill', '/F', '/PID', str(p.pid), '/T'], 
                           stdout=subprocess.DEVNULL,
@@ -624,7 +608,6 @@ class LauncherPanel(wx.Panel):
             self.statusCtrl.Clear()
             self.btnLaunch.SetLabelText("Save & Launch")
         else:
-            # 如果启动器是用pythonw启动的，使用python.exe来启动main以便捕获控制台输出
             python_exe = sys.executable
             if 'pythonw' in python_exe.lower():
                 python_exe = python_exe.replace('pythonw.exe', 'python.exe').replace('pythonw', 'python')
@@ -647,7 +630,6 @@ class LauncherPanel(wx.Panel):
             elif args['input'] == 3:
                 run_args.append('--mouse_input')
                 run_args.append('0,0,' + str(wx.GetDisplaySize().width) + ',' + str(wx.GetDisplaySize().height))
-                # Add audio input options for mouse input
                 if args['mouse_audio_input']:
                     run_args.append('--mouse_audio_input')
                     if args['audio_sensitivity']:
@@ -656,7 +638,6 @@ class LauncherPanel(wx.Panel):
                     if args['audio_threshold']:
                         run_args.append('--audio_threshold')
                         run_args.append(str(args['audio_threshold']))
-                # Add blink interval for mouse input
                 if args['blink_interval']:
                     run_args.append('--blink_interval')
                     run_args.append(str(args['blink_interval']))
@@ -665,7 +646,6 @@ class LauncherPanel(wx.Panel):
                     run_args.append('--osf_input')
                     run_args.append(args['osf'])
 
-            # Add breath cycle option
             if args['breath_cycle']:
                 run_args.append('--breath_cycle')
                 run_args.append(str(args['breath_cycle']))
@@ -715,7 +695,6 @@ class LauncherPanel(wx.Panel):
 
             if args['model_select'] is not None:
                 if 'tha4_student_' in args['model_select']:
-                    # Student model: tha4_student_{model_name}
                     model_name = args['model_select'].replace(
                         'tha4_student_', '')
                     run_args.append('--model_version')
@@ -760,10 +739,8 @@ class LauncherPanel(wx.Panel):
             self.main_stderr_lines.clear()
             self.statusCtrl.SetValue('Launched')
             on_line = lambda line: _on_main_log_line(self, line)
-            # 使用CREATE_NO_WINDOW标志隐藏控制台窗口，但仍可捕获输出
             creation_flags = 0
             if sys.platform == 'win32':
-                # CREATE_NO_WINDOW = 0x08000000
                 creation_flags = 0x08000000
             p = subprocess.Popen(
                 run_args,
@@ -796,7 +773,6 @@ class MainFrame(wx.Frame):
         if p is not None:
             creation_flags = 0
             if sys.platform == 'win32':
-                # CREATE_NO_WINDOW = 0x08000000
                 creation_flags = 0x08000000
             subprocess.run(['taskkill', '/F', '/PID', str(p.pid), '/T'], 
                           stdout=subprocess.DEVNULL,
