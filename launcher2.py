@@ -793,6 +793,15 @@ class MainFrame(wx.Frame):
 
 def main():
     app = wx.App()
+    
+    # Start Server-Client protocol to fetch missing AI models
+    try:
+        from src.model_downloader import check_and_download_models
+        if not check_and_download_models(None):
+            sys.exit(1)
+    except Exception as e:
+        print(f"Failed to check models: {e}")
+
     sample = MainFrame(None)
 
     sample.Show()

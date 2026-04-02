@@ -1,16 +1,18 @@
-numpy
-scipy
+numpy>=1.24.0
+scipy>=1.10.0
 protobuf
 pynput
 mediapipe==0.10.11
-opencv_python
-Pillow
+opencv-python>=4.8.0
+Pillow>=10.0.0
 pyanime4k==3.1.0
 pyvirtualcam==0.9.1
 pyopengl
 wxpython
 onnx 
-onnxruntime-directml 
+onnxruntime-directml
+onnxruntime-openvino; sys_platform == 'win32'
+requests
 tqdm
 torch
 OneEuroFilter
