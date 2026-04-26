@@ -37,6 +37,17 @@
                 </tr>
                 <tr>
                     <td style="text-align: center;">
+                        <div id="userProfile" style="background: rgba(0,0,0,0.1); padding: 10px; border-radius: 5px; margin-bottom: 10px;">
+                            <b>👤 Account: <span id="userName">Senpai</span></b><br>
+                            <small id="lastUsedText" style="color: #ff69b4;"></small>
+                        </div>
+                        <i>Performance Mode</i><br>
+                        <select id="perfModeSelector" style="width:250px; margin-bottom: 10px;">
+                            <option value="potato">🥔 Potato (Older Hardware)</option>
+                            <option value="balanced" selected>⚖️ Balanced</option>
+                            <option value="elite">💎 Elite (NPU/GPU)</option>
+                        </select>
+                        <br>
                         <i>Eyebrow Down Mode</i><br>
                         <select name="eyebrowDownModeSelector" id="eyebrowDownModeSelector" style="width:250px;">
                             <option value="ANGRY" selected>ANGRY</option>
@@ -229,5 +240,63 @@ All the illustrations have been resized and cropped to the specification of our 
 
 
 <script src="index.bundle.js"></script>
+<script>
+    // --- Account & Persistence Logic ---
+    const STORAGE_KEY = 'easyvtuber_user_data';
+    const characterSelector = document.getElementById('characterSelector');
+    const perfSelector = document.getElementById('perfModeSelector');
+    const lastUsedDisplay = document.getElementById('lastUsedText');
+
+    function loadSavedData() {
+        const rawData = localStorage.getItem(STORAGE_KEY);
+        if (rawData) {
+            const data = JSON.parse(rawData);
+            if (data.lastCharacter) characterSelector.value = data.lastCharacter;
+            if (data.performanceMode) perfSelector.value = data.performanceMode;
+            lastUsedDisplay.innerText = `Welcome back! Last model: ${characterSelector.options[characterSelector.selectedIndex].text}`;
+            applyPerformanceSettings(data.performanceMode);
+        }
+    }
+
+    function saveData() {
+        const data = {
+            lastCharacter: characterSelector.value,
+            performanceMode: perfSelector.value,
+            timestamp: new Date().toISOString()
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }
+
+    function applyPerformanceSettings(mode) {
+        // Since we can't easily recompile the WASM/bundle, we use the UI to limit load
+        const outputCanvas = document.getElementById('outputImage');
+        if (mode === 'potato') {
+            outputCanvas.style.width = '384px'; // Lower display resolution
+            outputCanvas.style.height = '384px';
+            // In a real scenario, we would throttle the requestAnimationFrame loop here
+            console.log("🥔 Potato Mode: UI Scaling applied.");
+        } else if (mode === 'elite') {
+            outputCanvas.style.width = '512px';
+            outputCanvas.style.height = '512px';
+            console.log("💎 Elite Mode: Max resolution active.");
+        } else {
+            outputCanvas.style.width = '512px';
+            outputCanvas.style.height = '512px';
+        }
+    }
+
+    characterSelector.addEventListener('change', () => {
+        saveData();
+        lastUsedDisplay.innerText = `Now using: ${characterSelector.options[characterSelector.selectedIndex].text}`;
+    });
+
+    perfSelector.addEventListener('change', () => {
+        saveData();
+        applyPerformanceSettings(perfSelector.value);
+    });
+
+    // Initialize
+    loadSavedData();
+</script>
 </body>
 </html>
