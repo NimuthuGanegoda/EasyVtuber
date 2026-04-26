@@ -1,93 +1,64 @@
-# 🌸 EasyVtuber: The Elite & Lite AI Companion
+# 🌸 EasyVtuber: Pure Web & Elite Edition
 
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![Web App](https://img.shields.io/badge/Web-Live_App_🌐-ff69b4)](https://NimuthuGanegoda.github.io/EasyVtuber/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-green)](https://github.com/NimuthuGanegoda/EasyVtuber)
-[![Web Stream](https://img.shields.io/badge/Web-Live_Stream_🌐-orange)](https://NimuthuGanegoda.github.io/EasyVtuber/)
-[![NPU Optimized](https://img.shields.io/badge/NPU-Intel_Core_Ultra_⚡-blue)](docs/NPU_OPTIMIZATION_GUIDE.md)
+[![Platform](https://img.shields.io/badge/Platform-Browser%20%7C%20Windows%20%7C%20Linux-green)](https://github.com/NimuthuGanegoda/EasyVtuber)
 
-EasyVtuber is an elite, autonomous AI VTubing suite. Now reorganized for modularity and performance, it bridges the gap between complex VTuber rigs and "Super Lite" hardware.
+**100% Browser-Based VTubing is here!** 🌸💎
 
----
-
-## 🌐 Live Web App
-
-You can now stream your VTuber directly to any web browser.
-
-- **Live Link:** [https://NimuthuGanegoda.github.io/EasyVtuber/](https://NimuthuGanegoda.github.io/EasyVtuber/)
-
-### ⚠️ Security Note (Mixed Content)
-Since GitHub Pages is **HTTPS** and your local PC is **HTTP**, your browser might block the video.
-1. Click the **Lock icon** 🔒 (or Shield) in your browser's address bar.
-2. Select **Site Settings**.
-3. Set **"Insecure content"** to **Allow**.
-4. Refresh the page to see your avatar!
-
-## 📂 Project Structure
-
-Re-engineered for clarity and cross-platform compatibility:
-- **`backend/`**: Core animation engines (THA2/3/4) and real-time managers.
-- **`gui/`**: Modular launchers for Windows and Linux.
-- **`data/`**: Centralized models, character images, and assets.
-- **`requirements/`**: Optimized dependency lists for ultra-lite installation.
-- **`scripts/`**: Utility scripts for maintenance and setup.
+EasyVtuber has been upgraded to run entirely in your web browser. No Python, no heavy local backends, and no complex setup. Just open the link, give camera permission, and start your VTubing journey!
 
 ---
 
-## ✨ Elite Features
+## 🌐 Live Web App (Pure Client-Side)
 
-| Feature | Description |
-| :--- | :--- |
-| ⚡ **Hardware Accelerated** | Native support for **Intel NPU**, **Apple Silicon (Metal)**, **NVIDIA (TensorRT)**, and **AMD (DirectML)**. |
-| 🎬 **THA v4 Support** | Integrated Talking Head Animation v4 for the most expressive anime movement. |
-| 🏎️ **RIFE Interpolation** | Boost your FPS by 50-100% on low-end "Potato" hardware. |
-| 📱 **UDP iPhone Link** | 60FPS high-precision face tracking via UDP direct connection. |
-| 🧠 **Smart Caching** | Uses `brotli` to bypass GPU overhead when your face isn't moving. |
+Experience the full power of Talking Head Anime 4 directly in your browser:
+👉 **[https://NimuthuGanegoda.github.io/EasyVtuber/](https://NimuthuGanegoda.github.io/EasyVtuber/)**
 
----
-
-## 🛠️ Complete Installation Guide
-
-### 🚀 Automatic Install (Recommended)
-This script installs everything using `uv` for lightning speed and auto-configures your hardware backend.
-
-**Windows:**
-```cmd
-install_reqs.bat
-```
-
-**Linux / macOS:**
-```bash
-chmod +x install_reqs.sh
-./install_reqs.sh
-```
+### ✨ Web Features:
+- **Zero Install**: Runs 100% on your device using TensorFlow.js.
+- **Privacy First**: All processing happens locally in your browser. No video is ever sent to a server.
+- **Expressive Tracking**: Powered by MediaPipe FaceLandmarker for high-precision motion capture.
+- **Distilled Models**: Uses ultra-lightweight student models (< 2MB) for real-time 30+ FPS performance.
 
 ---
 
-## 🧪 Usage
+## 📂 Project Re-Architecture
 
-### 💬 Unified Launcher
-The best way to start is through the modern GUI:
-```bash
-python gui/launcher2.py
-```
+To support both "Elite" local performance and "Pure Web" accessibility, the project is now structured as follows:
 
-### ⚡ Direct Mode (Lite)
-Start directly from the root with minimal overhead:
-```bash
-python main.py --character your_character_name
-```
+- **`/` (Root)**: The **Pure Web App**. Host this on GitHub Pages for an instant VTuber website.
+- **`/desktop`**: The **High-Performance Desktop Suite**. Use this for NVIDIA TensorRT, Intel NPU (OpenVINO), and AMD DirectML acceleration.
+- **`/data`**: Web-optimized character models and assets.
+
+---
+
+## 🧪 Desktop Usage (For Power Users)
+
+If you need even higher quality, frame interpolation (RIFE), or native OBS transparency, use the desktop version:
+
+1. Navigate to the `desktop` folder.
+2. Run `install_reqs.sh` or `install_reqs.bat`.
+3. Launch with `python main.py`.
+
+*See `desktop/README.md` for full desktop instructions.*
 
 ---
 
 ## 🚀 Hardware Optimization
 
-- **Intel Core Ultra:** Automatically uses the **NPU** via OpenVINO/DirectML.
-- **Mac M1/M2/M3:** Native **Apple Silicon** support for Metal acceleration.
-- **AMD/NVIDIA:** High-performance **DirectML/TensorRT** backends.
-- **Potato Mode:** Highly quantized models and "Half" precision modes for low-end CPUs.
+- **Web Version**: Automatically uses your browser's WebGL/WebGPU for acceleration.
+- **Desktop Version**: Optimized for **Intel NPU**, **Apple Silicon**, and **High-end GPUs**.
+
+---
+
+## 🧑‍🎤 Credits & Acknowledgments
+*   **Original Engine**: [Talking Head Anime 4](http://pkhungurn.github.io/talking-head-anime-4/) by **Pramook Khungurn**.
+*   **Tracking**: [MediaPipe](https://google.github.io/mediapipe/) by Google.
+*   **Inference**: [TensorFlow.js](https://www.tensorflow.org/js).
+*   **Desktop Re-Engineering**: Enhanced and modularized by **Nimuthu**.
 
 ---
 
 ## 📜 License
-MIT © GunwooHan. Enhanced & Re-Engineered by Nimuthu.
+MIT © GunwooHan & Pramook Khungurn. Re-Engineered by Nimuthu.
