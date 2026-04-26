@@ -322,6 +322,41 @@
     });
 
     loadSavedData();
+    autoDetectElite();
+
+    // --- Auto-Detection & Smart Guidance ---
+    function autoDetectElite() {
+        const status = document.getElementById('status') || document.getElementById('inferrenceTimeCell');
+        
+        // 1. Detect Hardware Power (very basic heuristic)
+        const cores = navigator.hardwareConcurrency || 4;
+        const ram = navigator.deviceMemory || 4;
+        
+        if (!localStorage.getItem(STORAGE_KEY)) {
+            if (cores < 4 || ram < 4) {
+                perfSelector.value = 'potato';
+                applyPerformanceSettings('potato');
+                console.log("🌸 Auto-detected 'Potato' hardware.");
+            } else {
+                perfSelector.value = 'elite';
+                applyPerformanceSettings('elite');
+                console.log("🌸 Auto-detected 'Elite' hardware.");
+            }
+            saveData();
+        }
+
+        // 2. Check for Mixed Content (HTTPS -> HTTP)
+        if (location.protocol === 'https:') {
+            const guidanceDiv = document.createElement('div');
+            guidanceDiv.style.cssText = "background: #ff4757; color: white; padding: 15px; border-radius: 10px; margin-top: 20px; font-size: 13px; text-align: center; border: 1px solid rgba(255,255,255,0.2);";
+            guidanceDiv.innerHTML = `
+                <b>⚠️ Connection Tip for Senpai:</b><br>
+                If the avatar doesn't move, click the <b>Lock (🔒)</b> in your address bar,<br>
+                go to <b>Site Settings</b>, and set <b>"Insecure content"</b> to <b>Allow</b>.
+            `;
+            document.querySelector('.sidebar').appendChild(guidanceDiv);
+        }
+    }
 </script>
 </body>
 </html>

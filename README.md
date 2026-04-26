@@ -17,11 +17,10 @@ Experience the full power of Talking Head Anime 4 directly in your browser:
 
 ### ✨ Web Features:
 - **Zero Install**: Runs 100% on your device using TensorFlow.js.
-- **Privacy First**: All processing happens locally in your browser. No video is ever sent to a server.
+- **Auto-Elite Detection**: Automatically scales performance based on your CPU/RAM.
+- **Smart Setup Guidance**: In-app tips to fix common browser security and connection issues.
+- **Privacy First**: All processing happens locally in your browser.
 - **Smart Account**: Automatically remembers your last used model and settings.
-- **Potato Mode**: Optimized performance for older hardware and low-end PCs.
-- **Expressive Tracking**: Powered by MediaPipe FaceLandmarker for high-precision motion capture.
-- **Distilled Models**: Uses ultra-lightweight student models (< 2MB) for real-time 30+ FPS performance.
 
 ---
 
