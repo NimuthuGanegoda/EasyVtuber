@@ -409,8 +409,8 @@ class LauncherPanel(wx.Panel):
                   mapping=['inf', '3.0', '5.0', '7.0'])
 
         addOption('output', title='Output', desc='Select video output target',
-                  choices=['Spout2', 'OBS VirtualCam', 'Debug Output'],
-                  mapping=[0, 1, 2])
+                  choices=['Spout2', 'OBS VirtualCam', 'Debug Output', 'Web Server (Browser)'],
+                  mapping=[0, 1, 2, 3])
 
         addOption('use_tensorrt', title='TensorRT Acceleration',
                   desc='Faster performance, longer startup (NVIDIA GPU only)',
@@ -660,6 +660,8 @@ class LauncherPanel(wx.Panel):
                 run_args.append('--output_virtual_cam')
             elif args['output'] == 2:
                 run_args.append('--output_debug')
+            elif args['output'] == 3:
+                run_args.append('--output_web')
 
             if args['is_alpha_split']:
                 run_args.append('--alpha_split')

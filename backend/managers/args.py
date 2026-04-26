@@ -30,6 +30,7 @@ parser.add_argument('--breath_cycle', type=float, default=float('inf'))
 parser.add_argument('--output_virtual_cam', action='store_true')
 parser.add_argument('--output_spout2', action='store_true')
 parser.add_argument('--output_debug', action='store_true')
+parser.add_argument('--output_web', action='store_true', help='Output as MJPEG stream over HTTP')
 
 parser.add_argument('--alpha_split', action='store_true')
 parser.add_argument('--bongo', action='store_true')
@@ -78,7 +79,7 @@ else:
 if args.simplify == 0:
     args.max_ram_cache_len = 0 # Disable cacher if simplify is Off
 
-if not args.output_virtual_cam and not args.output_spout2: 
+if not args.output_virtual_cam and not args.output_spout2 and not args.output_web: 
     args.output_debug = True # Default to debug output
 
 if args.output_spout2:

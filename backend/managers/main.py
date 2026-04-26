@@ -69,7 +69,7 @@ def main():
     infer_process.start()
 
     cam_width_scale = 2 if args.alpha_split else 1
-    ret_channels = 3 if args.output_virtual_cam or args.output_debug else 4
+    ret_channels = 3 if args.output_virtual_cam or args.output_debug or args.output_web else 4
     ret_batch_shm_channels = [
         SharedMemoryGuard(infer_process.ret_shared_mem, ctrl_name=f"ret_shm_ctrl_batch_{i}")
         for i in range(args.interpolation_scale)
@@ -96,6 +96,10 @@ def main():
         from PySpout import SpoutSender
         spout_sender = SpoutSender("EasyVtuber", cam_width_scale * args.model_output_size,
                                    args.model_output_size, GL_RGBA)
+    elif args.output_web:
+        from .web_server import start_server
+        start_server(port=8000)
+        print("Using Web Server for output display on http://localhost:8000/")
     else:
         print("Using OpenCV windows for output display.")
 
@@ -133,6 +137,9 @@ def main():
                 virtual_cam.send(np_ret_shms[i])
             elif args.output_spout2:
                 spout_sender.send_image(np_ret_shms[i], False)
+            elif args.output_web:
+                from .web_server import send_frame
+                send_frame(np_ret_shms[i])
             else:
                 cv2.imshow("EasyVtuber Debug Frame", np_ret_shms[i])
                 cv2.waitKey(1)

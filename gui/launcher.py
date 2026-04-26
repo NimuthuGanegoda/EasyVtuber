@@ -148,8 +148,8 @@ def launch():
         elif args['output'] == 3:
             run_args.append('--output_webcam')
             run_args.append('spout')
-        elif args['output'] == 2:
-            run_args.append('--debug')
+        elif args['output'] == 4:
+            run_args.append('--output_web')
         if args['is_alpha_split']:
             run_args.append('--alpha_split')
         if args['is_extend_movement']:

@@ -18,3 +18,5 @@ torch
 OneEuroFilter
 sounddevice
 brotli
+fastapi
+uvicorn
