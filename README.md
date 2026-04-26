@@ -10,10 +10,32 @@ EasyVtuber has been upgraded to run entirely in your web browser. No Python, no 
 
 ---
 
-## 🌐 Live Web App (Pure Client-Side)
+## 🌐 Live Web App
 
-Experience the full power of Talking Head Anime 4 directly in your browser:
 👉 **[https://NimuthuGanegoda.github.io/EasyVtuber/](https://NimuthuGanegoda.github.io/EasyVtuber/)**
+
+### 🛠️ Fix: "Loading..." Problem
+If the page stays on "Loading Elite Experience...", it is usually because the AI models are quite large (~20MB). 
+1. **Wait:** Give it 30-60 seconds on the first load.
+2. **WebGPU/WebGL:** Ensure your browser has **Hardware Acceleration** enabled in settings.
+3. **CORS/Mixed Content:** If you connect a local backend, click the **Lock (🔒)** icon in your browser, go to **Site Settings**, and set **"Insecure content"** to **Allow**.
+
+---
+
+## 🎧 Connect to Discord / Streaming
+
+To use your "Elite" avatar in Discord, Zoom, or OBS:
+
+### Method 1: Desktop (Highest Quality)
+1. Use the version in the `/desktop` folder.
+2. Select **"OBS VirtualCam"** or **"Spout2"** as the Output in the launcher.
+3. In Discord settings, select **"OBS Virtual Camera"** as your webcam.
+
+### Method 2: Web (Pure Browser)
+1. Open the [Live Web App](https://NimuthuGanegoda.github.io/EasyVtuber/).
+2. Use **OBS Studio** to capture your browser window ("Window Capture").
+3. Click **"Start Virtual Camera"** in OBS.
+4. In Discord, select **"OBS Virtual Camera"**.
 
 ### ✨ Web Features:
 - **Zero Install**: Runs 100% on your device using TensorFlow.js.
