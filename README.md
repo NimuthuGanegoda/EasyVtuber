@@ -10,13 +10,18 @@ EasyVtuber is an elite, autonomous AI VTubing suite. Now reorganized for modular
 
 ---
 
-## 🌐 Web Output & Live Link
+## 🌐 Live Web App
 
 You can now stream your VTuber directly to any web browser.
 
-- **Live Web App:** [https://NimuthuGanegoda.github.io/EasyVtuber/](https://NimuthuGanegoda.github.io/EasyVtuber/)
-- **Local Access:** `http://localhost:8000`
-- **Mobile Setup:** Open the Live Web App on your phone and enter your PC's local IP address to see your avatar!
+- **Live Link:** [https://NimuthuGanegoda.github.io/EasyVtuber/](https://NimuthuGanegoda.github.io/EasyVtuber/)
+
+### ⚠️ Security Note (Mixed Content)
+Since GitHub Pages is **HTTPS** and your local PC is **HTTP**, your browser might block the video.
+1. Click the **Lock icon** 🔒 (or Shield) in your browser's address bar.
+2. Select **Site Settings**.
+3. Set **"Insecure content"** to **Allow**.
+4. Refresh the page to see your avatar!
 
 ## 📂 Project Structure
 
