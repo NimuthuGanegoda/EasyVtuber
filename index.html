@@ -141,7 +141,7 @@
             color: var(--primary);
         }
 
-        /* --- Custom Sliders (Simplified for jQuery UI compatibility) --- */
+        /* --- Custom Sliders --- */
         .ui-slider {
             background: rgba(255, 255, 255, 0.1) !important;
             border: none !important;
@@ -174,7 +174,6 @@
             justify-content: center;
         }
 
-        /* Responsive Mobile Styles */
         @media (max-width: 900px) {
             body { flex-direction: column; overflow-y: auto; height: auto; }
             .sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--border); }
@@ -184,8 +183,31 @@
 </head>
 <body>
 
+<!-- Hidden Required Elements for the JS Bundle to function -->
+<input type="hidden" id="pageName" value="main">
+<div id="hidden-required-elements" style="display:none">
+    <div id="irisSizeRightSlider"></div>
+    <div id="breathingFrequencySlider"></div>
+    <div id="breathingProgressBar"></div>
+    <input id="smileThresholdMinSpinner">
+    <input id="smileThresholdMaxSpinner">
+    <input id="eyeSurprisedMaxSpinner">
+    <input id="eyeBlinkMaxSpinner">
+    <input id="eyebrowDownMaxSpinner">
+    <input id="cheekSquintMinSpinner">
+    <input id="cheekSquintMaxSpinner">
+    <input id="jawOpenMinSpinner">
+    <input id="jawOpenMaxSpinner">
+    <input id="mouthFrownMaxSpinner">
+    <input id="mouthFunnelMinSpinner">
+    <input id="mouthFunnelMaxSpinner">
+</div>
+
 <div id="loading">
-    <img id="loading-image" src="assets/ajax-loader.gif" alt="Loading Elite Experience..." />
+    <div style="text-align:center">
+        <img id="loading-image" src="assets/ajax-loader.gif" alt="Loading Elite Experience..." /><br>
+        <div style="margin-top:20px; color:var(--primary); font-size:12px; letter-spacing:2px;">INITIALIZING ELITE ENGINE</div>
+    </div>
 </div>
 
 <aside class="sidebar">
@@ -240,7 +262,7 @@
         <!-- Input Preview -->
         <div class="viewport" style="width: 320px; border-radius: 20px;">
             <video id="video" style="display:none"></video>
-            <canvas id="videoCanvas" width="320" height="240"></canvas>
+            <canvas id="videoCanvas" width="640" height="480" style="width:100%; height:auto;"></canvas>
             <div style="position: absolute; bottom: 10px; left: 20px; font-size: 10px; opacity: 0.5;">INPUT TRACKING</div>
         </div>
 
@@ -254,8 +276,8 @@
 
     <div class="control-group" style="margin-top: 30px; width: 320px;">
         <div class="control-label" style="text-align: center;">Active Avatar</div>
-        <select id="characterSelector">
-            <option value="lambda_chan" selected>Lambda-chan (Default)</option>
+        <select name="characterSelect" id="characterSelector">
+            <option value="lambda_chan" selected>Lambda-chan</option>
             <option value="lambda_san">Lambda-san</option>
             <option value="haru">Haru</option>
             <option value="kisaragi_asato">Kisaragi Asato</option>
@@ -324,34 +346,13 @@
     loadSavedData();
     autoDetectElite();
 
-    // --- Auto-Detection & Smart Guidance ---
     function autoDetectElite() {
-        const status = document.getElementById('status') || document.getElementById('inferrenceTimeCell');
-        
-        // 1. Detect Hardware Power (very basic heuristic)
-        const cores = navigator.hardwareConcurrency || 4;
-        const ram = navigator.deviceMemory || 4;
-        
-        if (!localStorage.getItem(STORAGE_KEY)) {
-            if (cores < 4 || ram < 4) {
-                perfSelector.value = 'potato';
-                applyPerformanceSettings('potato');
-                console.log("🌸 Auto-detected 'Potato' hardware.");
-            } else {
-                perfSelector.value = 'elite';
-                applyPerformanceSettings('elite');
-                console.log("🌸 Auto-detected 'Elite' hardware.");
-            }
-            saveData();
-        }
-
-        // 2. Check for Mixed Content (HTTPS -> HTTP)
         if (location.protocol === 'https:') {
             const guidanceDiv = document.createElement('div');
             guidanceDiv.style.cssText = "background: #ff4757; color: white; padding: 15px; border-radius: 10px; margin-top: 20px; font-size: 13px; text-align: center; border: 1px solid rgba(255,255,255,0.2);";
             guidanceDiv.innerHTML = `
-                <b>⚠️ Connection Tip for Senpai:</b><br>
-                If the avatar doesn't move, click the <b>Lock (🔒)</b> in your address bar,<br>
+                <b>⚠️ Connection Tip:</b><br>
+                If tracking doesn't start, please click the <b>Lock (🔒)</b> in your address bar,<br>
                 go to <b>Site Settings</b>, and set <b>"Insecure content"</b> to <b>Allow</b>.
             `;
             document.querySelector('.sidebar').appendChild(guidanceDiv);
