@@ -3,7 +3,7 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-green)](https://github.com/NimuthuGanegoda/EasyVtuber)
-[![Web Stream](https://img.shields.io/badge/Web-Live_Stream_🌐-orange)](https://NimuthuGanegoda.github.io/EasyVtuber/web/)
+[![Web Stream](https://img.shields.io/badge/Web-Live_Stream_🌐-orange)](https://NimuthuGanegoda.github.io/EasyVtuber/)
 [![NPU Optimized](https://img.shields.io/badge/NPU-Intel_Core_Ultra_⚡-blue)](docs/NPU_OPTIMIZATION_GUIDE.md)
 
 EasyVtuber is an elite, autonomous AI VTubing suite. Now reorganized for modularity and performance, it bridges the gap between complex VTuber rigs and "Super Lite" hardware.
@@ -14,7 +14,7 @@ EasyVtuber is an elite, autonomous AI VTubing suite. Now reorganized for modular
 
 You can now stream your VTuber directly to any web browser.
 
-- **Live Web App:** [https://NimuthuGanegoda.github.io/EasyVtuber/web/](https://NimuthuGanegoda.github.io/EasyVtuber/web/)
+- **Live Web App:** [https://NimuthuGanegoda.github.io/EasyVtuber/](https://NimuthuGanegoda.github.io/EasyVtuber/)
 - **Local Access:** `http://localhost:8000`
 - **Mobile Setup:** Open the Live Web App on your phone and enter your PC's local IP address to see your avatar!
 
