@@ -10,13 +10,13 @@ import tha3.poser.modes.standard_half
 import tha3.poser.modes.separable_half
 from torch.nn.functional import interpolate
 
-from args import args
+from backend.managers.args import args
 
 from collections import OrderedDict
 
 # THA4 适配器导入
 try:
-    from tha4_adapter import THA4Wrapper
+    from tha4.tha4_adapter import THA4Wrapper
     THA4_AVAILABLE = True
 except ImportError:
     THA4_AVAILABLE = False

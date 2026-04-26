@@ -2,8 +2,8 @@ from multiprocessing import Process, shared_memory, Value
 import numpy as np
 import time
 import math
-from .utils.timer_wait import wait_until
-from .utils.shared_mem_guard import SharedMemoryGuard
+from ..utils.timer_wait import wait_until
+from ..utils.shared_mem_guard import SharedMemoryGuard
 from .args import args
 
 class DebugInputClientProcess(Process):

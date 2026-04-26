@@ -114,7 +114,10 @@ def launch():
         p = None
         launch_btn.config(text="Save & Launch")
     else:
-        run_args = [sys.executable, 'main.py']
+        python_exe = sys.executable
+        project_root = os.path.normpath(os.path.join(os.path.dirname(__file__), '..'))
+        main_script = os.path.join(project_root, 'main.py')
+        run_args = [python_exe, main_script]
         if len(args['character']):
             run_args.append('--character')
             run_args.append(args['character'])

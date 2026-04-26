@@ -6,9 +6,9 @@ import numpy as np
 import time
 from .ezvtb_rt_interface import get_core
 from .args import args
-from .utils.shared_mem_guard import SharedMemoryGuard
-from .utils.pose_simplify import pose_simplify
-from .utils.fps import FPS, Interval
+from ..utils.shared_mem_guard import SharedMemoryGuard
+from ..utils.pose_simplify import pose_simplify
+from ..utils.fps import FPS, Interval
 from typing import List
 
 class ModelClientProcess(Process):

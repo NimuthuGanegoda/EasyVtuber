@@ -2,8 +2,8 @@ import os
 import sys
 from .args import args
 dir_path = os.path.dirname(os.path.realpath(__file__))
-ezvtb_path = os.path.join(dir_path, "..", "ezvtuber-rt")
-ezvtb_main_path = os.path.join(dir_path, "..", 'ezvtuber-rt-main')
+ezvtb_path = os.path.normpath(os.path.join(dir_path, "..", "..", "ezvtuber-rt"))
+ezvtb_main_path = os.path.normpath(os.path.join(dir_path, "..", "..", 'ezvtuber-rt-main'))
 
 project_path = ''
 if os.path.exists(ezvtb_path):
@@ -16,7 +16,7 @@ if project_path not in sys.path:
 
 # Initialize model data path to point to data/models directory
 import ezvtb_rt
-models_path = os.path.join(dir_path, '..', 'data', 'models')
+models_path = os.path.normpath(os.path.join(dir_path, '..', '..', 'data', 'models'))
 ezvtb_rt.init_model_path(models_path)
 
 def get_core(

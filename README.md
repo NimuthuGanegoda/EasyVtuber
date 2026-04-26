@@ -1,90 +1,79 @@
-# EasyVtuber  
+# 🌸 EasyVtuber: The Elite & Lite AI Companion
 
-> Spend your money on a better GPU instead of an expensive VTuber rig!
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-green)](https://github.com/NimuthuGanegoda/EasyVtuber)
+[![NPU Optimized](https://img.shields.io/badge/NPU-Intel_Core_Ultra_⚡-blue)](docs/NPU_OPTIMIZATION_GUIDE.md)
 
-![OBS Record With Transparent Virtual Cam Input](assets/new_sample.gif)
-
-This is a fork of [GunwooHan/EasyVtuber](https://github.com/GunwooHan/EasyVtuber).  
-We have backported the iOS face tracking logic from the original [talking-head-anime-2-demo](https://github.com/pkhungurn/talking-head-anime-2-demo) to improve tracking quality. By using a direct UDP connection, we've achieved 60fps face tracking on iPhone, removing the bottleneck of the standard iFacialMocap PC client.
-
-Finally, we've added custom shader support for OBS virtual cameras, unlocking native RGBA output without needing a green screen.
-
-## Major Updates
-* **TensorRT & DirectML Support**: Accelerated ONNX models for Nvidia, AMD, and Intel GPUs (including latest **Intel NPUs**).
-* **RIFE Frame Interpolation**: Boosts FPS by 50-100%, allowing for much smoother motion on slower hardware.
-* **Smart Caching**: Uses `brotli` compression to significantly reduce GPU load during long sessions.
-* **Super Resolution**: Integrated `waifu2x` and `real-esrgan` for crystal clear output.
-* **New Launcher**: Beautiful WxPython-based interface in English.
-* **Spout2 Support**: Native transparent output directly to OBS.
-* **THA V4 Support**: Includes the latest Talking Head Animation v4 models.
-
-## Requirements
-
-### Hardware
-- **Tracking**: Mouse tracking (no camera needed), USB Webcam, or iPhone (iFacialMocap app).
-- **GPU**: Most dedicated GPUs from the last 5 years (Nvidia/AMD/Intel). High-end integrated graphics (Intel Iris Xe/Arc) are also supported. See [Performance Test](PerformanceTest.md).
-
-### Software
-- Windows 10/11
-- OBS Studio (for streaming/recording)
-- Photoshop (to prepare your character images)
-
-## Quick Start (Pre-built Package)
-Download the latest all-in-one package from our releases or the following mirrors:
-* [Google Drive](https://drive.google.com/drive/folders/1cYj18EfVQ2Cl348_rkCu_fgaasHTI_io?usp=drive_link)
-
-### 1. Install Spout2 OBS Plugin (Optional)
-Recommended for native transparency. Download the installer from [Off-World-Live/obs-spout2-plugin](https://github.com/Off-World-Live/obs-spout2-plugin/releases).
-
-### 2. Launch
-Double-click `01A.Launcher.bat` or `01B.Launcher_Debug.bat`.
-
-## Input/Output Methods
-
-### Spout2 Output (Recommended)
-Native transparent background. Set the "Composite Mode" to **Premultiplied Alpha** in the OBS Spout2 source settings.
-
-### iFacialMocap (Best Tracking)
-Uses iPhone's TrueDepth camera. Enter your phone's IP in the launcher (default port 49983). Ensure your PC and phone are on the same local network.
-
-### OpenSeeFace (High Precision Webcam)
-Best for users without an iPhone. Download [OpenSeeFace](https://github.com/emilianavt/OpenSeeFace/releases), run `run.bat` with `--model 4`, and set the launcher input to `127.0.0.1:11573`.
-
-### Intel NPU Optimization
-If you have an **Intel Core Ultra** processor, you can run this project on your NPU via DirectML to save battery and GPU power. See [Performance Test](PerformanceTest.md) for details.
-
-## Installation (for Developers)
-
-1. **Install Anaconda**: [anaconda.com](https://www.anaconda.com)
-2. **Setup Conda Environment**:
-   ```bash
-   conda create -y -n easyvtuber python=3.10
-   conda activate easyvtuber
-   conda install conda-forge::pycuda
-   conda install -c nvidia/label/cuda-12.9.1 cuda-nvcc-dev_win-64 cudnn cuda-runtime
-   ```
-3. **Clone & Install Dependencies**:
-   ```bash
-   git clone https://github.com/NimuthuGanegoda/EasyVtuber.git
-   cd EasyVtuber
-   git submodule update --init --recursive
-   pip install -r requirements.txt
-   ```
-4. **Download Models**: Place models in `data/models` from [this link](https://drive.google.com/file/d/1pWKIpjWeqfpa3Rub185FVvxDr5H09pOi/view?usp=drive_link).
-
-## FAQ
-
-**Q: I have an AMD/Intel GPU and the image looks distorted.**
-A: This is often a DirectML driver issue. Ensure your drivers are up to date. Try switching model precision (Half vs Full) in the launcher.
-
-**Q: How do I use my own character?**
-A: Place a 512x512 PNG with transparency in `data/images`. It should then appear in the launcher dropdown.
-
-**Q: Why doesn't Task Manager show GPU load?**
-A: Some AI tasks show up under "Compute" or "Video Processing" instead of "3D". Click the graph name in Task Manager to change the view.
+EasyVtuber is an elite, autonomous AI VTubing suite. Now reorganized for modularity and performance, it bridges the gap between complex VTuber rigs and "Super Lite" hardware.
 
 ---
-## References
-* [Talking Head Anime 3](http://pkhungurn.github.io/talking-head-anime-3/)
-* [RIFE: Real-Time Intermediate Flow Estimation](https://github.com/hzwer/ECCV2022-RIFE)
-* [Real-ESRGAN](https://github.com/xinntao/Real-ESRGAN)
+
+## 📂 Project Structure
+
+Re-engineered for clarity and cross-platform compatibility:
+- **`backend/`**: Core animation engines (THA2/3/4) and real-time managers.
+- **`gui/`**: Modular launchers for Windows and Linux.
+- **`data/`**: Centralized models, character images, and assets.
+- **`requirements/`**: Optimized dependency lists for ultra-lite installation.
+- **`scripts/`**: Utility scripts for maintenance and setup.
+
+---
+
+## ✨ Elite Features
+
+| Feature | Description |
+| :--- | :--- |
+| ⚡ **Hardware Accelerated** | Native support for **Intel NPU**, **Apple Silicon (Metal)**, **NVIDIA (TensorRT)**, and **AMD (DirectML)**. |
+| 🎬 **THA v4 Support** | Integrated Talking Head Animation v4 for the most expressive anime movement. |
+| 🏎️ **RIFE Interpolation** | Boost your FPS by 50-100% on low-end "Potato" hardware. |
+| 📱 **UDP iPhone Link** | 60FPS high-precision face tracking via UDP direct connection. |
+| 🧠 **Smart Caching** | Uses `brotli` to bypass GPU overhead when your face isn't moving. |
+
+---
+
+## 🛠️ Complete Installation Guide
+
+### 🚀 Automatic Install (Recommended)
+This script installs everything using `uv` for lightning speed and auto-configures your hardware backend.
+
+**Windows:**
+```cmd
+install_reqs.bat
+```
+
+**Linux / macOS:**
+```bash
+chmod +x install_reqs.sh
+./install_reqs.sh
+```
+
+---
+
+## 🧪 Usage
+
+### 💬 Unified Launcher
+The best way to start is through the modern GUI:
+```bash
+python gui/launcher2.py
+```
+
+### ⚡ Direct Mode (Lite)
+Start directly from the root with minimal overhead:
+```bash
+python main.py --character your_character_name
+```
+
+---
+
+## 🚀 Hardware Optimization
+
+- **Intel Core Ultra:** Automatically uses the **NPU** via OpenVINO/DirectML.
+- **Mac M1/M2/M3:** Native **Apple Silicon** support for Metal acceleration.
+- **AMD/NVIDIA:** High-performance **DirectML/TensorRT** backends.
+- **Potato Mode:** Highly quantized models and "Half" precision modes for low-end CPUs.
+
+---
+
+## 📜 License
+MIT © GunwooHan. Enhanced & Re-Engineered by Nimuthu.

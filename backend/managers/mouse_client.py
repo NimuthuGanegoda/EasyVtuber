@@ -4,11 +4,11 @@ import numpy as np
 import time
 import sounddevice as sd
 from .args import args
-from .utils.shared_mem_guard import SharedMemoryGuard
-from .utils.timer_wait import wait_until
+from ..utils.shared_mem_guard import SharedMemoryGuard
+from ..utils.timer_wait import wait_until
 from OneEuroFilter import OneEuroFilter
-from .utils.fps import FPS
-from .utils.timer_wait import wait_until
+from ..utils.fps import FPS
+from ..utils.timer_wait import wait_until
 
 class MouseClientProcess(Process):
     def __init__(self, pose_position_shm: shared_memory.SharedMemory):

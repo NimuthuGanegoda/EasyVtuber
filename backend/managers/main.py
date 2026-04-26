@@ -2,20 +2,22 @@ import numpy as np
 import time
 from .model_infer_client import ModelClientProcess
 from .args import args
-from .utils.preprocess import resize_to_512_center, apply_color_curves
+from ..utils.preprocess import resize_to_512_center, apply_color_curves
 import cv2
-from .utils.shared_mem_guard import SharedMemoryGuard
+from ..utils.shared_mem_guard import SharedMemoryGuard
 from multiprocessing import shared_memory
-from .utils.timer_wait import wait_until
+from ..utils.timer_wait import wait_until
 from PIL import Image
-from .utils.fps import FPS
+from ..utils.fps import FPS
 import pyvirtualcam
 from OpenGL.GL import GL_RGBA
 
 
 def main():
-    # Load character image
-    img = Image.open(f"data/images/{args.character}.png")
+    # Load character image - Robust path
+    project_root = os.path.normpath(os.path.join(os.path.dirname(__file__), '..', '..'))
+    image_path = os.path.join(project_root, 'data', 'images', f"{args.character}.png")
+    img = Image.open(image_path)
     img = img.convert('RGBA')
     ow, oh = img.size
     for i, px in enumerate(img.getdata()):

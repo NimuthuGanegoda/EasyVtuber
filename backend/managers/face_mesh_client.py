@@ -3,10 +3,10 @@ from multiprocessing import Process, shared_memory, Value
 import cv2
 import numpy as np
 from .args import args
-from .utils.shared_mem_guard import SharedMemoryGuard
-from .utils.pose import get_pose
-from .utils.fps import FPS
-from .utils.filter import OneEuroFilterNumpy
+from ..utils.shared_mem_guard import SharedMemoryGuard
+from ..utils.pose import get_pose
+from ..utils.fps import FPS
+from ..utils.filter import OneEuroFilterNumpy
 from OneEuroFilter import OneEuroFilter
 import time
 

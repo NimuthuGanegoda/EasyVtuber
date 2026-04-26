@@ -611,7 +611,11 @@ class LauncherPanel(wx.Panel):
             python_exe = sys.executable
             if 'pythonw' in python_exe.lower():
                 python_exe = python_exe.replace('pythonw.exe', 'python.exe').replace('pythonw', 'python')
-            run_args = [python_exe, '-m', 'src.main']
+            
+            # Call the new root main.py
+            project_root = os.path.normpath(os.path.join(os.path.dirname(__file__), '..'))
+            main_script = os.path.join(project_root, 'main.py')
+            run_args = [python_exe, main_script]
             if len(args['character']):
                 run_args.append('--character')
                 run_args.append(args['character'])

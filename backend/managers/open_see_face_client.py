@@ -3,9 +3,9 @@ from .args import args
 import socket
 import struct
 import numpy as np
-from .utils.shared_mem_guard import SharedMemoryGuard
-from .utils.fps import FPS
-from .utils.filter import OneEuroFilterNumpy
+from ..utils.shared_mem_guard import SharedMemoryGuard
+from ..utils.fps import FPS
+from ..utils.filter import OneEuroFilterNumpy
 from OneEuroFilter import OneEuroFilter
 import time
 

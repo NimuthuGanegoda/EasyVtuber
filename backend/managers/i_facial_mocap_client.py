@@ -1,15 +1,15 @@
 from multiprocessing import Process, shared_memory, Value
 from .args import args
-from .utils.timer_wait import wait_until
-from .utils.shared_mem_guard import SharedMemoryGuard
+from ..utils.timer_wait import wait_until
+from ..utils.shared_mem_guard import SharedMemoryGuard
 import socket
 import errno
 import numpy as np
 import time
 import tha2.poser.modes.mode_20_wx
 from tha2.mocap.ifacialmocap_constants import *
-from .utils.fps import FPS
-from .utils.filter import OneEuroFilterNumpy
+from ..utils.fps import FPS
+from ..utils.filter import OneEuroFilterNumpy
 ifm_converter = tha2.poser.modes.mode_20_wx.IFacialMocapPoseConverter20()
 
 class IFMClientProcess(Process):
