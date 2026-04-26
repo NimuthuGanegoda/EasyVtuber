@@ -389,6 +389,11 @@
     loadSavedData();
     autoDetectElite();
 
+    setTimeout(() => {
+        const ld = document.getElementById('loading');
+        if (ld) ld.style.display = 'none';
+    }, 15000);
+
     function autoDetectElite() {
         if (location.protocol === 'https:') {
             const guidanceDiv = document.createElement('div');
