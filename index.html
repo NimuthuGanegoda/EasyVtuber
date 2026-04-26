@@ -158,31 +158,24 @@
             outline: none !important;
         }
 
-        /* --- Windows 11 Spinner --- */
+        /* --- Authentic Windows 11 Fluent Spinner --- */
         .win11-spinner {
             position: relative;
-            width: 60px;
-            height: 60px;
+            width: 50px;
+            height: 50px;
             margin: 0 auto;
         }
 
         .win11-spinner .dot {
             position: absolute;
-            width: 100%;
-            height: 100%;
-            opacity: 0;
-            animation: win11-spin 2.5s infinite;
-        }
-
-        .win11-spinner .dot::after {
-            content: "";
-            position: absolute;
-            width: 6px;
-            height: 6px;
+            width: 5px;
+            height: 5px;
             background-color: var(--primary);
             border-radius: 50%;
-            left: 50%;
-            transform: translateX(-50%);
+            opacity: 0;
+            /* Rotate around the center of the 50x50 container */
+            transform-origin: 25px 25px; 
+            animation: win11-orbit 4.5s infinite cubic-bezier(0.17, 0.67, 0.83, 0.67);
         }
 
         .win11-spinner .dot:nth-child(1) { animation-delay: 0.1s; }
@@ -191,13 +184,14 @@
         .win11-spinner .dot:nth-child(4) { animation-delay: 0.4s; }
         .win11-spinner .dot:nth-child(5) { animation-delay: 0.5s; }
 
-        @keyframes win11-spin {
+        @keyframes win11-orbit {
             0% { transform: rotate(225deg); opacity: 1; animation-timing-function: ease-out; }
-            7.5% { transform: rotate(345deg); animation-timing-function: linear; }
+            7% { transform: rotate(345deg); animation-timing-function: linear; }
             30% { transform: rotate(455deg); animation-timing-function: ease-in-out; }
-            40% { transform: rotate(570deg); animation-timing-function: linear; }
-            70% { transform: rotate(710deg); animation-timing-function: ease-in-out; opacity: 1; }
-            75% { transform: rotate(825deg); animation-timing-function: ease-out; }
+            39% { transform: rotate(690deg); animation-timing-function: linear; }
+            70% { transform: rotate(815deg); opacity: 1; animation-timing-function: ease-out; }
+            75% { transform: rotate(945deg); animation-timing-function: ease-out; }
+            76% { transform: rotate(945deg); opacity: 0; }
             100% { transform: rotate(945deg); opacity: 0; }
         }
 
