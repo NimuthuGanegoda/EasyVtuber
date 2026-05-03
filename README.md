@@ -46,13 +46,28 @@ To use your "Elite" avatar in Discord, Zoom, or OBS:
 
 ---
 
-## 📂 Project Re-Architecture
+## 🚀 New: Elite V2 (TypeScript + React + Wasm)
 
-To support both "Elite" local performance and "Pure Web" accessibility, the project is now structured as follows:
+The "Elite Edition" has been rewritten for maximum performance on modern browsers using **React** and **MediaPipe Wasm**.
 
-- **`/` (Root)**: The **Pure Web App**. Host this on GitHub Pages for an instant VTuber website.
-- **`/desktop`**: The **High-Performance Desktop Suite**. Use this for NVIDIA TensorRT, Intel NPU (OpenVINO), and AMD DirectML acceleration.
-- **`/data`**: Web-optimized character models and assets.
+### ✨ V2 Features:
+- **Modular Core**: Replaced the heavy JS bundle with a sleek React/TypeScript architecture.
+- **Wasm Acceleration**: MediaPipe tracking now runs in high-performance WebAssembly.
+- **Vite Pipeline**: Instant-on development and optimized builds.
+- **Hyper-Potato Mode**: Dedicated optimizations for ancient Intel hardware.
+
+### 🛠️ How to run V2:
+1. Navigate to the `web` folder.
+2. Run `npm install` and `npm run dev`.
+3. Open the provided local link.
+
+---
+
+## 📂 Project Structure
+- **`/` (Root)**: Legacy Pure Web App (Legacy JS Bundle).
+- **`/web`**: **Elite V2 Web App (React + TS)** - *Recommended for performance*.
+- **`/desktop`**: Python Desktop Suite (PyTorch/OpenVINO).
+- **`/dist`**: Built production files for the V2 web app.
 
 ---
 
