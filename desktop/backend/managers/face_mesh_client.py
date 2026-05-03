@@ -18,7 +18,7 @@ class FaceMeshClientProcess(Process):
         self.fps = Value('f', 0.0)
 
     def run(self):
-        facemesh = mp.solutions.face_mesh.FaceMesh(refine_landmarks=True)
+        facemesh = mp.solutions.face_mesh.FaceMesh(refine_landmarks=False, max_num_faces=1)
         pose_position_shm_guard = SharedMemoryGuard(self.pose_position_shm, ctrl_name="pose_position_shm_ctrl")
         np_pose_shm = np.ndarray((45,), dtype=np.float32, buffer=self.pose_position_shm.buf[:45 * 4])
         np_position_shm = np.ndarray((4,), dtype=np.float32, buffer=self.pose_position_shm.buf[45 * 4:45 * 4 + 4 * 4])

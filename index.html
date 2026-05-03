@@ -320,8 +320,8 @@
     <div class="control-section">
         <div class="label">Performance Mode</div>
         <select id="perfModeSelector">
-            <option value="potato">🥔 Potato (Legacy)</option>
-            <option value="balanced" selected>⚖️ Balanced</option>
+            <option value="potato" selected>🥔 Potato (Fastest)</option>
+            <option value="balanced">⚖️ Balanced</option>
             <option value="elite">💎 Elite (NPU/GPU)</option>
         </select>
     </div>
@@ -453,13 +453,39 @@
 
     // Persist settings
     const characterSelector = document.getElementById('characterSelector');
+    const perfModeSelector = document.getElementById('perfModeSelector');
+
+    function applyPerformanceSettings(mode) {
+        const outputCanvas = document.getElementById('outputImage');
+        if (mode === 'potato') {
+            outputCanvas.style.width = '256px';
+            outputCanvas.style.height = '256px';
+            log('Hyper-Potato mode active: Output scale 50%');
+        } else if (mode === 'balanced') {
+            outputCanvas.style.width = '384px';
+            outputCanvas.style.height = '384px';
+        } else {
+            outputCanvas.style.width = '512px';
+            outputCanvas.style.height = '512px';
+        }
+    }
+
+    perfModeSelector.addEventListener('change', () => {
+        localStorage.setItem('elite_perf_mode', perfModeSelector.value);
+        applyPerformanceSettings(perfModeSelector.value);
+    });
+
     characterSelector.addEventListener('change', () => {
         localStorage.setItem('elite_last_char', characterSelector.value);
     });
 
-    // Auto-load last char
+    // Auto-load last settings
     const lastChar = localStorage.getItem('elite_last_char');
     if (lastChar) characterSelector.value = lastChar;
+
+    const lastPerf = localStorage.getItem('elite_perf_mode') || 'potato';
+    perfModeSelector.value = lastPerf;
+    applyPerformanceSettings(lastPerf);
 
     // Simple FPS counter hook
     let lastFrameTime = performance.now();
