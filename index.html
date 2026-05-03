@@ -3,89 +3,127 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EasyVtuber Elite 🌸</title>
+    <title>EasyVtuber Elite 🌸 | Raiden Edition</title>
     <link rel="stylesheet" href="css/jquery-ui.css">
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
+
         :root {
             --primary: #ffc0cb;
             --accent: #ff69b4;
-            --dark: #0f0f12;
-            --glass: rgba(255, 255, 255, 0.05);
-            --border: rgba(255, 255, 255, 0.1);
+            --dark-bg: #0a0a0c;
+            --panel-bg: rgba(20, 20, 25, 0.7);
+            --glass: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --text-main: #ffffff;
+            --text-dim: rgba(255, 255, 255, 0.5);
+            --neon-glow: 0 0 15px rgba(255, 192, 203, 0.3);
         }
 
         body {
             margin: 0;
             padding: 0;
-            background-color: var(--dark);
-            color: white;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--dark-bg);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
             display: flex;
             height: 100vh;
             overflow: hidden;
+            background-image: 
+                radial-gradient(circle at 20% 30%, rgba(255, 105, 180, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 80% 70%, rgba(255, 192, 203, 0.05) 0%, transparent 40%);
         }
 
-        /* --- Sidebar & Controls --- */
+        /* --- Sidebar --- */
         .sidebar {
             width: 320px;
-            background: var(--glass);
-            backdrop-filter: blur(20px);
-            border-right: 1px solid var(--border);
-            padding: 20px;
+            background: var(--panel-bg);
+            backdrop-filter: blur(30px);
+            border-right: 1px solid var(--glass-border);
+            padding: 24px;
             display: flex;
             flex-direction: column;
-            gap: 20px;
-            overflow-y: auto;
+            gap: 24px;
+            z-index: 10;
+            box-shadow: 10px 0 30px rgba(0,0,0,0.5);
         }
 
-        .logo {
-            font-size: 24px;
-            font-weight: bold;
+        .logo-area {
+            text-align: center;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .logo-text {
+            font-size: 26px;
+            font-weight: 800;
+            letter-spacing: -1px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-weight: 600;
+            background: rgba(255, 105, 180, 0.1);
             color: var(--primary);
-            text-align: center;
-            margin-bottom: 10px;
+            border: 1px solid rgba(255, 105, 180, 0.2);
+            margin-top: 8px;
         }
 
-        .profile-card {
-            background: var(--glass);
-            border: 1px solid var(--border);
-            padding: 15px;
-            border-radius: 15px;
-            text-align: center;
-        }
-
-        .control-group {
+        .control-section {
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 12px;
         }
 
-        .control-label {
-            font-size: 12px;
+        .label {
+            font-size: 11px;
             text-transform: uppercase;
-            letter-spacing: 1px;
-            color: rgba(255, 255, 255, 0.5);
+            letter-spacing: 1.5px;
+            color: var(--text-dim);
+            font-weight: 600;
         }
 
-        select, input[type="button"] {
+        /* --- Custom Inputs --- */
+        select, .btn {
             width: 100%;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid var(--border);
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
             color: white;
-            padding: 10px;
-            border-radius: 10px;
+            padding: 12px 16px;
+            border-radius: 12px;
             outline: none;
             cursor: pointer;
-            transition: 0.3s;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 14px;
         }
 
-        select:hover, input[type="button"]:hover {
-            background: rgba(255, 255, 255, 0.15);
+        select:hover, .btn:hover {
+            background: rgba(255, 255, 255, 0.1);
             border-color: var(--primary);
+            box-shadow: var(--neon-glow);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), #ff1493);
+            border: none;
+            font-weight: 600;
+            color: white;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(255, 20, 147, 0.3);
         }
 
         /* --- Main Stage --- */
-        .main-content {
+        .main-stage {
             flex: 1;
             display: flex;
             flex-direction: column;
@@ -95,134 +133,147 @@
             position: relative;
         }
 
-        .viewport-container {
+        .viewport-wrapper {
             display: flex;
-            gap: 30px;
+            gap: 40px;
             align-items: center;
             justify-content: center;
             width: 100%;
         }
 
-        .viewport {
+        .glass-card {
             background: var(--glass);
-            border: 2px solid var(--border);
-            border-radius: 30px;
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
             overflow: hidden;
-            box-shadow: 0 0 50px rgba(255, 192, 203, 0.15);
             position: relative;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
         }
 
-        .viewport::after {
-            content: "LIVE";
+        .input-preview {
+            width: 280px;
+            aspect-ratio: 4/3;
+        }
+
+        .output-avatar {
+            width: 512px;
+            height: 512px;
+            border: 1px solid rgba(255, 192, 203, 0.2);
+            box-shadow: 0 0 80px rgba(255, 192, 203, 0.1);
+        }
+
+        canvas { display: block; }
+
+        .live-tag {
             position: absolute;
             top: 20px;
             right: 20px;
-            background: red;
+            background: #ff4757;
             padding: 4px 10px;
-            border-radius: 5px;
+            border-radius: 6px;
             font-size: 10px;
-            font-weight: bold;
+            font-weight: 800;
+            color: white;
             animation: pulse 2s infinite;
+            z-index: 5;
         }
 
-        canvas {
-            display: block;
+        /* --- Stats Bar --- */
+        .bottom-bar {
+            position: absolute;
+            bottom: 30px;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            gap: 40px;
         }
 
-        #videoCanvas {
-            border-radius: 15px;
-            opacity: 0.8;
+        .stat-item {
+            text-align: center;
         }
 
-        .stats {
-            margin-top: 20px;
-            font-family: monospace;
-            font-size: 14px;
+        .stat-value {
+            font-size: 18px;
+            font-weight: 600;
             color: var(--primary);
         }
 
-        /* --- Custom Sliders --- */
-        .ui-slider {
-            background: rgba(255, 255, 255, 0.1) !important;
-            border: none !important;
-            height: 6px !important;
-            border-radius: 10px !important;
-        }
-        .ui-slider-handle {
-            background: var(--primary) !important;
-            border: none !important;
-            border-radius: 50% !important;
-            width: 16px !important;
-            height: 16px !important;
-            top: -5px !important;
-            outline: none !important;
+        .stat-label {
+            font-size: 10px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            margin-top: 4px;
         }
 
-        /* --- Authentic Windows 11 Fluent Spinner --- */
-        .win11-spinner {
-            position: relative;
-            width: 50px;
-            height: 50px;
-            margin: 0 auto;
-        }
-
-        .win11-spinner .dot {
-            position: absolute;
-            width: 5px;
-            height: 5px;
-            background-color: var(--primary);
-            border-radius: 50%;
-            opacity: 0;
-            /* Rotate around the center of the 50x50 container */
-            transform-origin: 25px 25px; 
-            animation: win11-orbit 4.5s infinite cubic-bezier(0.17, 0.67, 0.83, 0.67);
-        }
-
-        .win11-spinner .dot:nth-child(1) { animation-delay: 0.1s; }
-        .win11-spinner .dot:nth-child(2) { animation-delay: 0.2s; }
-        .win11-spinner .dot:nth-child(3) { animation-delay: 0.3s; }
-        .win11-spinner .dot:nth-child(4) { animation-delay: 0.4s; }
-        .win11-spinner .dot:nth-child(5) { animation-delay: 0.5s; }
-
-        @keyframes win11-orbit {
-            0% { transform: rotate(225deg); opacity: 1; animation-timing-function: ease-out; }
-            7% { transform: rotate(345deg); animation-timing-function: linear; }
-            30% { transform: rotate(455deg); animation-timing-function: ease-in-out; }
-            39% { transform: rotate(690deg); animation-timing-function: linear; }
-            70% { transform: rotate(815deg); opacity: 1; animation-timing-function: ease-out; }
-            75% { transform: rotate(945deg); animation-timing-function: ease-out; }
-            76% { transform: rotate(945deg); opacity: 0; }
-            100% { transform: rotate(945deg); opacity: 0; }
-        }
-
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
-        }
-
+        /* --- Loading / Debug --- */
         #loading {
             position: fixed;
             inset: 0;
-            background: var(--dark);
-            z-index: 9999;
+            background: var(--dark-bg);
+            z-index: 1000;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
+            transition: opacity 0.5s;
         }
 
-        @media (max-width: 900px) {
-            body { flex-direction: column; overflow-y: auto; height: auto; }
-            .sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--border); }
-            .viewport-container { flex-direction: column; }
+        .debug-console {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 300px;
+            max-height: 200px;
+            background: rgba(0,0,0,0.8);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            padding: 12px;
+            overflow-y: auto;
+            color: #00ff00;
+            z-index: 100;
+            display: none;
         }
+
+        /* --- Animations --- */
+        @keyframes pulse {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.05); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        /* Spinner */
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 3px solid rgba(255, 192, 203, 0.1);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Hidden but required for JS Bundle */
+        #hidden-required-elements { display: none !important; }
     </style>
 </head>
 <body>
 
-<!-- Hidden Required Elements for the JS Bundle to function -->
+<div id="loading">
+    <div class="spinner"></div>
+    <div style="letter-spacing: 4px; font-weight: 800; color: var(--primary); font-size: 14px;">ELITE ENGINE INITIALIZING</div>
+    <div id="loadStatus" style="color: var(--text-dim); font-size: 11px; margin-top: 10px;">Waiting for user interaction...</div>
+    <button id="initialStartBtn" class="btn btn-primary" style="margin-top: 20px; width: auto; padding: 12px 30px;">START SYSTEM</button>
+</div>
+
+<!-- Hidden Required Elements for the JS Bundle compatibility -->
 <input type="hidden" id="pageName" value="main">
-<div id="hidden-required-elements" style="display:none">
+<div id="hidden-required-elements">
     <div id="irisSizeRightSlider"></div>
     <div id="breathingFrequencySlider"></div>
     <div id="breathingProgressBar"></div>
@@ -238,88 +289,18 @@
     <input id="mouthFrownMaxSpinner">
     <input id="mouthFunnelMinSpinner">
     <input id="mouthFunnelMaxSpinner">
-</div>
-
-<div id="loading">
-    <div style="text-align:center">
-        <div class="win11-spinner" style="margin-bottom:20px;">
-            <div class="dot"></div>
-            <div class="dot"></div>
-            <div class="dot"></div>
-            <div class="dot"></div>
-            <div class="dot"></div>
-        </div>
-        <div style="color:var(--primary); font-size:12px; letter-spacing:2px; font-weight:bold;">INITIALIZING ELITE ENGINE</div>
-    </div>
+    <div id="irisSizeLeftSlider"></div>
 </div>
 
 <aside class="sidebar">
-    <div class="logo">EasyVtuber 🌸</div>
-    
-    <div class="profile-card">
-        <div class="control-label">Welcome Back</div>
-        <div id="userName" style="font-weight: bold; font-size: 18px;">Senpai</div>
-        <div id="lastUsedText" style="font-size: 11px; color: var(--accent); margin-top: 5px;">Ready for Elite VTubing</div>
+    <div class="logo-area">
+        <div class="logo-text">EasyVtuber</div>
+        <div class="status-badge">ELITE EDITION</div>
     </div>
 
-    <div class="control-group">
-        <div class="control-label">Brain & Performance</div>
-        <select id="perfModeSelector">
-            <option value="potato">🥔 Potato (Legacy Mode)</option>
-            <option value="balanced" selected>⚖️ Balanced Performance</option>
-            <option value="elite">💎 Elite (Hardware Accelerated)</option>
-        </select>
-    </div>
-
-    <div class="control-group">
-        <div class="control-label">Face Settings</div>
-        <select name="eyebrowDownModeSelector" id="eyebrowDownModeSelector">
-            <option value="ANGRY" selected>ANGRY</option>
-            <option value="TROUBLED">TROUBLED</option>
-            <option value="SERIOUS">SERIOUS</option>
-            <option value="LOWERED">LOWERED</option>
-        </select>
-        <select name="winkModeSelector" id="winkModeSelector" style="margin-top: 5px;">
-            <option value="NORMAL" selected>NORMAL WINK</option>
-            <option value="RELAXED">RELAXED WINK</option>                            
-        </select>
-    </div>
-
-    <div class="control-group">
-        <div class="control-label">Iris Calibration</div>
-        <div id="irisSizeLeftSlider" style="margin: 15px 0;"></div>
-        <label style="font-size: 12px; display: flex; align-items: center; gap: 8px;">
-            <input type="checkbox" id="linkLeftRightIrisesCheckbox" checked> Mirror Eyes
-        </label>
-    </div>
-
-    <div class="control-group">
-        <div class="control-label">Advanced Actions</div>
-        <input type="button" id="calibrateFaceOrientationButton" value="🎯 Calibrate View">
-        <input type="button" id="restartBreathingCycleButton" value="🫁 Reset Breathing" style="margin-top: 5px;">
-    </div>
-</aside>
-
-<main class="main-content">
-    <div class="viewport-container">
-        <!-- Input Preview -->
-        <div class="viewport" style="width: 320px; border-radius: 20px;">
-            <video id="video" autoplay muted playsinline style="display:none"></video>
-            <canvas id="videoCanvas" width="640" height="480" style="width:100%; height:auto;"></canvas>
-            <div style="position: absolute; bottom: 10px; left: 20px; font-size: 10px; opacity: 0.5;">INPUT TRACKING</div>
-        </div>
-
-        <!-- Output Avatar -->
-        <div class="viewport" style="width: 512px; height: 512px;">
-            <canvas id="outputImage" width="512" height="512"></canvas>
-        </div>
-    </div>
-
-    <div class="stats" id="inferrenceTimeCell">Initializing Elite Engine...</div>
-
-    <div class="control-group" style="margin-top: 30px; width: 320px;">
-        <div class="control-label" style="text-align: center;">Active Avatar</div>
-        <select name="characterSelect" id="characterSelector">
+    <div class="control-section">
+        <div class="label">Avatar Selection</div>
+        <select id="characterSelector">
             <option value="lambda_chan" selected>Lambda-chan</option>
             <option value="lambda_san">Lambda-san</option>
             <option value="haru">Haru</option>
@@ -335,77 +316,169 @@
             <option value="zundamon">Zundamon</option>
         </select>
     </div>
+
+    <div class="control-section">
+        <div class="label">Performance Mode</div>
+        <select id="perfModeSelector">
+            <option value="potato">🥔 Potato (Legacy)</option>
+            <option value="balanced" selected>⚖️ Balanced</option>
+            <option value="elite">💎 Elite (NPU/GPU)</option>
+        </select>
+    </div>
+
+    <div class="control-section">
+        <div class="label">Face Calibration</div>
+        <select id="eyebrowDownModeSelector">
+            <option value="ANGRY" selected>ANGRY</option>
+            <option value="TROUBLED">TROUBLED</option>
+            <option value="SERIOUS">SERIOUS</option>
+            <option value="LOWERED">LOWERED</option>
+        </select>
+        <button id="calibrateFaceOrientationButton" class="btn" style="margin-top: 5px;">🎯 Calibrate Center</button>
+    </div>
+
+    <div class="control-section" style="margin-top: auto;">
+        <div class="label" style="text-align: center;">System Controls</div>
+        <button id="startCameraButton" class="btn btn-primary">📷 RESTART CAMERA</button>
+        <button id="restartBreathingCycleButton" class="btn" style="margin-top: 5px;">🫁 RESET BREATH</button>
+    </div>
+</aside>
+
+<main class="main-stage">
+    <div class="viewport-wrapper">
+        <!-- Tracking Input -->
+        <div class="glass-card input-preview">
+            <div class="live-tag" style="background: var(--primary); box-shadow: 0 0 10px var(--primary);">TRACKING</div>
+            <video id="video" autoplay muted playsinline style="display:none"></video>
+            <canvas id="videoCanvas" width="640" height="480" style="width:100%; height:auto;"></canvas>
+        </div>
+
+        <!-- Render Output -->
+        <div class="glass-card output-avatar">
+            <div class="live-tag">ELITE RENDER</div>
+            <canvas id="outputImage" width="512" height="512" style="width: 100%; height: 100%;"></canvas>
+        </div>
+    </div>
+
+    <div class="bottom-bar">
+        <div class="stat-item">
+            <div class="stat-value" id="inferrenceTimeCell">-- ms</div>
+            <div class="stat-label">Inference</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-value" id="fpsDisplay">-- FPS</div>
+            <div class="stat-label">Engine</div>
+        </div>
+    </div>
 </main>
 
-<script src="index.bundle.js?v=elite.1.0"></script>
+<div class="debug-console" id="debugConsole"></div>
+
+<!-- Original Bundle -->
+<script src="index.bundle.js?v=elite.1.1"></script>
+
 <script>
-    // --- Account & Persistence Logic ---
-    const STORAGE_KEY = 'easyvtuber_user_data';
+    const debugConsole = document.getElementById('debugConsole');
+    const loadStatus = document.getElementById('loadStatus');
+    const initialStartBtn = document.getElementById('initialStartBtn');
+    const loadingScreen = document.getElementById('loading');
+    const video = document.getElementById('video');
+    const startCameraButton = document.getElementById('startCameraButton');
+
+    function log(msg, type = 'info') {
+        const time = new Date().toLocaleTimeString().split(' ')[0];
+        const entry = document.createElement('div');
+        entry.style.color = type === 'error' ? '#ff4757' : '#00ff00';
+        entry.textContent = `[${time}] ${msg}`;
+        debugConsole.appendChild(entry);
+        debugConsole.scrollTop = debugConsole.scrollHeight;
+        console.log(`[Elite] ${msg}`);
+        if (type === 'error') debugConsole.style.display = 'block';
+    }
+
+    async function initCamera() {
+        log('Requesting camera access...');
+        loadStatus.textContent = 'Requesting camera access...';
+        
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ 
+                video: { 
+                    width: { ideal: 640 }, 
+                    height: { ideal: 480 },
+                    facingMode: "user"
+                } 
+            });
+            video.srcObject = stream;
+            await video.play();
+            log('Camera initialized successfully.');
+            loadStatus.textContent = 'Camera active. Initializing AI models...';
+            
+            // Hide loading screen after a short buffer
+            setTimeout(() => {
+                loadingScreen.style.opacity = '0';
+                setTimeout(() => loadingScreen.style.display = 'none', 500);
+            }, 2000);
+
+        } catch (err) {
+            log(`Camera Error: ${err.message}`, 'error');
+            loadStatus.textContent = 'Camera failed. Check permissions.';
+            alert("Camera access is required for VTubing. Please grant permission.");
+        }
+    }
+
+    // --- Engine Optimization ---
+    async function optimizeEngine() {
+        if (window.tf) {
+            log('TensorFlow.js detected. Optimizing backends...');
+            try {
+                if (navigator.gpu) {
+                    log('WebGPU support detected. Attempting to switch...');
+                    await tf.setBackend('webgpu');
+                } else {
+                    log('Using WebGL acceleration.');
+                    await tf.setBackend('webgl');
+                }
+                log(`Active Backend: ${tf.getBackend()}`);
+            } catch (e) {
+                log('Backend optimization failed, using default.', 'info');
+            }
+        }
+    }
+
+    initialStartBtn.addEventListener('click', () => {
+        initCamera();
+        optimizeEngine();
+    });
+    startCameraButton.addEventListener('click', initCamera);
+
+    // Persist settings
     const characterSelector = document.getElementById('characterSelector');
-    const perfSelector = document.getElementById('perfModeSelector');
-    const lastUsedDisplay = document.getElementById('lastUsedText');
-
-    function loadSavedData() {
-        const rawData = localStorage.getItem(STORAGE_KEY);
-        if (rawData) {
-            const data = JSON.parse(rawData);
-            if (data.lastCharacter) characterSelector.value = data.lastCharacter;
-            if (data.performanceMode) perfSelector.value = data.performanceMode;
-            lastUsedDisplay.innerText = `Last seen with ${characterSelector.options[characterSelector.selectedIndex].text}`;
-            applyPerformanceSettings(data.performanceMode);
-        }
-    }
-
-    function saveData() {
-        const data = {
-            lastCharacter: characterSelector.value,
-            performanceMode: perfSelector.value,
-            timestamp: new Date().toISOString()
-        };
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    }
-
-    function applyPerformanceSettings(mode) {
-        const outputCanvas = document.getElementById('outputImage');
-        if (mode === 'potato') {
-            outputCanvas.style.width = '384px';
-            outputCanvas.style.height = '384px';
-        } else {
-            outputCanvas.style.width = '512px';
-            outputCanvas.style.height = '512px';
-        }
-    }
-
     characterSelector.addEventListener('change', () => {
-        saveData();
-        lastUsedDisplay.innerText = `Active: ${characterSelector.options[characterSelector.selectedIndex].text}`;
+        localStorage.setItem('elite_last_char', characterSelector.value);
     });
 
-    perfSelector.addEventListener('change', () => {
-        saveData();
-        applyPerformanceSettings(perfSelector.value);
-    });
+    // Auto-load last char
+    const lastChar = localStorage.getItem('elite_last_char');
+    if (lastChar) characterSelector.value = lastChar;
 
-    loadSavedData();
-    autoDetectElite();
+    // Simple FPS counter hook
+    let lastFrameTime = performance.now();
+    let frameCount = 0;
+    const fpsDisplay = document.getElementById('fpsDisplay');
 
-    setTimeout(() => {
-        const ld = document.getElementById('loading');
-        if (ld) ld.style.display = 'none';
-    }, 15000);
-
-    function autoDetectElite() {
-        if (location.protocol === 'https:') {
-            const guidanceDiv = document.createElement('div');
-            guidanceDiv.style.cssText = "background: #ff4757; color: white; padding: 15px; border-radius: 10px; margin-top: 20px; font-size: 13px; text-align: center; border: 1px solid rgba(255,255,255,0.2);";
-            guidanceDiv.innerHTML = `
-                <b>⚠️ Connection Tip:</b><br>
-                If tracking doesn't start, please click the <b>Lock (🔒)</b> in your address bar,<br>
-                go to <b>Site Settings</b>, and set <b>"Insecure content"</b> to <b>Allow</b>.
-            `;
-            document.querySelector('.sidebar').appendChild(guidanceDiv);
+    function updateFPS() {
+        const now = performance.now();
+        frameCount++;
+        if (now - lastFrameTime >= 1000) {
+            fpsDisplay.textContent = `${frameCount} FPS`;
+            frameCount = 0;
+            lastFrameTime = now;
         }
+        requestAnimationFrame(updateFPS);
     }
+    updateFPS();
+
+    log('Elite Engine Loaded. Awaiting interaction.');
 </script>
 </body>
 </html>

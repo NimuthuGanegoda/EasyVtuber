@@ -23,7 +23,11 @@ class FaceMeshClientProcess(Process):
         np_pose_shm = np.ndarray((45,), dtype=np.float32, buffer=self.pose_position_shm.buf[:45 * 4])
         np_position_shm = np.ndarray((4,), dtype=np.float32, buffer=self.pose_position_shm.buf[45 * 4:45 * 4 + 4 * 4])
         
-        cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+        import sys
+        if sys.platform == 'win32':
+            cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+        else:
+            cap = cv2.VideoCapture(0)
         if not cap.isOpened():
             raise Exception("Can't open webcam")
         
