@@ -1,15 +1,7 @@
-import ctypes
 import time
 
-ntdll = ctypes.WinDLL("ntdll")
-
-desired = ctypes.c_ulong(5000)  # 0.5 ms = 5000 * 100ns
-current = ctypes.c_ulong()
-
-ntdll.NtSetTimerResolution(desired, True, ctypes.byref(current)) # Set timer resolution to 0.5ms
-
 # -------------------------------
-# 高精度等待函数
+# 高精度等待函数 (Linux/Cross-platform version)
 # -------------------------------
 def wait_until(
     target_time: float,
@@ -51,7 +43,6 @@ def wait_until(
             break
 
     # -------- busy-wait 精对齐 --------
-    # 使用局部变量减少属性查找开销
     perf = time.perf_counter
     while perf() < target_time:
         pass

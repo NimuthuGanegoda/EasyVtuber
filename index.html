@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EasyVtuber Elite 🌸 | Raiden Edition</title>
-    <link rel="stylesheet" href="css/jquery-ui.css">
+    <title>EasyVtuber Elite v2 🌸 | Raiden Shogun</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
 
@@ -12,11 +11,11 @@
             --primary: #ffc0cb;
             --accent: #ff69b4;
             --dark-bg: #0a0a0c;
-            --panel-bg: rgba(20, 20, 25, 0.7);
+            --panel-bg: rgba(20, 20, 25, 0.85);
             --glass: rgba(255, 255, 255, 0.03);
-            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-border: rgba(255, 255, 255, 0.1);
             --text-main: #ffffff;
-            --text-dim: rgba(255, 255, 255, 0.5);
+            --text-dim: rgba(255, 255, 255, 0.6);
             --neon-glow: 0 0 15px rgba(255, 192, 203, 0.3);
         }
 
@@ -30,34 +29,35 @@
             height: 100vh;
             overflow: hidden;
             background-image: 
-                radial-gradient(circle at 20% 30%, rgba(255, 105, 180, 0.05) 0%, transparent 40%),
-                radial-gradient(circle at 80% 70%, rgba(255, 192, 203, 0.05) 0%, transparent 40%);
+                radial-gradient(circle at 10% 20%, rgba(255, 105, 180, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(255, 192, 203, 0.08) 0%, transparent 40%);
         }
 
         /* --- Sidebar --- */
+
         .sidebar {
-            width: 320px;
+            width: 340px;
             background: var(--panel-bg);
-            backdrop-filter: blur(30px);
+            backdrop-filter: blur(40px);
             border-right: 1px solid var(--glass-border);
-            padding: 24px;
+            padding: 30px;
             display: flex;
             flex-direction: column;
-            gap: 24px;
-            z-index: 10;
-            box-shadow: 10px 0 30px rgba(0,0,0,0.5);
+            gap: 28px;
+            z-index: 100;
+            box-shadow: 15px 0 40px rgba(0,0,0,0.6);
         }
 
         .logo-area {
             text-align: center;
-            padding-bottom: 20px;
+            padding-bottom: 24px;
             border-bottom: 1px solid var(--glass-border);
         }
 
         .logo-text {
-            font-size: 26px;
+            font-size: 28px;
             font-weight: 800;
-            letter-spacing: -1px;
+            letter-spacing: -1.5px;
             background: linear-gradient(135deg, var(--primary), var(--accent));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
@@ -65,46 +65,42 @@
 
         .status-badge {
             display: inline-block;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 10px;
-            font-weight: 600;
-            background: rgba(255, 105, 180, 0.1);
+            padding: 6px 14px;
+            border-radius: 30px;
+            font-size: 11px;
+            font-weight: 700;
+            background: rgba(255, 105, 180, 0.15);
             color: var(--primary);
-            border: 1px solid rgba(255, 105, 180, 0.2);
-            margin-top: 8px;
+            border: 1px solid rgba(255, 105, 180, 0.3);
+            margin-top: 10px;
+            letter-spacing: 1px;
         }
 
-        .control-section {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .label {
+        .section-label {
             font-size: 11px;
             text-transform: uppercase;
-            letter-spacing: 1.5px;
+            letter-spacing: 2px;
             color: var(--text-dim);
-            font-weight: 600;
+            font-weight: 700;
+            margin-bottom: 8px;
         }
 
-        /* --- Custom Inputs --- */
         select, .btn {
             width: 100%;
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(255, 255, 255, 0.07);
             border: 1px solid var(--glass-border);
             color: white;
-            padding: 12px 16px;
-            border-radius: 12px;
+            padding: 14px 18px;
+            border-radius: 14px;
             outline: none;
             cursor: pointer;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             font-size: 14px;
+            font-family: inherit;
         }
 
         select:hover, .btn:hover {
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.12);
             border-color: var(--primary);
             box-shadow: var(--neon-glow);
         }
@@ -112,18 +108,19 @@
         .btn-primary {
             background: linear-gradient(135deg, var(--accent), #ff1493);
             border: none;
-            font-weight: 600;
+            font-weight: 700;
             color: white;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 15px rgba(255, 105, 180, 0.3);
         }
 
         .btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(255, 20, 147, 0.3);
+            box-shadow: 0 12px 24px rgba(255, 20, 147, 0.4);
         }
 
-        /* --- Main Stage --- */
-        .main-stage {
+        /* --- Main Content --- */
+
+        .main-content {
             flex: 1;
             display: flex;
             flex-direction: column;
@@ -133,9 +130,9 @@
             position: relative;
         }
 
-        .viewport-wrapper {
+        .viewport-container {
             display: flex;
-            gap: 40px;
+            gap: 50px;
             align-items: center;
             justify-content: center;
             width: 100%;
@@ -144,385 +141,183 @@
         .glass-card {
             background: var(--glass);
             border: 1px solid var(--glass-border);
-            border-radius: 24px;
+            border-radius: 32px;
             overflow: hidden;
             position: relative;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+            box-shadow: 0 30px 60px rgba(0,0,0,0.4);
         }
 
-        .input-preview {
-            width: 280px;
+        .preview-card {
+            width: 320px;
             aspect-ratio: 4/3;
-            background: #000;
         }
 
-        #video {
-            display: block !important;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transform: scaleX(-1);
-        }
-
-        #videoCanvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-        }
-
-        .output-avatar {
+        .render-card {
             width: 512px;
             height: 512px;
-            border: 1px solid rgba(255, 192, 203, 0.2);
-            box-shadow: 0 0 80px rgba(255, 192, 203, 0.1);
+            border: 1px solid rgba(255, 192, 203, 0.15);
         }
-
-        canvas { display: block; }
 
         .live-tag {
             position: absolute;
-            top: 20px;
-            right: 20px;
+            top: 24px;
+            right: 24px;
             background: #ff4757;
-            padding: 4px 10px;
-            border-radius: 6px;
-            font-size: 10px;
+            padding: 5px 12px;
+            border-radius: 8px;
+            font-size: 11px;
             font-weight: 800;
             color: white;
             animation: pulse 2s infinite;
-            z-index: 5;
+            z-index: 10;
         }
 
-        /* --- Stats Bar --- */
-        .bottom-bar {
+        /* --- Stats --- */
+
+        .stats-overlay {
             position: absolute;
-            bottom: 30px;
-            width: 100%;
+            bottom: 40px;
             display: flex;
-            justify-content: center;
-            gap: 40px;
+            gap: 50px;
+            background: rgba(0,0,0,0.4);
+            padding: 15px 40px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
         }
 
-        .stat-item {
-            text-align: center;
-        }
+        .stat-box { text-align: center; }
 
-        .stat-value {
-            font-size: 18px;
-            font-weight: 600;
-            color: var(--primary);
-        }
+        .stat-num { font-size: 20px; font-weight: 700; color: var(--primary); }
 
-        .stat-label {
-            font-size: 10px;
-            color: var(--text-dim);
-            text-transform: uppercase;
-            margin-top: 4px;
-        }
+        .stat-lab { font-size: 10px; color: var(--text-dim); text-transform: uppercase; margin-top: 4px; }
 
-        /* --- Loading / Debug --- */
-        #loading {
+        /* --- Overlays --- */
+
+        #loadingOverlay {
             position: fixed;
             inset: 0;
             background: var(--dark-bg);
-            z-index: 1000;
+            z-index: 2000;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            transition: opacity 0.5s;
+            transition: opacity 0.8s ease-out;
         }
 
-        .debug-console {
+        .spinner {
+            width: 70px;
+            height: 70px;
+            border: 4px solid rgba(255, 192, 203, 0.1);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+            margin-bottom: 25px;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        @keyframes pulse { 
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.05); }
+        }
+
+        #debugConsole {
             position: fixed;
             bottom: 20px;
             right: 20px;
-            width: 300px;
+            width: 320px;
             max-height: 200px;
-            background: rgba(0,0,0,0.8);
+            background: rgba(0,0,0,0.9);
             border: 1px solid var(--glass-border);
-            border-radius: 12px;
-            font-family: 'Courier New', monospace;
+            border-radius: 16px;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
             font-size: 11px;
-            padding: 12px;
+            padding: 15px;
             overflow-y: auto;
-            color: #00ff00;
-            z-index: 100;
+            color: #00ff88;
+            z-index: 500;
             display: none;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
 
-        /* --- Animations --- */
-        @keyframes pulse {
-            0% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.7; transform: scale(1.05); }
-            100% { opacity: 1; transform: scale(1); }
-        }
+        canvas { display: block; }
 
-        /* Spinner */
-        .spinner {
-            width: 60px;
-            height: 60px;
-            border: 3px solid rgba(255, 192, 203, 0.1);
-            border-top-color: var(--primary);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-bottom: 20px;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        /* Hidden but required for JS Bundle */
-        #hidden-required-elements { display: none !important; }
+        video { display: none; }
     </style>
+  <script type="module" crossorigin src="./assets/index-CrERjGQy.js"></script>
 </head>
 <body>
 
-<div id="loading">
+<div id="loadingOverlay">
     <div class="spinner"></div>
-    <div style="letter-spacing: 4px; font-weight: 800; color: var(--primary); font-size: 14px;">ELITE ENGINE INITIALIZING</div>
-    <div id="loadStatus" style="color: var(--text-dim); font-size: 11px; margin-top: 10px;">Waiting for user interaction...</div>
-    <button id="initialStartBtn" class="btn btn-primary" style="margin-top: 20px; width: auto; padding: 12px 30px;">START SYSTEM</button>
-</div>
-
-<!-- Hidden Required Elements for the JS Bundle compatibility -->
-<input type="hidden" id="pageName" value="main">
-<div id="hidden-required-elements">
-    <div id="irisSizeRightSlider"></div>
-    <div id="breathingFrequencySlider"></div>
-    <div id="breathingProgressBar"></div>
-    <input id="smileThresholdMinSpinner">
-    <input id="smileThresholdMaxSpinner">
-    <input id="eyeSurprisedMaxSpinner">
-    <input id="eyeBlinkMaxSpinner">
-    <input id="eyebrowDownMaxSpinner">
-    <input id="cheekSquintMinSpinner">
-    <input id="cheekSquintMaxSpinner">
-    <input id="jawOpenMinSpinner">
-    <input id="jawOpenMaxSpinner">
-    <input id="mouthFrownMaxSpinner">
-    <input id="mouthFunnelMinSpinner">
-    <input id="mouthFunnelMaxSpinner">
-    <div id="irisSizeLeftSlider"></div>
+    <div style="letter-spacing: 6px; font-weight: 800; color: var(--primary); font-size: 16px;">V2 ELITE CORE BOOTING</div>
+    <div id="loadDetail" style="color: var(--text-dim); font-size: 12px; margin-top: 15px;">Awaiting User Command...</div>
+    <button id="bootBtn" class="btn btn-primary" style="margin-top: 30px; width: auto; padding: 15px 45px;">INITIATE ETERNITY</button>
 </div>
 
 <aside class="sidebar">
     <div class="logo-area">
-        <div class="logo-text">EasyVtuber</div>
-        <div class="status-badge">ELITE EDITION</div>
+        <div class="logo-text">EasyVtuber V2</div>
+        <div class="status-badge">TS/WASM OPTIMIZED</div>
     </div>
 
-    <div class="control-section">
-        <div class="label">Avatar Selection</div>
-        <select id="characterSelector">
-            <option value="lambda_chan" selected>Lambda-chan</option>
+    <div class="control-group">
+        <div class="section-label">Character Core</div>
+        <select id="charSelector">
+            <option value="lambda_chan" selected>Lambda-chan (Standard)</option>
             <option value="lambda_san">Lambda-san</option>
             <option value="haru">Haru</option>
-            <option value="kisaragi_asato">Kisaragi Asato</option>
-            <option value="koakuma_mei">Koakuma Mei</option>
             <option value="marietta">Marietta</option>
-            <option value="ponytail_girl">Ponytail Girl</option>
-            <option value="taoist_boy">Taoist Boy</option>
-            <option value="touhoku_itako">Touhoku Itako</option>
-            <option value="touhoku_kiritan">Touhoku Kiritan</option>
-            <option value="touhoku_zunko">Touhoku Zunko</option>
-            <option value="yukiwarisou_no_majo">Yukiwarisou no Majo</option>
             <option value="zundamon">Zundamon</option>
         </select>
     </div>
 
-    <div class="control-section">
-        <div class="label">Performance Mode</div>
-        <select id="perfModeSelector">
-            <option value="potato" selected>🥔 Potato (Fastest)</option>
-            <option value="balanced">⚖️ Balanced</option>
-            <option value="elite">💎 Elite (NPU/GPU)</option>
+    <div class="control-group">
+        <div class="section-label">Neural Engine</div>
+        <select id="engineSelector">
+            <option value="webgpu">WebGPU (Experimental)</option>
+            <option value="webgl" selected>WebGL Accelerated</option>
+            <option value="cpu">CPU (Safety Mode)</option>
         </select>
     </div>
 
-    <div class="control-section">
-        <div class="label">Face Calibration</div>
-        <select id="eyebrowDownModeSelector">
-            <option value="ANGRY" selected>ANGRY</option>
-            <option value="TROUBLED">TROUBLED</option>
-            <option value="SERIOUS">SERIOUS</option>
-            <option value="LOWERED">LOWERED</option>
-        </select>
-        <button id="calibrateFaceOrientationButton" class="btn" style="margin-top: 5px;">🎯 Calibrate Center</button>
-    </div>
-
-    <div class="control-section" style="margin-top: auto;">
-        <div class="label" style="text-align: center;">System Controls</div>
-        <button id="startCameraButton" class="btn btn-primary">📷 RESTART CAMERA</button>
-        <button id="restartBreathingCycleButton" class="btn" style="margin-top: 5px;">🫁 RESET BREATH</button>
+    <div class="control-group" style="margin-top: auto;">
+        <button id="calibBtn" class="btn">🎯 Calibrate Pose</button>
+        <button id="toggleDebugBtn" class="btn" style="margin-top: 10px;">🛡️ Toggle Debug</button>
     </div>
 </aside>
 
-<main class="main-stage">
-    <div class="viewport-wrapper">
-        <!-- Tracking Input -->
-        <div class="glass-card input-preview">
-            <div class="live-tag" style="background: var(--primary); box-shadow: 0 0 10px var(--primary);">TRACKING</div>
-            <video id="video" autoplay muted playsinline></video>
-            <canvas id="videoCanvas" width="640" height="480" style="width:100%; height:auto;"></canvas>
+<main class="main-content">
+    <div class="viewport-container">
+        <!-- AI Tracking -->
+        <div class="glass-card preview-card">
+            <div class="live-tag" style="background: var(--primary);">TRACKING</div>
+            <video id="inputVideo" autoplay muted playsinline></video>
+            <canvas id="trackingCanvas" width="640" height="480" style="width: 100%; height: auto;"></canvas>
         </div>
 
-        <!-- Render Output -->
-        <div class="glass-card output-avatar">
+        <!-- Character Render -->
+        <div class="glass-card render-card">
             <div class="live-tag">ELITE RENDER</div>
-            <canvas id="outputImage" width="512" height="512" style="width: 100%; height: 100%;"></canvas>
+            <canvas id="renderCanvas" width="512" height="512" style="width: 100%; height: 100%;"></canvas>
         </div>
     </div>
 
-    <div class="bottom-bar">
-        <div class="stat-item">
-            <div class="stat-value" id="inferrenceTimeCell">-- ms</div>
-            <div class="stat-label">Inference</div>
+    <div class="stats-overlay">
+        <div class="stat-box">
+            <div class="stat-num" id="inferenceTime">--</div>
+            <div class="stat-lab">Inference (ms)</div>
         </div>
-        <div class="stat-item">
-            <div class="stat-value" id="fpsDisplay">-- FPS</div>
-            <div class="stat-label">Engine</div>
+        <div class="stat-box">
+            <div class="stat-num" id="fpsNum">--</div>
+            <div class="stat-lab">Engine FPS</div>
         </div>
     </div>
 </main>
 
-<div class="debug-console" id="debugConsole"></div>
+<div id="debugConsole"></div>
 
-<!-- Original Bundle -->
-<script src="index.bundle.js?v=elite.1.1"></script>
-
-<script>
-    const debugConsole = document.getElementById('debugConsole');
-    const loadStatus = document.getElementById('loadStatus');
-    const initialStartBtn = document.getElementById('initialStartBtn');
-    const loadingScreen = document.getElementById('loading');
-    const video = document.getElementById('video');
-    const startCameraButton = document.getElementById('startCameraButton');
-
-    function log(msg, type = 'info') {
-        const time = new Date().toLocaleTimeString().split(' ')[0];
-        const entry = document.createElement('div');
-        entry.style.color = type === 'error' ? '#ff4757' : '#00ff00';
-        entry.textContent = `[${time}] ${msg}`;
-        debugConsole.appendChild(entry);
-        debugConsole.scrollTop = debugConsole.scrollHeight;
-        console.log(`[Elite] ${msg}`);
-        if (type === 'error') debugConsole.style.display = 'block';
-    }
-
-    async function initCamera() {
-        log('Requesting camera access...');
-        loadStatus.textContent = 'Requesting camera access...';
-        
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ 
-                video: { 
-                    width: { ideal: 640 }, 
-                    height: { ideal: 480 },
-                    facingMode: "user"
-                } 
-            });
-            video.srcObject = stream;
-            await video.play();
-            log('Camera initialized successfully.');
-            loadStatus.textContent = 'Camera active. Initializing AI models...';
-            
-            // Hide loading screen after a short buffer
-            setTimeout(() => {
-                loadingScreen.style.opacity = '0';
-                setTimeout(() => loadingScreen.style.display = 'none', 500);
-            }, 2000);
-
-        } catch (err) {
-            log(`Camera Error: ${err.message}`, 'error');
-            loadStatus.textContent = 'Camera failed. Check permissions.';
-            alert("Camera access is required for VTubing. Please grant permission.");
-        }
-    }
-
-    // --- Engine Optimization ---
-    async function optimizeEngine() {
-        if (window.tf) {
-            log('TensorFlow.js detected. Optimizing backends...');
-            try {
-                if (navigator.gpu) {
-                    log('WebGPU support detected. Attempting to switch...');
-                    await tf.setBackend('webgpu');
-                } else {
-                    log('Using WebGL acceleration.');
-                    await tf.setBackend('webgl');
-                }
-                log(`Active Backend: ${tf.getBackend()}`);
-            } catch (e) {
-                log('Backend optimization failed, using default.', 'info');
-            }
-        }
-    }
-
-    initialStartBtn.addEventListener('click', () => {
-        initCamera();
-        optimizeEngine();
-    });
-    startCameraButton.addEventListener('click', initCamera);
-
-    // Persist settings
-    const characterSelector = document.getElementById('characterSelector');
-    const perfModeSelector = document.getElementById('perfModeSelector');
-
-    function applyPerformanceSettings(mode) {
-        const outputCanvas = document.getElementById('outputImage');
-        if (mode === 'potato') {
-            outputCanvas.style.width = '256px';
-            outputCanvas.style.height = '256px';
-            log('Hyper-Potato mode active: Output scale 50%');
-        } else if (mode === 'balanced') {
-            outputCanvas.style.width = '384px';
-            outputCanvas.style.height = '384px';
-        } else {
-            outputCanvas.style.width = '512px';
-            outputCanvas.style.height = '512px';
-        }
-    }
-
-    perfModeSelector.addEventListener('change', () => {
-        localStorage.setItem('elite_perf_mode', perfModeSelector.value);
-        applyPerformanceSettings(perfModeSelector.value);
-    });
-
-    characterSelector.addEventListener('change', () => {
-        localStorage.setItem('elite_last_char', characterSelector.value);
-    });
-
-    // Auto-load last settings
-    const lastChar = localStorage.getItem('elite_last_char');
-    if (lastChar) characterSelector.value = lastChar;
-
-    const lastPerf = localStorage.getItem('elite_perf_mode') || 'potato';
-    perfModeSelector.value = lastPerf;
-    applyPerformanceSettings(lastPerf);
-
-    // Simple FPS counter hook
-    let lastFrameTime = performance.now();
-    let frameCount = 0;
-    const fpsDisplay = document.getElementById('fpsDisplay');
-
-    function updateFPS() {
-        const now = performance.now();
-        frameCount++;
-        if (now - lastFrameTime >= 1000) {
-            fpsDisplay.textContent = `${frameCount} FPS`;
-            frameCount = 0;
-            lastFrameTime = now;
-        }
-        requestAnimationFrame(updateFPS);
-    }
-    updateFPS();
-
-    log('Elite Engine Loaded. Awaiting interaction.');
-</script>
 </body>
 </html>

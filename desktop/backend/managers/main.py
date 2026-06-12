@@ -1,5 +1,6 @@
 import numpy as np
 import time
+import os
 from .model_infer_client import ModelClientProcess
 from .args import args
 from ..utils.preprocess import resize_to_512_center, apply_color_curves
@@ -16,7 +17,7 @@ from OpenGL.GL import GL_RGBA
 def main():
     # Load character image - Robust path
     project_root = os.path.normpath(os.path.join(os.path.dirname(__file__), '..', '..'))
-    image_path = os.path.join(project_root, 'data', 'images', f"{args.character}.png")
+    image_path = os.path.join(project_root, 'backend', 'data', 'images', f"{args.character}.png")
     img = Image.open(image_path)
     img = img.convert('RGBA')
     ow, oh = img.size
