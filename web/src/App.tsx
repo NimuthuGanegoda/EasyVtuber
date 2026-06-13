@@ -7,18 +7,18 @@ import { auth } from './firebase';
 const MainApp: React.FC = () => {
     const videoRef = useRef<HTMLVideoElement>(null);
     const { init, status, isLoaded, error, inferenceTime, fps, progress } = useVtuber();
-    const { user, loading } = useAuth();
+    const { user, loading, isGuest } = useAuth();
     const initStarted = useRef(false);
 
     useEffect(() => {
-        if (user && videoRef.current && !initStarted.current) {
+        if ((user || isGuest) && videoRef.current && !initStarted.current) {
             initStarted.current = true;
             init(videoRef.current);
         }
-    }, [user, init]);
+    }, [user, isGuest, init]);
 
     if (loading) return <div className="loading-screen">Resonating with the Ley Lines...</div>;
-    if (!user) return <Login />;
+    if (!user && !isGuest) return <Login />;
 
     return (
         <div className="container">
@@ -44,12 +44,14 @@ const MainApp: React.FC = () => {
                 <div className="logo">EasyVtuber V2 🌸</div>
                 
                 <div className="user-profile">
-                    <img src={user.photoURL || 'https://api.dicebear.com/7.x/bottts/svg?seed=Miko'} alt="Soul" />
+                    <img src={(user && user.photoURL) || 'https://api.dicebear.com/7.x/bottts/svg?seed=Miko'} alt="Soul" />
                     <div className="user-info">
-                        <span className="user-name">{user.displayName || 'Elite User'}</span>
-                        <span className="user-email">{user.email}</span>
+                        <span className="user-name">{(user && (user.displayName || user.email)) || 'Elite Guest'}</span>
+                        <span className="user-email">{isGuest ? 'Offline Sanctuary' : user?.email}</span>
                     </div>
-                    <button onClick={() => auth.signOut()} className="btn-logout">🚪</button>
+                    <button onClick={() => isGuest ? window.location.reload() : auth.signOut()} className="btn-logout">
+                        {isGuest ? '🔐' : '🚪'}
+                    </button>
                 </div>
 
                 <div className="status-badge">TS/WASM ELITE</div>
