@@ -20,12 +20,13 @@ def main():
     image_path = os.path.join(project_root, 'backend', 'data', 'images', f"{args.character}.png")
     img = Image.open(image_path)
     img = img.convert('RGBA')
+    
+    # Vectorized alpha cleaning for elite performance
+    data = np.array(img)
+    data[data[:, :, 3] == 0] = [0, 0, 0, 0]
+    img = Image.fromarray(data)
+
     ow, oh = img.size
-    for i, px in enumerate(img.getdata()):
-        if px[3] <= 0:
-            y = i // ow
-            x = i % ow
-            img.putpixel((x, y), (0, 0, 0, 0))
     if ow != 512 or oh != 512:
         img = resize_to_512_center(img)
     if args.alpha_clean:

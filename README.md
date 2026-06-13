@@ -64,10 +64,10 @@ The "Elite Edition" has been rewritten for maximum performance on modern browser
 ---
 
 ## 📂 Project Structure
-- **`/` (Root)**: Legacy Pure Web App (Legacy JS Bundle).
-- **`/web`**: **Elite V2 Web App (React + TS)** - *Recommended for performance*.
-- **`/desktop`**: Python Desktop Suite (PyTorch/OpenVINO).
-- **`/dist`**: Built production files for the V2 web app.
+- **`/docs`**: **Production Web Deployment** - *The live environment served via GitHub Pages*.
+- **`/web`**: **Source Code (Elite V2)** - *React + TS development environment*.
+- **`/desktop`**: **Desktop Suite** - *Python/PyTorch local environment for power users*.
+- **`/legacy`**: **Archived Versions** - *Legacy JS bundles and older implementations*.
 
 ---
 
