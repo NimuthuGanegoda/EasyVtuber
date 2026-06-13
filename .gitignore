@@ -140,10 +140,15 @@ dmypy.json
 /launcher.json
 
 
-data/
-!data/images/lambda*
-!data/images/README.md
-!data/models/placeholder.txt
+# Data and Models
+!desktop/data/
+!desktop/data/models/
+!desktop/data/models/placeholder.txt
+!desktop/backend/data/
+!desktop/backend/data/images/
+!desktop/backend/data/images/*.png
+!desktop/backend/data/images/*.jpg
+!desktop/backend/data/images/README.md
 *.iml
 .idea/
 *.pt

@@ -30,9 +30,15 @@ jobs:
     - name: Build EXE with PyInstaller
       run: |
         cd desktop
-        # We bundle the launcher and core backend. Models are downloaded at runtime.
+        # Ensure directories exist for PyInstaller
+        if (!(Test-Path "data")) { New-Item -ItemType Directory -Path "data" }
+        if (!(Test-Path "backend/data/images")) { New-Item -ItemType Directory -Path "backend/data/images" }
+        
+        # We bundle the launcher and core backend. 
+        # We map images to both 'data/images' (for launcher) and 'backend/data/images' (for backend logic)
         pyinstaller --noconfirm --onedir --windowed --name "EasyVtuberClient" `
-          --add-data "data;data" `
+          --add-data "backend/data/images;data/images" `
+          --add-data "backend/data/images;backend/data/images" `
           --add-data "backend;backend" `
           --add-data "main.py;." `
           --paths "." `
