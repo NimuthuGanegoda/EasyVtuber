@@ -27,6 +27,11 @@ jobs:
         pip install wxpython requests Pillow onnxruntime-openvino numpy scipy protobuf pynput mediapipe==0.10.11 opencv-python pyanime4k==3.1.0 pyvirtualcam==0.9.1 pyopengl onnx tqdm OneEuroFilter sounddevice brotli
         pip install pyinstaller
 
+    - name: Generate App Icon
+      run: |
+        cd desktop
+        python -c "from PIL import Image; Image.open('data/models/tha4_student/character.png').resize((256, 256)).save('app_icon.ico')"
+
     - name: Build EXE with PyInstaller
       run: |
         cd desktop
@@ -36,7 +41,7 @@ jobs:
         
         # We bundle everything into a single standalone .exe
         # We map images to both 'data/images' (for launcher) and 'backend/data/images' (for backend logic)
-        pyinstaller --noconfirm --onefile --windowed --name "EasyVtuberClient" `
+        pyinstaller --noconfirm --onefile --windowed --icon="app_icon.ico" --name "EasyVtuberClient" `
           --add-data "backend/data/images;data/images" `
           --add-data "backend/data/images;backend/data/images" `
           --add-data "backend;backend" `
