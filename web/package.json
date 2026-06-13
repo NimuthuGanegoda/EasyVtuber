@@ -24,6 +24,7 @@
     "@tensorflow/tfjs": "^4.22.0",
     "@tensorflow/tfjs-backend-webgl": "^4.22.0",
     "@tensorflow/tfjs-backend-webgpu": "^4.22.0",
+    "firebase": "^12.14.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5"
   }
