@@ -151,4 +151,7 @@ data/
 .serena
 onnx_model_tha4/fp16
 onnx_model_tha4/fp32
-onnx_model_tha4/
+onnx_model_tha4/*.pdb
+*.pyd
+*.dll
+desktop/venv/
