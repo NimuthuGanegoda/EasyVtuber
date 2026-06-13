@@ -1,17 +1,22 @@
 import { useState, useEffect, useRef } from 'react';
 import * as tf from '@tensorflow/tfjs';
+import '@tensorflow/tfjs-backend-webgl';
+import '@tensorflow/tfjs-backend-webgpu';
 import { FaceLandmarker, FilesetResolver } from '@mediapipe/tasks-vision';
 import { extractPose } from '../utils/poseExtractor';
 
-const MODEL_BASE = '../data/';
-const FACE_LANDMARKER_WASM = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm';
+// Elite performance constants
+const MODEL_BASE = './data/'; // Corrected for root deployment
+const MP_VERSION = '0.10.35';
+const FACE_LANDMARKER_WASM = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MP_VERSION}/wasm`;
 
 export function useVtuber() {
-    const [status, setStatus] = useState('Awaiting Initiation');
+    const [status, setStatus] = useState('System Idle');
     const [isLoaded, setIsLoaded] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [inferenceTime, setInferenceTime] = useState(0);
     const [fps, setFps] = useState(0);
+    const [progress, setProgress] = useState(0);
 
     const faceLandmarkerRef = useRef<FaceLandmarker | null>(null);
     const faceModelRef = useRef<tf.LayersModel | null>(null);
@@ -20,40 +25,74 @@ export function useVtuber() {
     const requestRef = useRef<number>();
 
     const init = async (videoElement: HTMLVideoElement) => {
+        const startTime = performance.now();
         try {
-            setStatus('Loading MediaPipe...');
-            const filesetResolver = await FilesetResolver.forVisionTasks(FACE_LANDMARKER_WASM);
-            faceLandmarkerRef.current = await FaceLandmarker.createFromOptions(filesetResolver, {
-                baseOptions: {
-                    modelAssetPath: `${MODEL_BASE}face_landmarker.task`,
-                    delegate: "GPU"
-                },
-                outputFaceBlendshapes: true,
-                runningMode: "VIDEO",
-                numFaces: 1
-            });
+            setStatus('Initializing Neural Engines...');
+            setProgress(10);
+            
+            // Parallel initialization of TF.js and MediaPipe
+            const [filesetResolver] = await Promise.all([
+                FilesetResolver.forVisionTasks(FACE_LANDMARKER_WASM),
+                tf.ready(),
+                tf.setBackend('webgl') // Default to WebGL for stability, user can switch to WebGPU
+            ]);
 
-            setStatus('Loading Neural Core...');
+            setStatus('Synchronizing Neural Cores...');
+            setProgress(30);
+
             const char = 'lambda_chan';
-            faceModelRef.current = await tf.loadLayersModel(`${MODEL_BASE}${char}/face_morpher.json`);
-            bodyModelRef.current = await tf.loadLayersModel(`${MODEL_BASE}${char}/body_morpher.json`);
+            // Parallel load all models
+            const [landmarker, faceModel, bodyModel] = await Promise.all([
+                FaceLandmarker.createFromOptions(filesetResolver, {
+                    baseOptions: {
+                        modelAssetPath: `${MODEL_BASE}face_landmarker.task`,
+                        delegate: "GPU"
+                    },
+                    outputFaceBlendshapes: true,
+                    runningMode: "VIDEO",
+                    numFaces: 1
+                }),
+                tf.loadLayersModel(`${MODEL_BASE}${char}/face_morpher.json`).catch(() => null),
+                tf.loadLayersModel(`${MODEL_BASE}${char}/body_morpher.json`).catch(() => null)
+            ]);
 
-            setStatus('Activating Camera...');
+            faceLandmarkerRef.current = landmarker;
+            faceModelRef.current = faceModel;
+            bodyModelRef.current = bodyModel;
+
+            if (!faceModel || !bodyModel) {
+                console.warn('Neural Core models missing. Entering Tracking-Only mode.');
+                setStatus('Tracking Only Mode Active');
+            } else {
+                setStatus('Elite Core Synchronized');
+            }
+
+            setProgress(80);
+            setStatus('Calibrating Optical Input...');
+
             const stream = await navigator.mediaDevices.getUserMedia({ 
-                video: { width: 640, height: 480 } 
+                video: { 
+                    width: { ideal: 640 }, 
+                    height: { ideal: 480 },
+                    frameRate: { ideal: 30 }
+                } 
             });
+
             videoElement.srcObject = stream;
             videoElement.onloadedmetadata = () => {
                 videoElement.play();
                 videoRef.current = videoElement;
                 setIsLoaded(true);
-                setStatus('System Online');
+                setProgress(100);
+                const totalTime = ((performance.now() - startTime) / 1000).toFixed(2);
+                setStatus(`Eternity Initiated in ${totalTime}s`);
                 requestRef.current = requestAnimationFrame(loop);
             };
 
         } catch (err: any) {
-            setError(err.message);
-            setStatus('System Failure');
+            console.error('Boot Failure:', err);
+            setError(`Boot Failure: ${err.message}`);
+            setStatus('System Restoration Required');
         }
     };
 
