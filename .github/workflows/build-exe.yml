@@ -46,7 +46,7 @@ jobs:
         
     - name: Create ZIP
       run: |
-        Compress-Archive -Path dist\EasyVtuberClient\* -DestinationPath EasyVtuberClient.zip
+        Compress-Archive -Path desktop\dist\EasyVtuberClient\* -DestinationPath EasyVtuberClient.zip
 
     - name: Create Release and Upload Client
       uses: softprops/action-gh-release@v1
