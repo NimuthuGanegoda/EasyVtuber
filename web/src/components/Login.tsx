@@ -37,7 +37,11 @@ export const Login: React.FC = () => {
         try {
             await signInWithPopup(auth, provider);
         } catch (err: any) {
-            setError(err.message);
+            if (err.code === 'auth/internal-error') {
+                setError("GitHub OAuth Mismatch: Please ensure GitHub is enabled in Firebase Console and your Client Secret is correct.");
+            } else {
+                setError(`Auth Error: ${err.message}`);
+            }
         }
     };
 
