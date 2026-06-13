@@ -63,13 +63,39 @@ The "Elite Edition" has been rewritten for maximum performance on modern browser
 
 ---
 
-## 📂 Project Structure
-- **`/docs`**: **Production Web Deployment** - *The live environment served via GitHub Pages*.
-- **`/web`**: **Source Code (Elite V2)** - *React + TS development environment*.
-- **`/desktop`**: **Desktop Suite** - *Python/PyTorch local environment for power users*.
-- **`/legacy`**: **Archived Versions** - *Legacy JS bundles and older implementations*.
+## 🛡️ Security & Integrity
+
+EasyVtuber Elite is built with a security-first mindset:
+- **Strict Content Security Policy (CSP)**: Prevents unauthorized scripts and protects your session.
+- **Automated Vulnerability Scanning**: Integrated CodeQL and Dependabot monitoring.
+- **Sanitized Inputs**: All user-provided data is rigorously cleaned before processing.
+- **Privacy First**: Tracking and inference happen 100% locally in your browser/device.
 
 ---
+
+## 👤 Elite Account System
+
+Sync your experience across devices with the **Velvet Rope** account system:
+- **Cloud Sync**: Save your character selections, neural engine settings, and UI preferences.
+- **Secure Authentication**: Powered by **Firebase** (Email & GitHub OAuth).
+- **Pro Access**: Exclusive access to experimental features like WebGPU acceleration for registered souls.
+
+---
+
+## 📂 Project Structure
+- **`/` (Root)**: Production Web Deployment (Live Environment).
+- **`/web`**: **Source Code (Elite V2)** - React + TS + Firebase.
+- **`/desktop`**: **Desktop Suite** - Python/PyTorch local environment.
+- **`/legacy`**: Archived JS bundles and older implementations.
+
+---
+
+## 🛠️ Contributor Excellence
+
+We demand technical perfection. Before submitting a PR:
+1. Ensure all code is typed with **Strict TypeScript**.
+2. Run `npm run lint` in the `/web` directory.
+3. Run `npm run format` to adhere to our elite aesthetic standards.
 
 ## 🧪 Desktop Usage (For Power Users)
 
