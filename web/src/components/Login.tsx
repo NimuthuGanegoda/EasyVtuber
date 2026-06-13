@@ -37,10 +37,15 @@ export const Login: React.FC = () => {
         try {
             await signInWithPopup(auth, provider);
         } catch (err: any) {
+            console.error('Elite Auth Error:', err);
             if (err.code === 'auth/internal-error') {
-                setError("GitHub OAuth Mismatch: Please ensure GitHub is enabled in Firebase Console and your Client Secret is correct.");
+                setError(`Internal Error (${err.code}): 1. Check if GitHub Secret is correct in Firebase. 2. Ensure 'nimuthuganegoda.github.io' is added to Authorized Domains in Firebase Console.`);
+            } else if (err.code === 'auth/unauthorized-domain') {
+                setError(`Domain Blocked: Please add 'nimuthuganegoda.github.io' to your Firebase Authorized Domains.`);
+            } else if (err.code === 'auth/popup-blocked') {
+                setError("Popup Blocked: Please allow popups for this site or try again.");
             } else {
-                setError(`Auth Error: ${err.message}`);
+                setError(`Auth Error: ${err.message} (${err.code})`);
             }
         }
     };
