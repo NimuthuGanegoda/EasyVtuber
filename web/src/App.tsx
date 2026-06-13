@@ -1,12 +1,9 @@
-import React, { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { useVtuber } from './hooks/useVtuber';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { auth } from './firebase';
 
-const MainApp: React.FC = () => {
+const App: React.FC = () => {
     const videoRef = useRef<HTMLVideoElement>(null);
     const { init, status, isLoaded, error, inferenceTime, fps, progress } = useVtuber();
-    const { user, loading } = useAuth();
     const initStarted = useRef(false);
 
     useEffect(() => {
@@ -15,8 +12,6 @@ const MainApp: React.FC = () => {
             init(videoRef.current);
         }
     }, [init]);
-
-    if (loading) return <div className="loading-screen">Resonating with the Ley Lines...</div>;
 
     return (
         <div className="container">
@@ -41,19 +36,10 @@ const MainApp: React.FC = () => {
             <aside className="sidebar">
                 <div className="logo">EasyVtuber V2 🌸</div>
                 
-                <div className="user-profile">
-                    <img src={(user && user.photoURL) || 'https://api.dicebear.com/7.x/bottts/svg?seed=Miko'} alt="Soul" />
-                    <div className="user-info">
-                        <span className="user-name">{(user && (user.displayName || user.email)) || 'Elite User'}</span>
-                        <span className="user-email">{user ? user.email : 'Local Sanctuary'}</span>
-                    </div>
-                    {user && (
-                        <button onClick={() => auth.signOut()} className="btn-logout">🚪</button>
-                    )}
+                <div className="system-status">
+                    <div className="status-badge">TS/WASM ELITE CORE</div>
                 </div>
 
-                <div className="status-badge">TS/WASM ELITE</div>
-                
                 <div className="stats">
                     <div className="stat-item">
                         <span>Inference:</span> {inferenceTime}ms
@@ -78,11 +64,5 @@ const MainApp: React.FC = () => {
         </div>
     );
 };
-
-const App: React.FC = () => (
-    <AuthProvider>
-        <MainApp />
-    </AuthProvider>
-);
 
 export default App;
