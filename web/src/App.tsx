@@ -1,24 +1,22 @@
 import React, { useRef } from 'react';
 import { useVtuber } from './hooks/useVtuber';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { Login } from './components/Login';
 import { auth } from './firebase';
 
 const MainApp: React.FC = () => {
     const videoRef = useRef<HTMLVideoElement>(null);
     const { init, status, isLoaded, error, inferenceTime, fps, progress } = useVtuber();
-    const { user, loading, isGuest } = useAuth();
+    const { user, loading } = useAuth();
     const initStarted = useRef(false);
 
     useEffect(() => {
-        if ((user || isGuest) && videoRef.current && !initStarted.current) {
+        if (videoRef.current && !initStarted.current) {
             initStarted.current = true;
             init(videoRef.current);
         }
-    }, [user, isGuest, init]);
+    }, [init]);
 
     if (loading) return <div className="loading-screen">Resonating with the Ley Lines...</div>;
-    if (!user && !isGuest) return <Login />;
 
     return (
         <div className="container">
@@ -46,12 +44,12 @@ const MainApp: React.FC = () => {
                 <div className="user-profile">
                     <img src={(user && user.photoURL) || 'https://api.dicebear.com/7.x/bottts/svg?seed=Miko'} alt="Soul" />
                     <div className="user-info">
-                        <span className="user-name">{(user && (user.displayName || user.email)) || 'Elite Guest'}</span>
-                        <span className="user-email">{isGuest ? 'Offline Sanctuary' : user?.email}</span>
+                        <span className="user-name">{(user && (user.displayName || user.email)) || 'Elite User'}</span>
+                        <span className="user-email">{user ? user.email : 'Local Sanctuary'}</span>
                     </div>
-                    <button onClick={() => isGuest ? window.location.reload() : auth.signOut()} className="btn-logout">
-                        {isGuest ? '🔐' : '🚪'}
-                    </button>
+                    {user && (
+                        <button onClick={() => auth.signOut()} className="btn-logout">🚪</button>
+                    )}
                 </div>
 
                 <div className="status-badge">TS/WASM ELITE</div>
