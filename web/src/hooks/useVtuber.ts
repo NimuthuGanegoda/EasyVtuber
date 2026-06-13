@@ -11,7 +11,7 @@ const MP_VERSION = '0.10.35';
 const FACE_LANDMARKER_WASM = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MP_VERSION}/wasm`;
 
 export function useVtuber() {
-    const [status, setStatus] = useState('System Idle');
+    const [status, setStatus] = useState('Resonating with the Ley Lines...');
     const [isLoaded, setIsLoaded] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [inferenceTime, setInferenceTime] = useState(0);
@@ -120,5 +120,5 @@ export function useVtuber() {
         };
     }, []);
 
-    return { init, status, isLoaded, error, inferenceTime, fps };
+    return { init, status, isLoaded, error, inferenceTime, fps, progress };
 }
