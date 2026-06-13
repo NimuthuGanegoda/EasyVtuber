@@ -29,8 +29,14 @@ jobs:
 
     - name: Build EXE with PyInstaller
       run: |
-        # We only bundle the launcher code. Models are downloaded at runtime from the GitHub server.
-        pyinstaller --noconfirm --onedir --windowed --name "EasyVtuberClient"  "launcher2.py"
+        cd desktop
+        # We bundle the launcher and core backend. Models are downloaded at runtime.
+        pyinstaller --noconfirm --onedir --windowed --name "EasyVtuberClient" `
+          --add-data "data;data" `
+          --add-data "backend;backend" `
+          --add-data "main.py;." `
+          --paths "." `
+          "gui/launcher2.py"
         
     - name: Create ZIP
       run: |
