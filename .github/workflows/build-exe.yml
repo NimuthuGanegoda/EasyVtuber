@@ -34,9 +34,9 @@ jobs:
         if (!(Test-Path "data")) { New-Item -ItemType Directory -Path "data" }
         if (!(Test-Path "backend/data/images")) { New-Item -ItemType Directory -Path "backend/data/images" }
         
-        # We bundle the launcher and core backend. 
+        # We bundle everything into a single standalone .exe
         # We map images to both 'data/images' (for launcher) and 'backend/data/images' (for backend logic)
-        pyinstaller --noconfirm --onedir --windowed --name "EasyVtuberClient" `
+        pyinstaller --noconfirm --onefile --windowed --name "EasyVtuberClient" `
           --add-data "backend/data/images;data/images" `
           --add-data "backend/data/images;backend/data/images" `
           --add-data "backend;backend" `
@@ -44,14 +44,10 @@ jobs:
           --paths "." `
           "gui/launcher2.py"
         
-    - name: Create ZIP
-      run: |
-        Compress-Archive -Path desktop\dist\EasyVtuberClient\* -DestinationPath EasyVtuberClient.zip
-
     - name: Create Release and Upload Client
       uses: softprops/action-gh-release@v1
       if: startsWith(github.ref, 'refs/tags/')
       with:
-        files: EasyVtuberClient.zip
+        files: desktop/dist/EasyVtuberClient.exe
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
