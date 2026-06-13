@@ -155,3 +155,4 @@ onnx_model_tha4/*.pdb
 *.pyd
 *.dll
 desktop/venv/
+web/node_modules/
