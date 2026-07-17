@@ -563,6 +563,23 @@ function App() {
                       <span className="toggle-slider" />
                     </label>
                   </div>
+                  <div className="setting-row">
+                    <span>
+                      Worker Extraction
+                      <span
+                        className={`worker-indicator ${vtuber.useWorker ? 'active' : ''}`}
+                        title={vtuber.useWorker ? 'Off-thread pose extraction active' : 'Using main-thread extraction'}
+                      />
+                    </span>
+                    <label className="toggle">
+                      <input
+                        type="checkbox"
+                        checked={vtuber.useWorker}
+                        onChange={e => vtuber.setUseWorker(e.target.checked)}
+                      />
+                      <span className="toggle-slider" />
+                    </label>
+                  </div>
                 </div>
               </div>
             )}

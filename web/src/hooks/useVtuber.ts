@@ -41,6 +41,7 @@ export interface VtuberState {
   overlays: OverlayItem[];
   hotkeys: HotkeyAction[];
   isTracking: boolean;
+  useWorker: boolean;
 }
 
 export interface OverlayItem {
@@ -96,6 +97,7 @@ export function useVtuber() {
     overlays: DEFAULT_OVERLAYS,
     hotkeys: DEFAULT_HOTKEYS,
     isTracking: true,
+    useWorker: true,
   });
 
   const faceLandmarkerRef = useRef<FaceLandmarker | null>(null);
@@ -110,30 +112,41 @@ export function useVtuber() {
   const STATE_SYNC_INTERVAL = 50; // ms — throttle React state updates to ~20fps
   const frameIdRef = useRef(0);
 
-  // Web Worker for off-thread pose extraction (opt-in — disabled by default)
-  // Enable by setting USE_WORKER to true. Worker is created only once.
-  const USE_WORKER = false;
   const workerRef = useRef<Worker | null>(null);
   const workerPoseRef = useRef<PoseData | null>(null);
+  // Sync the worker-enabled flag to a ref so the stable RAF loop can read it
+  const useWorkerRef = useRef(state.useWorker);
+  useWorkerRef.current = state.useWorker;
 
+  // Spawn or kill the Web Worker when the user toggles the setting
   useEffect(() => {
-    if (!USE_WORKER) return;
-    try {
-      const w = new Worker(
-        new URL('../utils/poseWorker.ts', import.meta.url),
-        { type: 'module' }
-      );
-      w.onmessage = (e: MessageEvent) => {
-        workerPoseRef.current = e.data.pose as PoseData;
-      };
-      workerRef.current = w;
-    } catch (err) {
-      console.warn('Pose worker init failed:', err);
+    if (state.useWorker) {
+      try {
+        const w = new Worker(
+          new URL('../utils/poseWorker.ts', import.meta.url),
+          { type: 'module' }
+        );
+        w.onmessage = (e: MessageEvent) => {
+          workerPoseRef.current = e.data.pose as PoseData;
+        };
+        workerRef.current = w;
+      } catch (err) {
+        console.warn('Pose worker init failed:', err);
+        setState(prev => ({ ...prev, useWorker: false }));
+      }
+    } else {
+      workerRef.current?.terminate();
+      workerRef.current = null;
+      workerPoseRef.current = null;
     }
     return () => {
       workerRef.current?.terminate();
       workerRef.current = null;
     };
+  }, [state.useWorker]);
+
+  const setUseWorker = useCallback((enabled: boolean) => {
+    setState(prev => ({ ...prev, useWorker: enabled }));
   }, []);
 
   const updateState = useCallback((partial: Partial<VtuberState>) => {
@@ -266,7 +279,7 @@ export function useVtuber() {
 
             // Toggle pose extraction path: Worker (async) vs sync
             const worker = workerRef.current;
-            if (worker && USE_WORKER) {
+            if (worker && useWorkerRef.current) {
               // Off-thread path: post landmarks to worker
               worker.postMessage({ id: frameIdRef.current, landmarks: rawLandmarks });
               // Use latest worker result if available, otherwise skip pose update
@@ -370,6 +383,7 @@ export function useVtuber() {
     resetExpression,
     setBackground,
     toggleTracking,
+    setUseWorker,
     addOverlay,
     removeOverlay,
     updateOverlay,

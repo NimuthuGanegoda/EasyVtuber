@@ -603,6 +603,23 @@ body {
   border-color: var(--accent);
 }
 
+/* Worker indicator dot */
+.worker-indicator {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-left: 6px;
+  vertical-align: middle;
+  background: var(--red);
+  transition: var(--transition);
+}
+
+.worker-indicator.active {
+  background: var(--green);
+  box-shadow: 0 0 6px var(--green-glow);
+}
+
 /* Toggle Switch */
 .toggle {
   position: relative;
