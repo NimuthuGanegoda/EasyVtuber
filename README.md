@@ -120,6 +120,7 @@ If you need even higher quality, frame interpolation (RIFE), or native OBS trans
 *   **Original Engine**: [Talking Head Anime 4](http://pkhungurn.github.io/talking-head-anime-4/) by **Pramook Khungurn**.
 *   **Tracking**: [MediaPipe](https://google.github.io/mediapipe/) by Google.
 *   **Inference**: [TensorFlow.js](https://www.tensorflow.org/js).
+*   **Code Graph Analysis**: [Graphify](https://github.com/Graphify-Labs/graphify) by **Graphify Labs**.
 *   **Desktop Re-Engineering**: Enhanced and modularized by **Nimuthu**.
 
 ---

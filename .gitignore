@@ -1,3 +1,37 @@
-```
-graphify/
-```
+# Virtual environment
+venv_easyvtb/
+venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+*.egg
+
+# Node
+node_modules/
+web/node_modules/
+
+# Build outputs (docs is tracked for GitHub Pages deployment)
+web/dist/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+
+# Launcher config (user-specific)
+launcher.json
+
+# Pretrained models (download separately)
+pretrained/
