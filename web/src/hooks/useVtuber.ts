@@ -437,5 +437,6 @@ export function useVtuber() {
     landmarksRef,
     overlaysRef,
     trackingRef,
+    expressionRef,
   };
 }

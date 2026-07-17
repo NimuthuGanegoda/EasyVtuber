@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState } from 'react';
-import { useVtuber, BackgroundType, OverlayItem, PoseData } from './hooks/useVtuber';
+import { useVtuber, BackgroundType, OverlayItem, PoseData, ExpressionState } from './hooks/useVtuber';
 import { useContributors, FALLBACK_COUNT } from './hooks/useContributors';
 import { WebGLCharacterRenderer } from './utils/webglRenderer';
 import { VRMCharacterRenderer } from './utils/vrmRenderer';
@@ -74,7 +74,7 @@ function smoothPose(target: PoseData | null, prev: PoseData | null): PoseData | 
   };
 }
 
-function drawCharacter(ctx: CanvasRenderingContext2D, pose: PoseData | null) {
+function drawCharacter(ctx: CanvasRenderingContext2D, pose: PoseData | null, expression: ExpressionState) {
   ctx.save();
 
   const headTilt = pose ? (pose.xAngle || 0) * 40 : 0;
@@ -156,14 +156,15 @@ function drawCharacter(ctx: CanvasRenderingContext2D, pose: PoseData | null) {
   ctx.fillRect(-HEAD_R * 1.2, -HEAD_R * 1.2, HEAD_R * 2.4, HEAD_R * 2.4);
   ctx.restore();
 
-  // ---- Blush ----
+  // ---- Blush ---- (manual "cheek puff" override enlarges + darkens it)
+  const puffR = 17 + expression.cheekPuff * 10;
   for (const side of [-1, 1]) {
     const bx = side * HEAD_R * 0.55, by = HEAD_R * 0.35;
-    const gradient = ctx.createRadialGradient(bx, by, 0, bx, by, 17);
-    gradient.addColorStop(0, 'rgba(255, 110, 150, 0.45)');
+    const gradient = ctx.createRadialGradient(bx, by, 0, bx, by, puffR);
+    gradient.addColorStop(0, `rgba(255, 110, 150, ${0.45 + expression.cheekPuff * 0.25})`);
     gradient.addColorStop(1, 'rgba(255, 110, 150, 0)');
     ctx.beginPath();
-    ctx.arc(bx, by, 17, 0, Math.PI * 2);
+    ctx.arc(bx, by, puffR, 0, Math.PI * 2);
     ctx.fillStyle = gradient;
     ctx.fill();
   }
@@ -177,6 +178,19 @@ function drawCharacter(ctx: CanvasRenderingContext2D, pose: PoseData | null) {
   for (const side of [-1, 1]) {
     const ex = side * EYE_SPACING;
     const ey = -HEAD_R * 0.12;
+
+    // Manual "eye smile" override (from the Expressions panel): classic
+    // anime closed-happy-eye curve, replacing the tracked eye entirely.
+    if (expression.eyeSmile > 0.5) {
+      ctx.beginPath();
+      ctx.arc(ex, ey + EYE_H * 0.3, EYE_W * 0.9, Math.PI * 1.15, Math.PI * 1.85, true);
+      ctx.strokeStyle = COL_OUTLINE;
+      ctx.lineWidth = 2.4;
+      ctx.lineCap = 'round';
+      ctx.stroke();
+      continue;
+    }
+
     const openAmt = side === -1 ? eyeOpenL : eyeOpenR;
     const eh = EYE_H * openAmt;
 
@@ -268,11 +282,12 @@ function drawCharacter(ctx: CanvasRenderingContext2D, pose: PoseData | null) {
     ctx.stroke();
   }
 
-  // ---- Eyebrows ----
+  // ---- Eyebrows ---- (manual "raise" override shifts them up)
+  const browLift = expression.eyebrowRaise * HEAD_R * 0.12;
   for (const side of [-1, 1]) {
     ctx.beginPath();
-    ctx.moveTo(side * (EYE_SPACING - 14), -HEAD_R * 0.42);
-    ctx.quadraticCurveTo(side * EYE_SPACING, -HEAD_R * 0.5, side * (EYE_SPACING + 13), -HEAD_R * 0.4);
+    ctx.moveTo(side * (EYE_SPACING - 14), -HEAD_R * 0.42 - browLift);
+    ctx.quadraticCurveTo(side * EYE_SPACING, -HEAD_R * 0.5 - browLift, side * (EYE_SPACING + 13), -HEAD_R * 0.4 - browLift);
     ctx.strokeStyle = COL_HAIR_DARK;
     ctx.lineWidth = 3;
     ctx.lineCap = 'round';
@@ -321,8 +336,8 @@ function drawCharacter(ctx: CanvasRenderingContext2D, pose: PoseData | null) {
   ctx.fillRect(-HEAD_R * 1.2, -HEAD_R * 1.2, HEAD_R * 2.4, HEAD_R * 1.2);
   ctx.restore();
 
-  // ---- Mouth ----
-  const mouthOpen = pose ? Math.min(pose.mouthRatio * 26, 22) : 0;
+  // ---- Mouth ---- (manual "mouth open" override forces it wide, whichever is bigger wins)
+  const mouthOpen = Math.max(pose ? Math.min(pose.mouthRatio * 26, 22) : 0, expression.mouthOpen * 18);
   if (mouthOpen < 2) {
     ctx.beginPath();
     ctx.moveTo(-MOUTH_MAX_W * 0.55, MOUTH_Y);
@@ -575,7 +590,7 @@ function App() {
         : false;
 
       const gl = webglRendererRef.current;
-      const webglDrawn = !vrmDrawn && gl ? gl.render(currentPose) : false;
+      const webglDrawn = !vrmDrawn && gl ? gl.render(currentPose, vtuber.expressionRef.current) : false;
 
       if (vrmDrawn && vrmCanvasRef.current) {
         ctx.drawImage(vrmCanvasRef.current, 0, 0);
@@ -584,7 +599,7 @@ function App() {
         ctx.drawImage(glCanvasRef.current, 0, 0);
       } else {
         // Fallback: draw character with Canvas 2D
-        drawCharacter(ctx, currentPose);
+        drawCharacter(ctx, currentPose, vtuber.expressionRef.current);
       }
 
       // Overlays and HUD always render on Canvas 2D (text/compositing)

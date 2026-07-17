@@ -2,7 +2,9 @@
 // Draws the VTuber character using WebGL shaders for performance.
 // Falls back to a no-op if WebGL is unavailable.
 
-import { PoseData } from '../hooks/useVtuber';
+import { PoseData, ExpressionState } from '../hooks/useVtuber';
+
+const DEFAULT_EXPRESSION: ExpressionState = { mouthOpen: 0, eyebrowRaise: 0, eyeSmile: 0, cheekPuff: 0 };
 
 // Character rendering constants (mirrored from App.tsx)
 const CHAR_CENTER_X = 256;
@@ -301,12 +303,12 @@ export class WebGLCharacterRenderer {
     gl.clear(gl.COLOR_BUFFER_BIT);
   }
 
-  render(pose: PoseData | null) {
+  render(pose: PoseData | null, expression: ExpressionState = DEFAULT_EXPRESSION) {
     if (!this.ready || !this.gl) return false;
 
     this.clear();
 
-    const shapes = this.buildShapes(pose);
+    const shapes = this.buildShapes(pose, expression);
     for (const cmd of shapes) {
       this.drawShape(cmd);
     }
@@ -314,7 +316,7 @@ export class WebGLCharacterRenderer {
     return true;
   }
 
-  private buildShapes(pose: PoseData | null): ShapeCmd[] {
+  private buildShapes(pose: PoseData | null, expression: ExpressionState): ShapeCmd[] {
     const shapes: ShapeCmd[] = [];
     const W = this.canvas.width;
     const H = this.canvas.height;
@@ -438,6 +440,27 @@ export class WebGLCharacterRenderer {
     for (const side of [-1, 1]) {
       const ex = side * EYE_SPACING;
       const ey = cy - HEAD_RADIUS * 0.12;
+
+      // Manual "eye smile" override: classic anime closed-happy-eye "^",
+      // approximated with two straight LINE segments (this shader has no
+      // partial-arc primitive besides the always-top-half SHAPE_ARC) —
+      // replaces the tracked eye entirely, same as the eyebrows' straight-
+      // line approximation elsewhere in this file.
+      if (expression.eyeSmile > 0.5) {
+        const segLen = EYE_W * 0.95;
+        shapes.push({
+          type: 3, cx: cx + ex - segLen * 0.42, cy: ey + EYE_H * 0.25,
+          rx: 0, ry: 0, color: hairDark(0.9),
+          radius: 2.4, angle: -0.55, extras: segLen,
+        });
+        shapes.push({
+          type: 3, cx: cx + ex + segLen * 0.42, cy: ey + EYE_H * 0.25,
+          rx: 0, ry: 0, color: hairDark(0.9),
+          radius: 2.4, angle: 0.55, extras: segLen,
+        });
+        continue;
+      }
+
       const open = side === -1 ? eyeOpenL : eyeOpenR;
       const eh = EYE_H * open;
 
@@ -504,12 +527,13 @@ export class WebGLCharacterRenderer {
       }
     }
 
-    // ── Eyebrows ──
+    // ── Eyebrows ── (manual "raise" override shifts them up)
+    const browLift = expression.eyebrowRaise * HEAD_RADIUS * 0.12;
     for (const side of [-1, 1]) {
       const lx = cx + side * (EYE_SPACING - 14);
-      const ly = cy - HEAD_RADIUS * 0.42;
+      const ly = cy - HEAD_RADIUS * 0.42 - browLift;
       const rx = cx + side * (EYE_SPACING + 13);
-      const ry = cy - HEAD_RADIUS * 0.4;
+      const ry = cy - HEAD_RADIUS * 0.4 - browLift;
       const midX = (lx + rx) / 2;
       const midY = (ly + ry) / 2;
       const len = Math.abs(rx - lx);
@@ -524,8 +548,8 @@ export class WebGLCharacterRenderer {
       });
     }
 
-    // ── Mouth ──
-    const mouthOpen = pose ? Math.min(pose.mouthRatio * 26, 22) : 0;
+    // ── Mouth ── (manual "mouth open" override forces it wide, whichever is bigger wins)
+    const mouthOpen = Math.max(pose ? Math.min(pose.mouthRatio * 26, 22) : 0, expression.mouthOpen * 18);
     if (mouthOpen < 2) {
       shapes.push({
         type: 3, // SHAPE_LINE
@@ -567,13 +591,14 @@ export class WebGLCharacterRenderer {
       });
     }
 
-    // ── Blush ──
+    // ── Blush ── (manual "cheek puff" override enlarges + darkens it)
+    const puffR = 13 + expression.cheekPuff * 8;
     for (const side of [-1, 1]) {
       shapes.push({
         type: 5, // SHAPE_RADIAL_GRAD
         cx: cx + side * HEAD_RADIUS * 0.55, cy: cy + HEAD_RADIUS * 0.35,
-        rx: 13, ry: 13,
-        color: hair(0.35),
+        rx: puffR, ry: puffR,
+        color: hair(0.35 + expression.cheekPuff * 0.25),
         color2: [1, 0.361, 0.581, 0],
         radius: 0, angle: 0, extras: 0,
       });
