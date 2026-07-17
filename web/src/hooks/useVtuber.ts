@@ -223,13 +223,26 @@ export function useVtuber() {
       // HandLandmarker will be loaded on-demand when user enables hand tracking
 
       updateState({ status: 'Opening Camera...', progress: 50 });
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          width: { ideal: 640 },
-          height: { ideal: 480 },
-          frameRate: { ideal: 30 },
-        },
-      });
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            width: { ideal: 640 },
+            height: { ideal: 480 },
+            frameRate: { ideal: 30 },
+          },
+        });
+      } catch (camErr: unknown) {
+        const name = camErr instanceof DOMException ? camErr.name : '';
+        const friendly = name === 'NotFoundError'
+          ? 'No camera found. Connect a webcam and try again.'
+          : name === 'NotAllowedError'
+            ? 'Camera access was denied. Allow camera permissions for this site and try again.'
+            : name === 'NotReadableError'
+              ? 'Camera is already in use by another application. Close it and try again.'
+              : `Could not access camera: ${camErr instanceof Error ? camErr.message : String(camErr)}`;
+        throw new Error(friendly);
+      }
 
       videoElement.srcObject = stream;
       streamRef.current = stream;
