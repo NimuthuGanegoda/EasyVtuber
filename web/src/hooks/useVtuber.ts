@@ -290,18 +290,28 @@ export function useVtuber() {
           if (landmarks) {
             const rawLandmarks = landmarks as unknown as Landmark[];
 
+            // MediaPipe's ML-derived blendshape scores (blink, jaw-open, etc.)
+            // are materially more accurate than geometry computed from raw
+            // landmarks alone — pass them through when available.
+            let blendshapes: Record<string, number> | undefined;
+            const categories = faceResult.faceBlendshapes?.[0]?.categories;
+            if (categories) {
+              blendshapes = {};
+              for (const c of categories) blendshapes[c.categoryName] = c.score;
+            }
+
             // Toggle pose extraction path: Worker (async) vs sync
             const worker = workerRef.current;
             if (worker && useWorkerRef.current) {
               // Off-thread path: post landmarks to worker
-              worker.postMessage({ id: frameIdRef.current, landmarks: rawLandmarks });
+              worker.postMessage({ id: frameIdRef.current, landmarks: rawLandmarks, blendshapes });
               // Use latest worker result if available, otherwise skip pose update
               if (workerPoseRef.current) {
                 poseRef.current = workerPoseRef.current;
               }
             } else {
               // Synchronous path (default — fast enough for single-threaded)
-              const pose = extractPose(rawLandmarks);
+              const pose = extractPose(rawLandmarks, blendshapes);
               poseRef.current = pose;
             }
 

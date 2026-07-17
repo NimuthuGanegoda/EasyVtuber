@@ -70,7 +70,13 @@ function getIrisCenter(landmarks: Landmark[], side: 'left' | 'right'): Landmark 
   };
 }
 
-export function extractPose(landmarks: Landmark[]): PoseData {
+// MediaPipe's face_landmarker task can output 52 ARKit-style blendshape
+// scores (ML-derived, pose/lighting-robust) alongside raw landmarks. When
+// available, prefer them over the geometric landmark-ratio heuristics below
+// for blink and mouth-open — they're materially more accurate. Falls back
+// to geometry when blendshapes aren't provided (e.g. a caller that only has
+// raw landmarks).
+export function extractPose(landmarks: Landmark[], blendshapes?: Record<string, number>): PoseData {
   const irisRCenter = getIrisCenter(landmarks, 'right');
   const irisLCenter = getIrisCenter(landmarks, 'left');
 
@@ -130,10 +136,25 @@ export function extractPose(landmarks: Landmark[]): PoseData {
       1) *
     3;
 
-  const eyeLHTemp =
+  let eyeLHTemp =
     1 - (2 * (irisRBottom.y - irisRTop.y)) / (irisRLeft.x - irisRRight.x);
-  const eyeRHTemp =
+  let eyeRHTemp =
     1 - (2 * (irisLBottom.y - irisLTop.y)) / (irisLLeft.x - irisLRight.x);
+  let mouthRatioFinal = mouthRatio;
+
+  if (blendshapes) {
+    // eyeBlinkLeft/Right blendshapes are already 0=open..1=closed, same
+    // direction as eyeLHTemp/eyeRHTemp — and eyeLHTemp maps to the subject's
+    // *right* eye (see IRIS_R_* above), matching ARKit's subject-relative
+    // naming, so eyeBlinkRight -> eyeLHTemp is the correct pairing, not a bug.
+    const blinkRight = blendshapes['eyeBlinkRight'];
+    const blinkLeft = blendshapes['eyeBlinkLeft'];
+    if (blinkRight !== undefined) eyeLHTemp = blinkRight;
+    if (blinkLeft !== undefined) eyeRHTemp = blinkLeft;
+
+    const jawOpen = blendshapes['jawOpen'];
+    if (jawOpen !== undefined) mouthRatioFinal = jawOpen;
+  }
 
   // Normalized head position
   const noseTip = at(landmarks, 1);
@@ -144,7 +165,7 @@ export function extractPose(landmarks: Landmark[]): PoseData {
   return {
     eyeLHTemp,
     eyeRHTemp,
-    mouthRatio,
+    mouthRatio: mouthRatioFinal,
     eyeYRatio,
     eyeXRatio,
     xAngle,

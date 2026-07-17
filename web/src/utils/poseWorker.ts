@@ -9,6 +9,7 @@ import { extractPose, Landmark } from './poseExtractor';
 export interface PoseWorkerMessage {
   id: number;
   landmarks: Landmark[];
+  blendshapes?: Record<string, number>;
 }
 
 export interface PoseWorkerResult {
@@ -25,14 +26,14 @@ if (typeof self !== 'undefined' && 'postMessage' in self) {
   workerSelf = self as DedicatedWorkerGlobalScope;
 
   workerSelf.onmessage = (event: MessageEvent<PoseWorkerMessage>) => {
-    const { id, landmarks } = event.data;
+    const { id, landmarks, blendshapes } = event.data;
 
     if (!landmarks || landmarks.length === 0) {
       return;
     }
 
     try {
-      const pose = extractPose(landmarks);
+      const pose = extractPose(landmarks, blendshapes);
       const result: PoseWorkerResult = {
         id,
         pose,
