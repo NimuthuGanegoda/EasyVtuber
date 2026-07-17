@@ -8,9 +8,9 @@ import { PerformanceMonitor } from './components/PerformanceMonitor';
 const CHAR_CENTER_X = 256;
 const CHAR_CENTER_Y = 230;
 const HEAD_R = 66;
-const EYE_SPACING = 25;
-const EYE_W = 15;
-const EYE_H = 19;
+const EYE_SPACING = 24;
+const EYE_W = 13;
+const EYE_H = 16;
 const PUPIL_R = 4;
 // Relative to head center (was 240 -- combined with the origin translate
 // that put the mouth at canvas y~460, well below the body, not on the face).
@@ -95,12 +95,30 @@ function drawCharacter(ctx: CanvasRenderingContext2D, pose: PoseData | null) {
     ctx.fill();
   }
 
-  // ---- Back hair mass (behind head) — narrower than before so it reads
-  // as hair volume, not a uniform halo/hood ----
+  // ---- Back hair mass (behind head) — hugs the face closely instead of
+  // forming a big halo, so the face reads as the dominant shape, not a
+  // small window inside a hair blob ----
   ctx.beginPath();
-  ctx.ellipse(0, HEAD_R * 0.15, HEAD_R * 1.0, HEAD_R * 1.4, 0, 0, Math.PI * 2);
+  ctx.ellipse(0, HEAD_R * 0.1, HEAD_R * 0.82, HEAD_R * 1.12, 0, 0, Math.PI * 2);
   ctx.fillStyle = COL_HAIR_DARK;
   ctx.fill();
+
+  // Subtle hair strand shading (a few darker streaks for depth, instead of
+  // one flat fill) — kept faint, just enough to break up the flatness.
+  ctx.save();
+  ctx.beginPath();
+  ctx.ellipse(0, HEAD_R * 0.1, HEAD_R * 0.82, HEAD_R * 1.12, 0, 0, Math.PI * 2);
+  ctx.clip();
+  ctx.strokeStyle = 'rgba(0,0,0,0.12)';
+  ctx.lineWidth = 3;
+  ctx.lineCap = 'round';
+  for (const sx of [-0.5, -0.15, 0.2, 0.5]) {
+    ctx.beginPath();
+    ctx.moveTo(HEAD_R * sx, -HEAD_R * 0.9);
+    ctx.quadraticCurveTo(HEAD_R * sx * 1.3, HEAD_R * 0.1, HEAD_R * sx * 1.1, HEAD_R * 0.9);
+    ctx.stroke();
+  }
+  ctx.restore();
 
   // ---- Neck ----
   ctx.beginPath();
@@ -162,34 +180,70 @@ function drawCharacter(ctx: CanvasRenderingContext2D, pose: PoseData | null) {
     ctx.fillStyle = '#fff8fb';
     ctx.fillRect(ex - EYE_W, ey - eh, EYE_W * 2, eh * 2);
 
+    // Iris sits slightly low in the eye (a sliver of white above it, like a
+    // real eye socket) rather than perfectly centered — centered pupils
+    // with even white all around is a big part of what reads as a "dead"
+    // doll stare.
+    const irisY = ey + eh * 0.15 + eyeYOffset;
+    const irisX = ex + eyeXOffset;
+
     if (openAmt > 0.15) {
+      const irisR = EYE_W * 0.66;
       const irisGrad = ctx.createRadialGradient(
-        ex + eyeXOffset * 0.5, ey + eyeYOffset * 0.5 - 3, 1,
-        ex + eyeXOffset, ey + eyeYOffset, EYE_W * 0.68
+        irisX - 2, irisY - irisR * 0.5, 1,
+        irisX, irisY, irisR
       );
       irisGrad.addColorStop(0, COL_IRIS);
+      irisGrad.addColorStop(0.7, COL_IRIS);
       irisGrad.addColorStop(1, COL_IRIS_DARK);
       ctx.beginPath();
-      ctx.arc(ex + eyeXOffset, ey + eyeYOffset, EYE_W * 0.68, 0, Math.PI * 2);
+      ctx.arc(irisX, irisY, irisR, 0, Math.PI * 2);
       ctx.fillStyle = irisGrad;
       ctx.fill();
 
+      // Pupil with a faint gradient instead of a flat dot
+      const pupilGrad = ctx.createRadialGradient(irisX, irisY, 0, irisX, irisY, PUPIL_R);
+      pupilGrad.addColorStop(0, '#3a1c40');
+      pupilGrad.addColorStop(1, COL_PUPIL);
       ctx.beginPath();
-      ctx.arc(ex + eyeXOffset, ey + eyeYOffset, PUPIL_R, 0, Math.PI * 2);
-      ctx.fillStyle = COL_PUPIL;
+      ctx.arc(irisX, irisY, PUPIL_R, 0, Math.PI * 2);
+      ctx.fillStyle = pupilGrad;
       ctx.fill();
 
-      // Highlights — the single biggest visual cue for an anime-style eye
+      // Primary highlight (upper-left, biggest) + secondary sparkle +
+      // a faint lower rim-light for a bit of catch-light life
       ctx.beginPath();
-      ctx.arc(ex + eyeXOffset - 4, ey + eyeYOffset - 5, 3, 0, Math.PI * 2);
+      ctx.arc(irisX - 3.5, irisY - 4.5, 2.6, 0, Math.PI * 2);
       ctx.fillStyle = 'rgba(255,255,255,0.95)';
       ctx.fill();
       ctx.beginPath();
-      ctx.arc(ex + eyeXOffset + 4, ey + eyeYOffset + 4, 1.3, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(255,255,255,0.8)';
+      ctx.arc(irisX + 3, irisY + 3, 1.1, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255,255,255,0.75)';
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(irisX, irisY + irisR * 0.7, irisR * 0.45, Math.PI, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255,255,255,0.18)';
       ctx.fill();
     }
+
+    // Soft under-eye/socket shadow at the top, inside the clip — gives the
+    // eye a socket instead of floating on flat skin
+    const socketShade = ctx.createLinearGradient(ex, ey - eh, ex, ey - eh * 0.3);
+    socketShade.addColorStop(0, 'rgba(120,60,80,0.22)');
+    socketShade.addColorStop(1, 'rgba(120,60,80,0)');
+    ctx.fillStyle = socketShade;
+    ctx.fillRect(ex - EYE_W, ey - eh, EYE_W * 2, eh);
     ctx.restore();
+
+    // Eyelid crease (a second, higher arc above the lash line) — this is
+    // what mainly separates "flat circle with a line" from an eye that
+    // reads as sitting in a face.
+    ctx.beginPath();
+    ctx.ellipse(ex, ey - eh * 0.55, EYE_W * 0.85, eh * 0.4, 0, Math.PI * 1.15, Math.PI * 1.85);
+    ctx.strokeStyle = 'rgba(92,44,71,0.22)';
+    ctx.lineWidth = 1.2;
+    ctx.lineCap = 'round';
+    ctx.stroke();
 
     // Upper lash line (bold) and lower lid (subtle)
     ctx.beginPath();
@@ -217,14 +271,47 @@ function drawCharacter(ctx: CanvasRenderingContext2D, pose: PoseData | null) {
     ctx.stroke();
   }
 
-  // ---- Nose (tiny hint, anime-style) ----
+  // ---- Nose: a bridge shadow + tip highlight instead of a single faint
+  // line — the previous version was nearly invisible and left the face
+  // reading as flat with features pasted on rather than actual structure ----
+  ctx.save();
   ctx.beginPath();
-  ctx.moveTo(0, HEAD_R * 0.08);
-  ctx.quadraticCurveTo(2.5, HEAD_R * 0.18, 0, HEAD_R * 0.24);
-  ctx.strokeStyle = 'rgba(92,44,71,0.25)';
-  ctx.lineWidth = 1.3;
+  ctx.moveTo(-1.5, HEAD_R * 0.02);
+  ctx.quadraticCurveTo(1, HEAD_R * 0.15, 2.5, HEAD_R * 0.25);
+  ctx.strokeStyle = 'rgba(120,70,60,0.28)';
+  ctx.lineWidth = 2;
   ctx.lineCap = 'round';
   ctx.stroke();
+  // Tip highlight + nostril shadow give it a slight 3D bump instead of a
+  // flat line
+  ctx.beginPath();
+  ctx.ellipse(1.5, HEAD_R * 0.26, 2.6, 1.6, 0.3, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255,235,225,0.5)';
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(3, HEAD_R * 0.29, 1.6, 1, 0.2, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(160,90,80,0.22)';
+  ctx.fill();
+  ctx.restore();
+
+  // ---- Jaw/chin shading — a soft shadow along the lower face gives it
+  // actual structure instead of reading as a flat skin-colored oval ----
+  ctx.save();
+  faceOutline(ctx, HEAD_R);
+  ctx.clip();
+  const jawGrad = ctx.createLinearGradient(0, HEAD_R * 0.55, 0, HEAD_R * 1.15);
+  jawGrad.addColorStop(0, 'rgba(180,110,95,0)');
+  jawGrad.addColorStop(1, 'rgba(180,110,95,0.28)');
+  ctx.fillStyle = jawGrad;
+  ctx.fillRect(-HEAD_R * 1.2, HEAD_R * 0.4, HEAD_R * 2.4, HEAD_R * 0.9);
+  // Forehead highlight — a touch of light from above so the face isn't
+  // uniformly flat-lit
+  const foreheadGrad = ctx.createRadialGradient(0, -HEAD_R * 0.55, 0, 0, -HEAD_R * 0.55, HEAD_R * 0.6);
+  foreheadGrad.addColorStop(0, 'rgba(255,255,250,0.25)');
+  foreheadGrad.addColorStop(1, 'rgba(255,255,250,0)');
+  ctx.fillStyle = foreheadGrad;
+  ctx.fillRect(-HEAD_R * 1.2, -HEAD_R * 1.2, HEAD_R * 2.4, HEAD_R * 1.2);
+  ctx.restore();
 
   // ---- Mouth ----
   const mouthOpen = pose ? Math.min(pose.mouthRatio * 26, 22) : 0;

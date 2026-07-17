@@ -8,10 +8,10 @@ import { PoseData } from '../hooks/useVtuber';
 const CHAR_CENTER_X = 256;
 const CHAR_CENTER_Y = 230;
 const HEAD_RADIUS = 66;
-const EYE_SPACING = 25;
-const EYE_W = 15;
-const EYE_H = 19;
-const IRIS_RADIUS = 10;
+const EYE_SPACING = 24;
+const EYE_W = 13;
+const EYE_H = 16;
+const IRIS_RADIUS = 8.6;
 const PUPIL_RADIUS = 4;
 // Relative to head center (was 240 -- combined with the cy offset that put
 // the mouth at canvas y~460, well below the body, not on the face).
@@ -352,18 +352,20 @@ export class WebGLCharacterRenderer {
     for (const side of [-1, 1]) {
       shapes.push({
         type: 1, // SHAPE_ELLIPSE
-        cx: cx + side * HEAD_RADIUS * 0.9, cy: cy + HEAD_RADIUS * 1.2,
-        rx: HEAD_RADIUS * 0.32, ry: HEAD_RADIUS * 1.15,
+        cx: cx + side * HEAD_RADIUS * 0.78, cy: cy + HEAD_RADIUS * 1.1,
+        rx: HEAD_RADIUS * 0.28, ry: HEAD_RADIUS * 1.0,
         color: hairDark(0.95),
-        radius: 0, angle: side * 0.12 + headRoll, extras: 0,
+        radius: 0, angle: side * 0.1 + headRoll, extras: 0,
       });
     }
 
-    // ── Back hair mass ──
+    // ── Back hair mass — hugs the face closely instead of forming a big
+    // halo, so the face reads as the dominant shape, not a small window
+    // inside a hair blob ──
     shapes.push({
       type: 1, // SHAPE_ELLIPSE
-      cx, cy: cy + HEAD_RADIUS * 0.15,
-      rx: HEAD_RADIUS * 1.0, ry: HEAD_RADIUS * 1.35,
+      cx, cy: cy + HEAD_RADIUS * 0.1,
+      rx: HEAD_RADIUS * 0.82, ry: HEAD_RADIUS * 1.1,
       color: hairDark(0.95),
       radius: 0, angle: headRoll, extras: 0,
     });
@@ -385,6 +387,37 @@ export class WebGLCharacterRenderer {
       color: skin(0.98),
       color2: skinShade(0.55),
       radius: 0, angle: headRoll, extras: 0,
+    });
+
+    // ── Jaw/chin shading — gives the lower face actual structure instead
+    // of reading as a flat skin-colored oval. A plain low-alpha ellipse
+    // (not a true directional gradient — SHAPE_ELLIPSE_BG's alpha channel
+    // doesn't blend between color/color2, only rgb does) positioned to
+    // cover just the chin area.
+    shapes.push({
+      type: 1, // SHAPE_ELLIPSE
+      cx, cy: cy + HEAD_RADIUS * 0.95,
+      rx: HEAD_RADIUS * 0.7, ry: HEAD_RADIUS * 0.45,
+      color: [0.706, 0.431, 0.373, 0.1],
+      radius: 0, angle: headRoll, extras: 0,
+    });
+
+    // ── Nose: a soft shadow ellipse (bridge) + tip highlight -- a straight
+    // LINE shape here read as a floating dash rather than a nose, so this
+    // uses two small soft-edged ellipses instead ──
+    shapes.push({
+      type: 1, // SHAPE_ELLIPSE
+      cx: cx + 0.8, cy: cy + HEAD_RADIUS * 0.16,
+      rx: 1.4, ry: HEAD_RADIUS * 0.11,
+      color: [0.47, 0.27, 0.235, 0.22],
+      radius: 0, angle: headRoll, extras: 0,
+    });
+    shapes.push({
+      type: 0, // SHAPE_CIRCLE
+      cx: cx + 1.5, cy: cy + HEAD_RADIUS * 0.27,
+      rx: 0, ry: 0,
+      color: [1, 0.92, 0.88, 0.5],
+      radius: 2, angle: 0, extras: 0,
     });
 
     // ── Bangs (front hair over the forehead) ──
@@ -429,11 +462,18 @@ export class WebGLCharacterRenderer {
         radius: 0, angle: 0, extras: 0,
       });
 
+      // Iris sits slightly low in the eye (a sliver of white above it,
+      // like a real socket) rather than dead-centered — centered pupils
+      // with even white all around is a big part of what reads as a
+      // lifeless doll stare.
+      const irisX = cx + ex + eyeXOffset;
+      const irisY = ey + eh * 0.15 + eyeYOffset;
+
       if (open > 0.15) {
         // Iris (radial gradient for depth)
         shapes.push({
           type: 5, // SHAPE_RADIAL_GRAD
-          cx: cx + ex + eyeXOffset, cy: ey + eyeYOffset,
+          cx: irisX, cy: irisY,
           rx: IRIS_RADIUS, ry: IRIS_RADIUS,
           color: iris(1), color2: irisDark(1),
           radius: 0, angle: 0, extras: 0,
@@ -441,7 +481,7 @@ export class WebGLCharacterRenderer {
         // Pupil
         shapes.push({
           type: 0, // SHAPE_CIRCLE
-          cx: cx + ex + eyeXOffset, cy: ey + eyeYOffset,
+          cx: irisX, cy: irisY,
           rx: 0, ry: 0,
           color: pupil(1),
           radius: PUPIL_RADIUS, angle: 0, extras: 0,
@@ -449,14 +489,14 @@ export class WebGLCharacterRenderer {
         // Highlights — the biggest visual cue for an anime-style eye
         shapes.push({
           type: 0, // SHAPE_CIRCLE
-          cx: cx + ex + eyeXOffset - 4, cy: ey + eyeYOffset - 5,
+          cx: irisX - 3, cy: irisY - 4,
           rx: 0, ry: 0,
           color: white(0.95),
-          radius: 3, angle: 0, extras: 0,
+          radius: 2.6, angle: 0, extras: 0,
         });
         shapes.push({
           type: 0, // SHAPE_CIRCLE
-          cx: cx + ex + eyeXOffset + 4, cy: ey + eyeYOffset + 4,
+          cx: irisX + 2.5, cy: irisY + 2.5,
           rx: 0, ry: 0,
           color: white(0.8),
           radius: 1.3, angle: 0, extras: 0,
