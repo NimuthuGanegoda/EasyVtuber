@@ -1,0 +1,1487 @@
+{
+  "__init__.py": {
+    "mtime": 1784260996.338695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "core/__init__.py": {
+    "mtime": 1784260996.338695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "core/models.py": {
+    "mtime": 1784260996.338695,
+    "ast_hash": "53ef65b988f2f8d72cffd8b3a13dfe61",
+    "semantic_hash": "53ef65b988f2f8d72cffd8b3a13dfe61"
+  },
+  "core/tha2/__init__.py": {
+    "mtime": 1784260996.338695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "core/tha2/compute/__init__.py": {
+    "mtime": 1784260996.338695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "core/tha2/compute/cached_computation_func.py": {
+    "mtime": 1784260996.338695,
+    "ast_hash": "9c2e319b20b2177354c957d722502fa7",
+    "semantic_hash": "9c2e319b20b2177354c957d722502fa7"
+  },
+  "core/tha2/compute/cached_computation_protocol.py": {
+    "mtime": 1784260996.338695,
+    "ast_hash": "46680f23b3959020e6e033c2008108f4",
+    "semantic_hash": "46680f23b3959020e6e033c2008108f4"
+  },
+  "core/tha2/mocap/__init__.py": {
+    "mtime": 1784260996.338695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "core/tha2/mocap/ifacialmocap_constants.py": {
+    "mtime": 1784260996.339695,
+    "ast_hash": "c773003477e48fd96b2855ace7fe68ff",
+    "semantic_hash": "c773003477e48fd96b2855ace7fe68ff"
+  },
+  "core/tha2/mocap/ifacialmocap_pose_converter.py": {
+    "mtime": 1784260996.339695,
+    "ast_hash": "479f368f081bca0c0537342258ba4a8e",
+    "semantic_hash": "479f368f081bca0c0537342258ba4a8e"
+  },
+  "core/tha2/nn/__init__.py": {
+    "mtime": 1784260996.339695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "core/tha2/nn/backbone/__init__.py": {
+    "mtime": 1784260996.339695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "core/tha2/nn/backbone/poser_args.py": {
+    "mtime": 1784260996.339695,
+    "ast_hash": "9cdc1db5a101da96a94bddcabf2605ec",
+    "semantic_hash": "9cdc1db5a101da96a94bddcabf2605ec"
+  },
+  "core/tha2/nn/backbone/poser_encoder_decoder_00.py": {
+    "mtime": 1784260996.339695,
+    "ast_hash": "b93e73426adb19c33370906abe8293a6",
+    "semantic_hash": "b93e73426adb19c33370906abe8293a6"
+  },
+  "core/tha2/nn/backcomp/__init__.py": {
+    "mtime": 1784260996.339695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "core/tha2/nn/backcomp/nn/__init__.py": {
+    "mtime": 1784260996.339695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "core/tha2/nn/backcomp/nn/conv.py": {
+    "mtime": 1784260996.339695,
+    "ast_hash": "441985d5c3b774f003fe848de70ffb28",
+    "semantic_hash": "441985d5c3b774f003fe848de70ffb28"
+  },
+  "core/tha2/nn/backcomp/nn/encoder_decoder_module.py": {
+    "mtime": 1784260996.339695,
+    "ast_hash": "5c5b15d7c8a7e5504072299716d9a9ab",
+    "semantic_hash": "5c5b15d7c8a7e5504072299716d9a9ab"
+  },
+  "core/tha2/nn/backcomp/nn/init_function.py": {
+    "mtime": 1784260996.339695,
+    "ast_hash": "80203b2e19f793a334097c2b63acc6d3",
+    "semantic_hash": "80203b2e19f793a334097c2b63acc6d3"
+  },
+  "core/tha2/nn/backcomp/nn/resnet_block.py": {
+    "mtime": 1784260996.339695,
+    "ast_hash": "a7cd871744dd346515593610e2c4e6bf",
+    "semantic_hash": "a7cd871744dd346515593610e2c4e6bf"
+  },
+  "core/tha2/nn/backcomp/nn/u_net_module.py": {
+    "mtime": 1784260996.339695,
+    "ast_hash": "5f61b8dd7e30c969e129bff17ad37462",
+    "semantic_hash": "5f61b8dd7e30c969e129bff17ad37462"
+  },
+  "core/tha2/nn/backcomp/tha/__init__.py": {
+    "mtime": 1784260996.339695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "core/tha2/nn/backcomp/tha/combiner.py": {
+    "mtime": 1784260996.339695,
+    "ast_hash": "6eba3f68a3389d33f4b9a8eb6e2b0ee8",
+    "semantic_hash": "6eba3f68a3389d33f4b9a8eb6e2b0ee8"
+  },
+  "core/tha2/nn/backcomp/tha/face_morpher.py": {
+    "mtime": 1784260996.339695,
+    "ast_hash": "cb29fb181caf8e3085089acb57f3ca62",
+    "semantic_hash": "cb29fb181caf8e3085089acb57f3ca62"
+  },
+  "core/tha2/nn/backcomp/tha/two_algo_face_rotator.py": {
+    "mtime": 1784260996.339695,
+    "ast_hash": "8063438f6384cc347313f7f3329d905e",
+    "semantic_hash": "8063438f6384cc347313f7f3329d905e"
+  },
+  "core/tha2/nn/base/__init__.py": {
+    "mtime": 1784260996.339695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "core/tha2/nn/base/conv.py": {
+    "mtime": 1784260996.339695,
+    "ast_hash": "c0a4cb11634c89bb4f14085ab2cadcc2",
+    "semantic_hash": "c0a4cb11634c89bb4f14085ab2cadcc2"
+  },
+  "core/tha2/nn/base/init_function.py": {
+    "mtime": 1784260996.339695,
+    "ast_hash": "41210b475ea650b7992a936c6431288a",
+    "semantic_hash": "41210b475ea650b7992a936c6431288a"
+  },
+  "core/tha2/nn/base/module_factory.py": {
+    "mtime": 1784260996.339695,
+    "ast_hash": "a7ee9b33d6e169708736a557e991a9a2",
+    "semantic_hash": "a7ee9b33d6e169708736a557e991a9a2"
+  },
+  "core/tha2/nn/base/nonlinearity_factory.py": {
+    "mtime": 1784260996.340695,
+    "ast_hash": "ebb4fbe8227e4bb44238e04e015f85b4",
+    "semantic_hash": "ebb4fbe8227e4bb44238e04e015f85b4"
+  },
+  "core/tha2/nn/base/normalization.py": {
+    "mtime": 1784260996.340695,
+    "ast_hash": "f79ad784cb540a10479ba947d0cc80ea",
+    "semantic_hash": "f79ad784cb540a10479ba947d0cc80ea"
+  },
+  "core/tha2/nn/base/pass_through.py": {
+    "mtime": 1784260996.340695,
+    "ast_hash": "aa66f609e8054bfb2bd4a5923669fb76",
+    "semantic_hash": "aa66f609e8054bfb2bd4a5923669fb76"
+  },
+  "core/tha2/nn/base/resnet_block.py": {
+    "mtime": 1784260996.340695,
+    "ast_hash": "f26a21888612af12b1c535153ae2329b",
+    "semantic_hash": "f26a21888612af12b1c535153ae2329b"
+  },
+  "core/tha2/nn/base/spectral_norm.py": {
+    "mtime": 1784260996.340695,
+    "ast_hash": "4642d17e72b6706299bf110f07758045",
+    "semantic_hash": "4642d17e72b6706299bf110f07758045"
+  },
+  "core/tha2/nn/base/util.py": {
+    "mtime": 1784260996.340695,
+    "ast_hash": "3312ea03cfcfe9ff0ae5cb9ad2f67d81",
+    "semantic_hash": "3312ea03cfcfe9ff0ae5cb9ad2f67d81"
+  },
+  "core/tha2/nn/base/view_change.py": {
+    "mtime": 1784260996.340695,
+    "ast_hash": "803e99b29fee580886386282d03bc444",
+    "semantic_hash": "803e99b29fee580886386282d03bc444"
+  },
+  "core/tha2/nn/batch_module/__init__.py": {
+    "mtime": 1784260996.340695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "core/tha2/nn/batch_module/batch_input_model_factory.py": {
+    "mtime": 1784260996.340695,
+    "ast_hash": "063c3d3da491396a98572f3827126d9f",
+    "semantic_hash": "063c3d3da491396a98572f3827126d9f"
+  },
+  "core/tha2/nn/batch_module/batch_input_module.py": {
+    "mtime": 1784260996.340695,
+    "ast_hash": "d3109ccc2a94f17d4a8a2f4af9081387",
+    "semantic_hash": "d3109ccc2a94f17d4a8a2f4af9081387"
+  },
+  "core/tha2/nn/eyebrow/__init__.py": {
+    "mtime": 1784260996.340695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "core/tha2/nn/eyebrow/eyebrow_decomposer_00.py": {
+    "mtime": 1784260996.340695,
+    "ast_hash": "cd7f8bbac5ffa7421b663c974ecdb51d",
+    "semantic_hash": "cd7f8bbac5ffa7421b663c974ecdb51d"
+  },
+  "core/tha2/nn/eyebrow/eyebrow_morphing_combiner_00.py": {
+    "mtime": 1784260996.340695,
+    "ast_hash": "959c34ccb7ff36166db04b14fb012fdf",
+    "semantic_hash": "959c34ccb7ff36166db04b14fb012fdf"
+  },
+  "core/tha2/nn/face/__init__.py": {
+    "mtime": 1784260996.340695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "core/tha2/nn/face/face_morpher_08.py": {
+    "mtime": 1784260996.340695,
+    "ast_hash": "18eb43f356c37c1b6c7ef6970d4a8d8f",
+    "semantic_hash": "18eb43f356c37c1b6c7ef6970d4a8d8f"
+  },
+  "core/tha2/nn/util.py": {
+    "mtime": 1784260996.340695,
+    "ast_hash": "f0a3b83ab44f0dcd370798b15bd3e69d",
+    "semantic_hash": "f0a3b83ab44f0dcd370798b15bd3e69d"
+  },
+  "core/tha2/poser/__init__.py": {
+    "mtime": 1784260996.340695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "core/tha2/poser/general_poser_02.py": {
+    "mtime": 1784260996.340695,
+    "ast_hash": "0e6a6df002a6a96730603ddd45898430",
+    "semantic_hash": "0e6a6df002a6a96730603ddd45898430"
+  },
+  "core/tha2/poser/modes/__init__.py": {
+    "mtime": 1784260996.340695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "core/tha2/poser/modes/mode_20.py": {
+    "mtime": 1784260996.340695,
+    "ast_hash": "6707be09c08906120a058a85e285b8b5",
+    "semantic_hash": "6707be09c08906120a058a85e285b8b5"
+  },
+  "core/tha2/poser/modes/mode_20_wx.py": {
+    "mtime": 1784260996.341695,
+    "ast_hash": "83f85f9c93ec364b9296bb2e071692ac",
+    "semantic_hash": "83f85f9c93ec364b9296bb2e071692ac"
+  },
+  "core/tha2/poser/poser.py": {
+    "mtime": 1784260996.341695,
+    "ast_hash": "109a3c218ea42a0428a88e8f5b4775d1",
+    "semantic_hash": "109a3c218ea42a0428a88e8f5b4775d1"
+  },
+  "core/tha2/util.py": {
+    "mtime": 1784260996.341695,
+    "ast_hash": "5a3f581e1485dfd5e5d94d3dc9ef376a",
+    "semantic_hash": "5a3f581e1485dfd5e5d94d3dc9ef376a"
+  },
+  "core/tha3/__init__.py": {
+    "mtime": 1784260996.341695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "core/tha3/app/__init__.py": {
+    "mtime": 1784260996.341695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "core/tha3/app/ifacialmocap_puppeteer.py": {
+    "mtime": 1784260996.341695,
+    "ast_hash": "f2c10ddc280e8e9aa711bf1e4302af0d",
+    "semantic_hash": "f2c10ddc280e8e9aa711bf1e4302af0d"
+  },
+  "core/tha3/app/manual_poser.py": {
+    "mtime": 1784260996.341695,
+    "ast_hash": "6ca7f1eb15bd169265fe369e6109d23b",
+    "semantic_hash": "6ca7f1eb15bd169265fe369e6109d23b"
+  },
+  "core/tha3/compute/__init__.py": {
+    "mtime": 1784260996.341695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "core/tha3/compute/cached_computation_func.py": {
+    "mtime": 1784260996.341695,
+    "ast_hash": "d39cc0dbc6576a9d1eb6ceede7c72b79",
+    "semantic_hash": "d39cc0dbc6576a9d1eb6ceede7c72b79"
+  },
+  "core/tha3/compute/cached_computation_protocol.py": {
+    "mtime": 1784260996.341695,
+    "ast_hash": "f7676e21d9bfac195affc98e9e0c7d2b",
+    "semantic_hash": "f7676e21d9bfac195affc98e9e0c7d2b"
+  },
+  "core/tha3/mocap/__init__.py": {
+    "mtime": 1784260996.341695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "core/tha3/mocap/ifacialmocap_constants.py": {
+    "mtime": 1784260996.341695,
+    "ast_hash": "ac88e7e1a33fae645624e7ece254f85f",
+    "semantic_hash": "ac88e7e1a33fae645624e7ece254f85f"
+  },
+  "core/tha3/mocap/ifacialmocap_pose.py": {
+    "mtime": 1784260996.341695,
+    "ast_hash": "f263ad9e948c3ca71c3010cbcb204adc",
+    "semantic_hash": "f263ad9e948c3ca71c3010cbcb204adc"
+  },
+  "core/tha3/mocap/ifacialmocap_pose_converter.py": {
+    "mtime": 1784260996.341695,
+    "ast_hash": "2c501f322825e14318cade1d440b2620",
+    "semantic_hash": "2c501f322825e14318cade1d440b2620"
+  },
+  "core/tha3/mocap/ifacialmocap_poser_converter_25.py": {
+    "mtime": 1784260996.341695,
+    "ast_hash": "12ffaeb3ceb011f0c3a3f6e7171d8326",
+    "semantic_hash": "12ffaeb3ceb011f0c3a3f6e7171d8326"
+  },
+  "core/tha3/mocap/ifacialmocap_v2.py": {
+    "mtime": 1784260996.341695,
+    "ast_hash": "3f4805b1c771edd1838703da61b7baf4",
+    "semantic_hash": "3f4805b1c771edd1838703da61b7baf4"
+  },
+  "core/tha3/module/__init__.py": {
+    "mtime": 1784260996.342695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "core/tha3/module/module_factory.py": {
+    "mtime": 1784260996.342695,
+    "ast_hash": "a7ee9b33d6e169708736a557e991a9a2",
+    "semantic_hash": "a7ee9b33d6e169708736a557e991a9a2"
+  },
+  "core/tha3/nn/__init__.py": {
+    "mtime": 1784260996.342695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "core/tha3/nn/common/__init__.py": {
+    "mtime": 1784260996.342695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "core/tha3/nn/common/conv_block_factory.py": {
+    "mtime": 1784260996.342695,
+    "ast_hash": "de7f6f0f4bcd15ba019107a89cd77566",
+    "semantic_hash": "de7f6f0f4bcd15ba019107a89cd77566"
+  },
+  "core/tha3/nn/common/poser_args.py": {
+    "mtime": 1784260996.342695,
+    "ast_hash": "c29221aa3f7564cf3389836ac681a46f",
+    "semantic_hash": "c29221aa3f7564cf3389836ac681a46f"
+  },
+  "core/tha3/nn/common/poser_encoder_decoder_00.py": {
+    "mtime": 1784260996.342695,
+    "ast_hash": "285ebd68afb561a54605a5a6a4e7d9ad",
+    "semantic_hash": "285ebd68afb561a54605a5a6a4e7d9ad"
+  },
+  "core/tha3/nn/common/poser_encoder_decoder_00_separable.py": {
+    "mtime": 1784260996.342695,
+    "ast_hash": "fd8f3dd77354ea2bd7319c2845d33217",
+    "semantic_hash": "fd8f3dd77354ea2bd7319c2845d33217"
+  },
+  "core/tha3/nn/common/resize_conv_encoder_decoder.py": {
+    "mtime": 1784260996.342695,
+    "ast_hash": "ad2ec709d9b257e4e34221c06ef61f7d",
+    "semantic_hash": "ad2ec709d9b257e4e34221c06ef61f7d"
+  },
+  "core/tha3/nn/common/resize_conv_unet.py": {
+    "mtime": 1784260996.342695,
+    "ast_hash": "d641c8a41a9930f833eddcab0f2bf2ac",
+    "semantic_hash": "d641c8a41a9930f833eddcab0f2bf2ac"
+  },
+  "core/tha3/nn/conv.py": {
+    "mtime": 1784260996.342695,
+    "ast_hash": "d2fbe30139eb54869e01a6c5978e649c",
+    "semantic_hash": "d2fbe30139eb54869e01a6c5978e649c"
+  },
+  "core/tha3/nn/editor/__init__.py": {
+    "mtime": 1784260996.342695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "core/tha3/nn/editor/editor_07.py": {
+    "mtime": 1784260996.342695,
+    "ast_hash": "bad47fb07eb1d096b58ce7455fbaf676",
+    "semantic_hash": "bad47fb07eb1d096b58ce7455fbaf676"
+  },
+  "core/tha3/nn/eyebrow_decomposer/__init__.py": {
+    "mtime": 1784260996.342695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "core/tha3/nn/eyebrow_decomposer/eyebrow_decomposer_00.py": {
+    "mtime": 1784260996.342695,
+    "ast_hash": "9c720753cdd8fb28eaf06cce2aae2926",
+    "semantic_hash": "9c720753cdd8fb28eaf06cce2aae2926"
+  },
+  "core/tha3/nn/eyebrow_decomposer/eyebrow_decomposer_03.py": {
+    "mtime": 1784260996.342695,
+    "ast_hash": "0707b20467624eed228863729057d8d7",
+    "semantic_hash": "0707b20467624eed228863729057d8d7"
+  },
+  "core/tha3/nn/eyebrow_morphing_combiner/__init__.py": {
+    "mtime": 1784260996.342695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "core/tha3/nn/eyebrow_morphing_combiner/eyebrow_morphing_combiner_00.py": {
+    "mtime": 1784260996.342695,
+    "ast_hash": "0f96aad5f502a4889c23ed929edce459",
+    "semantic_hash": "0f96aad5f502a4889c23ed929edce459"
+  },
+  "core/tha3/nn/eyebrow_morphing_combiner/eyebrow_morphing_combiner_03.py": {
+    "mtime": 1784260996.342695,
+    "ast_hash": "6cbb06509e5fe43ca482c04b222d95ed",
+    "semantic_hash": "6cbb06509e5fe43ca482c04b222d95ed"
+  },
+  "core/tha3/nn/face_morpher/__init__.py": {
+    "mtime": 1784260996.342695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "core/tha3/nn/face_morpher/face_morpher_08.py": {
+    "mtime": 1784260996.342695,
+    "ast_hash": "e0523563d67fbb4e62ac2e32872cef7b",
+    "semantic_hash": "e0523563d67fbb4e62ac2e32872cef7b"
+  },
+  "core/tha3/nn/face_morpher/face_morpher_09.py": {
+    "mtime": 1784260996.342695,
+    "ast_hash": "141ae98ca35f7af0f4dc9efe6fd632e5",
+    "semantic_hash": "141ae98ca35f7af0f4dc9efe6fd632e5"
+  },
+  "core/tha3/nn/image_processing_util.py": {
+    "mtime": 1784260996.343695,
+    "ast_hash": "d9c2a996751a2ce3418844a9955c6dca",
+    "semantic_hash": "d9c2a996751a2ce3418844a9955c6dca"
+  },
+  "core/tha3/nn/init_function.py": {
+    "mtime": 1784260996.343695,
+    "ast_hash": "1a2552a9d2ff2e2fd9cc0df51b9c3737",
+    "semantic_hash": "1a2552a9d2ff2e2fd9cc0df51b9c3737"
+  },
+  "core/tha3/nn/nonlinearity_factory.py": {
+    "mtime": 1784260996.343695,
+    "ast_hash": "8693e352aa66764ef36499428e9521c8",
+    "semantic_hash": "8693e352aa66764ef36499428e9521c8"
+  },
+  "core/tha3/nn/normalization.py": {
+    "mtime": 1784260996.343695,
+    "ast_hash": "4219a34714c3dabd61f31766e37f94c7",
+    "semantic_hash": "4219a34714c3dabd61f31766e37f94c7"
+  },
+  "core/tha3/nn/pass_through.py": {
+    "mtime": 1784260996.343695,
+    "ast_hash": "aa66f609e8054bfb2bd4a5923669fb76",
+    "semantic_hash": "aa66f609e8054bfb2bd4a5923669fb76"
+  },
+  "core/tha3/nn/resnet_block.py": {
+    "mtime": 1784260996.343695,
+    "ast_hash": "3e996f949938e838baf21557643a67c6",
+    "semantic_hash": "3e996f949938e838baf21557643a67c6"
+  },
+  "core/tha3/nn/resnet_block_seperable.py": {
+    "mtime": 1784260996.343695,
+    "ast_hash": "6db49a600be684e751cfcb37560b33a8",
+    "semantic_hash": "6db49a600be684e751cfcb37560b33a8"
+  },
+  "core/tha3/nn/separable_conv.py": {
+    "mtime": 1784260996.343695,
+    "ast_hash": "a0b11d617726b82ba6b51bd38daf3c51",
+    "semantic_hash": "a0b11d617726b82ba6b51bd38daf3c51"
+  },
+  "core/tha3/nn/spectral_norm.py": {
+    "mtime": 1784260996.343695,
+    "ast_hash": "4642d17e72b6706299bf110f07758045",
+    "semantic_hash": "4642d17e72b6706299bf110f07758045"
+  },
+  "core/tha3/nn/two_algo_body_rotator/__init__.py": {
+    "mtime": 1784260996.343695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "core/tha3/nn/two_algo_body_rotator/two_algo_face_body_rotator_05.py": {
+    "mtime": 1784260996.343695,
+    "ast_hash": "e22f3415ba8cc499a8b6be65522b74c5",
+    "semantic_hash": "e22f3415ba8cc499a8b6be65522b74c5"
+  },
+  "core/tha3/nn/util.py": {
+    "mtime": 1784260996.343695,
+    "ast_hash": "4adbf72fc7f3d8670616f2c439d4304f",
+    "semantic_hash": "4adbf72fc7f3d8670616f2c439d4304f"
+  },
+  "core/tha3/poser/__init__.py": {
+    "mtime": 1784260996.343695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "core/tha3/poser/general_poser_02.py": {
+    "mtime": 1784260996.343695,
+    "ast_hash": "dee317eaf7e0cee8a047d493a27071ef",
+    "semantic_hash": "dee317eaf7e0cee8a047d493a27071ef"
+  },
+  "core/tha3/poser/modes/__init__.py": {
+    "mtime": 1784260996.343695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "core/tha3/poser/modes/load_poser.py": {
+    "mtime": 1784260996.343695,
+    "ast_hash": "a56b11e4677d3677fcc86e023db05e16",
+    "semantic_hash": "a56b11e4677d3677fcc86e023db05e16"
+  },
+  "core/tha3/poser/modes/pose_parameters.py": {
+    "mtime": 1784260996.343695,
+    "ast_hash": "20cad2b049439d2524ac0bbf8d72da5a",
+    "semantic_hash": "20cad2b049439d2524ac0bbf8d72da5a"
+  },
+  "core/tha3/poser/modes/separable_float.py": {
+    "mtime": 1784260996.343695,
+    "ast_hash": "c65c9dfc797824144b1d790a660b90ce",
+    "semantic_hash": "c65c9dfc797824144b1d790a660b90ce"
+  },
+  "core/tha3/poser/modes/separable_half.py": {
+    "mtime": 1784260996.343695,
+    "ast_hash": "70cc9a53ac5f2d4ec5d3aba4eb244276",
+    "semantic_hash": "70cc9a53ac5f2d4ec5d3aba4eb244276"
+  },
+  "core/tha3/poser/modes/standard_float.py": {
+    "mtime": 1784260996.343695,
+    "ast_hash": "7a1de4f2608d5c9f079e3b29b00a59fd",
+    "semantic_hash": "7a1de4f2608d5c9f079e3b29b00a59fd"
+  },
+  "core/tha3/poser/modes/standard_half.py": {
+    "mtime": 1784260996.343695,
+    "ast_hash": "d34113eb30d15dac998ecf076483128d",
+    "semantic_hash": "d34113eb30d15dac998ecf076483128d"
+  },
+  "core/tha3/poser/poser.py": {
+    "mtime": 1784260996.343695,
+    "ast_hash": "a08f1b13a33ba0559238c851c2a12368",
+    "semantic_hash": "a08f1b13a33ba0559238c851c2a12368"
+  },
+  "core/tha3/util.py": {
+    "mtime": 1784260996.353695,
+    "ast_hash": "9f62958775da938835db2ec7a3fbbc36",
+    "semantic_hash": "9f62958775da938835db2ec7a3fbbc36"
+  },
+  "core/tha4/onnx_export_tha4.py": {
+    "mtime": 1784260996.354695,
+    "ast_hash": "6e27914f67b6ed32e8d8810605bac5c4",
+    "semantic_hash": "6e27914f67b6ed32e8d8810605bac5c4"
+  },
+  "core/tha4/onnx_export_tha4_student.py": {
+    "mtime": 1784260996.354695,
+    "ast_hash": "525b91d38cf51489cb9914fd9232089b",
+    "semantic_hash": "525b91d38cf51489cb9914fd9232089b"
+  },
+  "core/tha4/src/tha4/__init__.py": {
+    "mtime": 1784260996.354695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "core/tha4/src/tha4/app/__init__.py": {
+    "mtime": 1784260996.354695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "core/tha4/src/tha4/app/character_model_ifacialmocap_puppeteer.py": {
+    "mtime": 1784260996.354695,
+    "ast_hash": "5cf83eee262487ce50025e443156cfb8",
+    "semantic_hash": "5cf83eee262487ce50025e443156cfb8"
+  },
+  "core/tha4/src/tha4/app/character_model_manual_poser.py": {
+    "mtime": 1784260996.354695,
+    "ast_hash": "5fe890040b89a1a11253a46247255817",
+    "semantic_hash": "5fe890040b89a1a11253a46247255817"
+  },
+  "core/tha4/src/tha4/app/character_model_mediapipe_puppeteer.py": {
+    "mtime": 1784260996.354695,
+    "ast_hash": "a31ebdb4c0602852f466b02ec51009c3",
+    "semantic_hash": "a31ebdb4c0602852f466b02ec51009c3"
+  },
+  "core/tha4/src/tha4/app/distill.py": {
+    "mtime": 1784260996.354695,
+    "ast_hash": "9a76a2a3f4f7c4745869317fc770827f",
+    "semantic_hash": "9a76a2a3f4f7c4745869317fc770827f"
+  },
+  "core/tha4/src/tha4/app/distiller_ui.py": {
+    "mtime": 1784260996.354695,
+    "ast_hash": "7652c398c11547e8a58b5506793d51b0",
+    "semantic_hash": "7652c398c11547e8a58b5506793d51b0"
+  },
+  "core/tha4/src/tha4/app/full_manual_poser.py": {
+    "mtime": 1784260996.354695,
+    "ast_hash": "fad3f8b778b0ab9b0821a4023d4c515f",
+    "semantic_hash": "fad3f8b778b0ab9b0821a4023d4c515f"
+  },
+  "core/tha4/src/tha4/charmodel/__init__.py": {
+    "mtime": 1784260996.354695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "core/tha4/src/tha4/charmodel/character_model.py": {
+    "mtime": 1784260996.354695,
+    "ast_hash": "66645779e02bc316aac90542cd512a39",
+    "semantic_hash": "66645779e02bc316aac90542cd512a39"
+  },
+  "core/tha4/src/tha4/dataset/__init__.py": {
+    "mtime": 1784260996.354695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "core/tha4/src/tha4/dataset/image_poses_and_aother_images_dataset.py": {
+    "mtime": 1784260996.354695,
+    "ast_hash": "d8ead6da9c00f72c03b9a9f607c784ab",
+    "semantic_hash": "d8ead6da9c00f72c03b9a9f607c784ab"
+  },
+  "core/tha4/src/tha4/distiller/__init__.py": {
+    "mtime": 1784260996.354695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "core/tha4/src/tha4/distiller/config_based_training_tasks.py": {
+    "mtime": 1784260996.354695,
+    "ast_hash": "54222f8a154c5fcc0dde22292ec12d7c",
+    "semantic_hash": "54222f8a154c5fcc0dde22292ec12d7c"
+  },
+  "core/tha4/src/tha4/distiller/distill_body_morpher.py": {
+    "mtime": 1784260996.355695,
+    "ast_hash": "a01d65b5b814e53930a9dcd52d0da93c",
+    "semantic_hash": "a01d65b5b814e53930a9dcd52d0da93c"
+  },
+  "core/tha4/src/tha4/distiller/distill_face_morpher.py": {
+    "mtime": 1784260996.355695,
+    "ast_hash": "b77cfb5d9e5ab44032948a87e0885ccc",
+    "semantic_hash": "b77cfb5d9e5ab44032948a87e0885ccc"
+  },
+  "core/tha4/src/tha4/distiller/distiller_config.py": {
+    "mtime": 1784260996.355695,
+    "ast_hash": "0d1e4e4b7d33c1e7f7efe51e882cdedf",
+    "semantic_hash": "0d1e4e4b7d33c1e7f7efe51e882cdedf"
+  },
+  "core/tha4/src/tha4/distiller/ui/__init__.py": {
+    "mtime": 1784260996.355695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "core/tha4/src/tha4/distiller/ui/distiller_config_state.py": {
+    "mtime": 1784260996.355695,
+    "ast_hash": "91f905c63bb5f99ce130818f69865359",
+    "semantic_hash": "91f905c63bb5f99ce130818f69865359"
+  },
+  "core/tha4/src/tha4/distiller/ui/distiller_ui_main_frame.py": {
+    "mtime": 1784260996.355695,
+    "ast_hash": "08cb0db20cfbf952edd749676cbe8d95",
+    "semantic_hash": "08cb0db20cfbf952edd749676cbe8d95"
+  },
+  "core/tha4/src/tha4/image_util.py": {
+    "mtime": 1784260996.355695,
+    "ast_hash": "4325e4222947207f5618ea4c93ba121d",
+    "semantic_hash": "4325e4222947207f5618ea4c93ba121d"
+  },
+  "core/tha4/src/tha4/mocap/__init__.py": {
+    "mtime": 1784260996.355695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "core/tha4/src/tha4/mocap/ifacialmocap_constants.py": {
+    "mtime": 1784260996.355695,
+    "ast_hash": "ac88e7e1a33fae645624e7ece254f85f",
+    "semantic_hash": "ac88e7e1a33fae645624e7ece254f85f"
+  },
+  "core/tha4/src/tha4/mocap/ifacialmocap_pose.py": {
+    "mtime": 1784260996.355695,
+    "ast_hash": "d8db81ac2d881c3516b4ba7a02a7dfc7",
+    "semantic_hash": "d8db81ac2d881c3516b4ba7a02a7dfc7"
+  },
+  "core/tha4/src/tha4/mocap/ifacialmocap_pose_converter.py": {
+    "mtime": 1784260996.355695,
+    "ast_hash": "2c501f322825e14318cade1d440b2620",
+    "semantic_hash": "2c501f322825e14318cade1d440b2620"
+  },
+  "core/tha4/src/tha4/mocap/ifacialmocap_pose_converter_25.py": {
+    "mtime": 1784260996.355695,
+    "ast_hash": "2432b30182cc5867968b734ce81c05ee",
+    "semantic_hash": "2432b30182cc5867968b734ce81c05ee"
+  },
+  "core/tha4/src/tha4/mocap/ifacialmocap_v2.py": {
+    "mtime": 1784260996.355695,
+    "ast_hash": "868cedbeee06caaf577a0d90309d1b76",
+    "semantic_hash": "868cedbeee06caaf577a0d90309d1b76"
+  },
+  "core/tha4/src/tha4/mocap/mediapipe_constants.py": {
+    "mtime": 1784260996.355695,
+    "ast_hash": "6af961f6d3296553a896a5ae71e2bf9a",
+    "semantic_hash": "6af961f6d3296553a896a5ae71e2bf9a"
+  },
+  "core/tha4/src/tha4/mocap/mediapipe_face_pose.py": {
+    "mtime": 1784260996.355695,
+    "ast_hash": "6707c48617fd332c7946758874aba306",
+    "semantic_hash": "6707c48617fd332c7946758874aba306"
+  },
+  "core/tha4/src/tha4/mocap/mediapipe_face_pose_converter.py": {
+    "mtime": 1784260996.355695,
+    "ast_hash": "b92b5d8370d4e24e9f031c61c6b45227",
+    "semantic_hash": "b92b5d8370d4e24e9f031c61c6b45227"
+  },
+  "core/tha4/src/tha4/mocap/mediapipe_face_pose_converter_00.py": {
+    "mtime": 1784260996.355695,
+    "ast_hash": "57cab3f20bac4147bf3d9e205128c0bb",
+    "semantic_hash": "57cab3f20bac4147bf3d9e205128c0bb"
+  },
+  "core/tha4/src/tha4/nn/__init__.py": {
+    "mtime": 1784260996.355695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "core/tha4/src/tha4/nn/common/__init__.py": {
+    "mtime": 1784260996.356695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "core/tha4/src/tha4/nn/common/conv_block_factory.py": {
+    "mtime": 1784260996.356695,
+    "ast_hash": "7321d52fb20b9d3b369d52b9910eb503",
+    "semantic_hash": "7321d52fb20b9d3b369d52b9910eb503"
+  },
+  "core/tha4/src/tha4/nn/common/poser_args.py": {
+    "mtime": 1784260996.356695,
+    "ast_hash": "c2e3f657b9745591ae0d30329b036732",
+    "semantic_hash": "c2e3f657b9745591ae0d30329b036732"
+  },
+  "core/tha4/src/tha4/nn/common/poser_encoder_decoder_00.py": {
+    "mtime": 1784260996.356695,
+    "ast_hash": "6adf990c8a17938e230bcb53c454efe3",
+    "semantic_hash": "6adf990c8a17938e230bcb53c454efe3"
+  },
+  "core/tha4/src/tha4/nn/common/poser_encoder_decoder_00_separable.py": {
+    "mtime": 1784260996.356695,
+    "ast_hash": "8533fea153b55e25815afe1a11bf9020",
+    "semantic_hash": "8533fea153b55e25815afe1a11bf9020"
+  },
+  "core/tha4/src/tha4/nn/common/resize_conv_encoder_decoder.py": {
+    "mtime": 1784260996.356695,
+    "ast_hash": "6e12b3c00a79ea8e11341f88cc9a0999",
+    "semantic_hash": "6e12b3c00a79ea8e11341f88cc9a0999"
+  },
+  "core/tha4/src/tha4/nn/common/resize_conv_unet.py": {
+    "mtime": 1784260996.356695,
+    "ast_hash": "5d1cf632a1695c2ad5206b9ef4c36776",
+    "semantic_hash": "5d1cf632a1695c2ad5206b9ef4c36776"
+  },
+  "core/tha4/src/tha4/nn/common/unet.py": {
+    "mtime": 1784260996.356695,
+    "ast_hash": "7f05a8666b67c63c359c64f9e67e84a3",
+    "semantic_hash": "7f05a8666b67c63c359c64f9e67e84a3"
+  },
+  "core/tha4/src/tha4/nn/conv.py": {
+    "mtime": 1784260996.356695,
+    "ast_hash": "7e78a69cfb530ce103bace0fe47e94dd",
+    "semantic_hash": "7e78a69cfb530ce103bace0fe47e94dd"
+  },
+  "core/tha4/src/tha4/nn/eyebrow_decomposer/__init__.py": {
+    "mtime": 1784260996.356695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "core/tha4/src/tha4/nn/eyebrow_decomposer/eyebrow_decomposer_00.py": {
+    "mtime": 1784260996.356695,
+    "ast_hash": "f20cd77a92744ef59a32b036cc2304d6",
+    "semantic_hash": "f20cd77a92744ef59a32b036cc2304d6"
+  },
+  "core/tha4/src/tha4/nn/eyebrow_morphing_combiner/__init__.py": {
+    "mtime": 1784260996.356695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "core/tha4/src/tha4/nn/eyebrow_morphing_combiner/eyebrow_morphing_combiner_00.py": {
+    "mtime": 1784260996.356695,
+    "ast_hash": "1dd2748722982df7b1fc735c3a1f6493",
+    "semantic_hash": "1dd2748722982df7b1fc735c3a1f6493"
+  },
+  "core/tha4/src/tha4/nn/face_morpher/__init__.py": {
+    "mtime": 1784260996.356695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "core/tha4/src/tha4/nn/face_morpher/face_morpher_08.py": {
+    "mtime": 1784260996.356695,
+    "ast_hash": "3b5096810e36d46839b80cb3ed9dd24c",
+    "semantic_hash": "3b5096810e36d46839b80cb3ed9dd24c"
+  },
+  "core/tha4/src/tha4/nn/image_processing_util.py": {
+    "mtime": 1784260996.356695,
+    "ast_hash": "d9c2a996751a2ce3418844a9955c6dca",
+    "semantic_hash": "d9c2a996751a2ce3418844a9955c6dca"
+  },
+  "core/tha4/src/tha4/nn/init_function.py": {
+    "mtime": 1784260996.356695,
+    "ast_hash": "1a2552a9d2ff2e2fd9cc0df51b9c3737",
+    "semantic_hash": "1a2552a9d2ff2e2fd9cc0df51b9c3737"
+  },
+  "core/tha4/src/tha4/nn/morpher/__init__.py": {
+    "mtime": 1784260996.356695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "core/tha4/src/tha4/nn/morpher/morpher_00.py": {
+    "mtime": 1784260996.356695,
+    "ast_hash": "7e1a9c1f22be4f1d463f84802990d02e",
+    "semantic_hash": "7e1a9c1f22be4f1d463f84802990d02e"
+  },
+  "core/tha4/src/tha4/nn/nonlinearity_factory.py": {
+    "mtime": 1784260996.356695,
+    "ast_hash": "5502cd3d0763e41e4779dce4a4dd03b7",
+    "semantic_hash": "5502cd3d0763e41e4779dce4a4dd03b7"
+  },
+  "core/tha4/src/tha4/nn/normalization.py": {
+    "mtime": 1784260996.356695,
+    "ast_hash": "50492ddf1dcf6fc2b45e771d47fa6d81",
+    "semantic_hash": "50492ddf1dcf6fc2b45e771d47fa6d81"
+  },
+  "core/tha4/src/tha4/nn/pass_through.py": {
+    "mtime": 1784260996.356695,
+    "ast_hash": "aa66f609e8054bfb2bd4a5923669fb76",
+    "semantic_hash": "aa66f609e8054bfb2bd4a5923669fb76"
+  },
+  "core/tha4/src/tha4/nn/resnet_block.py": {
+    "mtime": 1784260996.356695,
+    "ast_hash": "26a6aefe963f6ffd6e8a130eb5a54dc1",
+    "semantic_hash": "26a6aefe963f6ffd6e8a130eb5a54dc1"
+  },
+  "core/tha4/src/tha4/nn/resnet_block_seperable.py": {
+    "mtime": 1784260996.356695,
+    "ast_hash": "a2befa96bc84e3406a8cc0522a177a4f",
+    "semantic_hash": "a2befa96bc84e3406a8cc0522a177a4f"
+  },
+  "core/tha4/src/tha4/nn/separable_conv.py": {
+    "mtime": 1784260996.357695,
+    "ast_hash": "2bd2329675bcb19a3a0e022ae98ec777",
+    "semantic_hash": "2bd2329675bcb19a3a0e022ae98ec777"
+  },
+  "core/tha4/src/tha4/nn/siren/__init__.py": {
+    "mtime": 1784260996.357695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "core/tha4/src/tha4/nn/siren/face_morpher/__init__.py": {
+    "mtime": 1784260996.357695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "core/tha4/src/tha4/nn/siren/face_morpher/siren_face_morpher_00.py": {
+    "mtime": 1784260996.357695,
+    "ast_hash": "065433dc10cc53c329a8e58384763fb5",
+    "semantic_hash": "065433dc10cc53c329a8e58384763fb5"
+  },
+  "core/tha4/src/tha4/nn/siren/face_morpher/siren_face_morpher_00_trainer.py": {
+    "mtime": 1784260996.357695,
+    "ast_hash": "5038ecf2a3c5fd79dda066cb21f9141c",
+    "semantic_hash": "5038ecf2a3c5fd79dda066cb21f9141c"
+  },
+  "core/tha4/src/tha4/nn/siren/face_morpher/siren_face_morpher_protocols_00.py": {
+    "mtime": 1784260996.357695,
+    "ast_hash": "ac103731080a19a6f2688d7cc001bb53",
+    "semantic_hash": "ac103731080a19a6f2688d7cc001bb53"
+  },
+  "core/tha4/src/tha4/nn/siren/morpher/__init__.py": {
+    "mtime": 1784260996.357695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "core/tha4/src/tha4/nn/siren/morpher/siren_morpher_03.py": {
+    "mtime": 1784260996.357695,
+    "ast_hash": "16f73eaea1c0a716e2236a4e550f74dc",
+    "semantic_hash": "16f73eaea1c0a716e2236a4e550f74dc"
+  },
+  "core/tha4/src/tha4/nn/siren/morpher/siren_morpher_03_trainer.py": {
+    "mtime": 1784260996.357695,
+    "ast_hash": "16e6718cebf55b06da43f9326e29632c",
+    "semantic_hash": "16e6718cebf55b06da43f9326e29632c"
+  },
+  "core/tha4/src/tha4/nn/siren/morpher/siren_morpher_protocols_03.py": {
+    "mtime": 1784260996.357695,
+    "ast_hash": "e68e1e666721ef40704dbe3ca0efa20d",
+    "semantic_hash": "e68e1e666721ef40704dbe3ca0efa20d"
+  },
+  "core/tha4/src/tha4/nn/siren/vanilla/__init__.py": {
+    "mtime": 1784260996.357695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "core/tha4/src/tha4/nn/siren/vanilla/siren.py": {
+    "mtime": 1784260996.357695,
+    "ast_hash": "dc5c526c11a48755ea874ba594f1e076",
+    "semantic_hash": "dc5c526c11a48755ea874ba594f1e076"
+  },
+  "core/tha4/src/tha4/nn/spectral_norm.py": {
+    "mtime": 1784260996.357695,
+    "ast_hash": "4642d17e72b6706299bf110f07758045",
+    "semantic_hash": "4642d17e72b6706299bf110f07758045"
+  },
+  "core/tha4/src/tha4/nn/upscaler/__init__.py": {
+    "mtime": 1784260996.357695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "core/tha4/src/tha4/nn/upscaler/upscaler_02.py": {
+    "mtime": 1784260996.357695,
+    "ast_hash": "cdad3268452bd504e1ffe57e97aa56a7",
+    "semantic_hash": "cdad3268452bd504e1ffe57e97aa56a7"
+  },
+  "core/tha4/src/tha4/nn/util.py": {
+    "mtime": 1784260996.357695,
+    "ast_hash": "7791c8656148dbe2c7580143e7dce0b0",
+    "semantic_hash": "7791c8656148dbe2c7580143e7dce0b0"
+  },
+  "core/tha4/src/tha4/poser/__init__.py": {
+    "mtime": 1784260996.357695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "core/tha4/src/tha4/poser/general_poser_02.py": {
+    "mtime": 1784260996.357695,
+    "ast_hash": "acb5e328d3357ab23fd09c757dab9291",
+    "semantic_hash": "acb5e328d3357ab23fd09c757dab9291"
+  },
+  "core/tha4/src/tha4/poser/modes/__init__.py": {
+    "mtime": 1784260996.357695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "core/tha4/src/tha4/poser/modes/mode_07.py": {
+    "mtime": 1784260996.357695,
+    "ast_hash": "2ad4a921dae890ea7827a41b9c6a0033",
+    "semantic_hash": "2ad4a921dae890ea7827a41b9c6a0033"
+  },
+  "core/tha4/src/tha4/poser/modes/mode_12.py": {
+    "mtime": 1784260996.357695,
+    "ast_hash": "d701d275d08f14cfde155b445879ab60",
+    "semantic_hash": "d701d275d08f14cfde155b445879ab60"
+  },
+  "core/tha4/src/tha4/poser/modes/mode_14.py": {
+    "mtime": 1784260996.358695,
+    "ast_hash": "1e2d73ba128ed4cdfd9cead6f9073cec",
+    "semantic_hash": "1e2d73ba128ed4cdfd9cead6f9073cec"
+  },
+  "core/tha4/src/tha4/poser/modes/pose_parameters.py": {
+    "mtime": 1784260996.358695,
+    "ast_hash": "2d45c9a42e4ee701fc517cda5e797b6e",
+    "semantic_hash": "2d45c9a42e4ee701fc517cda5e797b6e"
+  },
+  "core/tha4/src/tha4/poser/poser.py": {
+    "mtime": 1784260996.358695,
+    "ast_hash": "7515a4a4dd88fbb3017302dc1db93374",
+    "semantic_hash": "7515a4a4dd88fbb3017302dc1db93374"
+  },
+  "core/tha4/src/tha4/pytasuku/__init__.py": {
+    "mtime": 1784260996.358695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "core/tha4/src/tha4/pytasuku/indexed/__init__.py": {
+    "mtime": 1784260996.358695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "core/tha4/src/tha4/pytasuku/indexed/all_tasks.py": {
+    "mtime": 1784260996.358695,
+    "ast_hash": "94d73bbe7ffe0b4b798cc49fd9ec6da3",
+    "semantic_hash": "94d73bbe7ffe0b4b798cc49fd9ec6da3"
+  },
+  "core/tha4/src/tha4/pytasuku/indexed/bundled_indexed_file_tasks.py": {
+    "mtime": 1784260996.358695,
+    "ast_hash": "49039f75e14095f12b5b0846ed1eefdd",
+    "semantic_hash": "49039f75e14095f12b5b0846ed1eefdd"
+  },
+  "core/tha4/src/tha4/pytasuku/indexed/indexed_file_tasks.py": {
+    "mtime": 1784260996.358695,
+    "ast_hash": "d60ad6402e1bb89e903d53220f7211e9",
+    "semantic_hash": "d60ad6402e1bb89e903d53220f7211e9"
+  },
+  "core/tha4/src/tha4/pytasuku/indexed/indexed_tasks.py": {
+    "mtime": 1784260996.358695,
+    "ast_hash": "e79e1b03962a24d368a087ea2d784b23",
+    "semantic_hash": "e79e1b03962a24d368a087ea2d784b23"
+  },
+  "core/tha4/src/tha4/pytasuku/indexed/no_index_command_tasks.py": {
+    "mtime": 1784260996.358695,
+    "ast_hash": "40d85bc1b77a2ca5feecb1393dcd65bd",
+    "semantic_hash": "40d85bc1b77a2ca5feecb1393dcd65bd"
+  },
+  "core/tha4/src/tha4/pytasuku/indexed/no_index_file_tasks.py": {
+    "mtime": 1784260996.358695,
+    "ast_hash": "d6ee4633ae4131e9f7130398e9c79129",
+    "semantic_hash": "d6ee4633ae4131e9f7130398e9c79129"
+  },
+  "core/tha4/src/tha4/pytasuku/indexed/one_index_file_tasks.py": {
+    "mtime": 1784260996.358695,
+    "ast_hash": "da4ab5a7cb1487a1a66dad8a047dbec8",
+    "semantic_hash": "da4ab5a7cb1487a1a66dad8a047dbec8"
+  },
+  "core/tha4/src/tha4/pytasuku/indexed/simple_no_index_file_tasks.py": {
+    "mtime": 1784260996.358695,
+    "ast_hash": "220c9e7fc188ac2bed1d5aa241bb18da",
+    "semantic_hash": "220c9e7fc188ac2bed1d5aa241bb18da"
+  },
+  "core/tha4/src/tha4/pytasuku/indexed/two_indices_file_tasks.py": {
+    "mtime": 1784260996.358695,
+    "ast_hash": "eb5ddc2b4ac9402a3c47565bf05f5c07",
+    "semantic_hash": "eb5ddc2b4ac9402a3c47565bf05f5c07"
+  },
+  "core/tha4/src/tha4/pytasuku/indexed/util.py": {
+    "mtime": 1784260996.358695,
+    "ast_hash": "55429aeaf39cdcd5f68282f93bf51f63",
+    "semantic_hash": "55429aeaf39cdcd5f68282f93bf51f63"
+  },
+  "core/tha4/src/tha4/pytasuku/task.py": {
+    "mtime": 1784260996.358695,
+    "ast_hash": "81f924de5897fba6dfca9e445013e269",
+    "semantic_hash": "81f924de5897fba6dfca9e445013e269"
+  },
+  "core/tha4/src/tha4/pytasuku/task_selector_ui.py": {
+    "mtime": 1784260996.358695,
+    "ast_hash": "69f804cde7685b3bfebe1a856c6f70e0",
+    "semantic_hash": "69f804cde7685b3bfebe1a856c6f70e0"
+  },
+  "core/tha4/src/tha4/pytasuku/util.py": {
+    "mtime": 1784260996.358695,
+    "ast_hash": "7dcaadd5a53b1f70d077945e67e08e54",
+    "semantic_hash": "7dcaadd5a53b1f70d077945e67e08e54"
+  },
+  "core/tha4/src/tha4/pytasuku/workspace.py": {
+    "mtime": 1784260996.358695,
+    "ast_hash": "7a48e41d97d0fd00c81917751403e177",
+    "semantic_hash": "7a48e41d97d0fd00c81917751403e177"
+  },
+  "core/tha4/src/tha4/sampleoutput/__init__.py": {
+    "mtime": 1784260996.358695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "core/tha4/src/tha4/sampleoutput/general_sample_output_protocol.py": {
+    "mtime": 1784260996.358695,
+    "ast_hash": "768a7ee840b1387e7e59cc9ad5d8fa99",
+    "semantic_hash": "768a7ee840b1387e7e59cc9ad5d8fa99"
+  },
+  "core/tha4/src/tha4/sampleoutput/poser_sampler_output_protocol.py": {
+    "mtime": 1784260996.358695,
+    "ast_hash": "5b78473f0bb3c503a014037a54925dfb",
+    "semantic_hash": "5b78473f0bb3c503a014037a54925dfb"
+  },
+  "core/tha4/src/tha4/sampleoutput/sample_image_creator.py": {
+    "mtime": 1784260996.358695,
+    "ast_hash": "7a5867f1f97cfe8350d210f0336e0610",
+    "semantic_hash": "7a5867f1f97cfe8350d210f0336e0610"
+  },
+  "core/tha4/src/tha4/shion/__init__.py": {
+    "mtime": 1784260996.358695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "core/tha4/src/tha4/shion/base/__init__.py": {
+    "mtime": 1784260996.358695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "core/tha4/src/tha4/shion/base/dataset/__init__.py": {
+    "mtime": 1784260996.358695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "core/tha4/src/tha4/shion/base/dataset/lazy_dataset.py": {
+    "mtime": 1784260996.359695,
+    "ast_hash": "63eff583258ee52f203deaac4231cfc3",
+    "semantic_hash": "63eff583258ee52f203deaac4231cfc3"
+  },
+  "core/tha4/src/tha4/shion/base/dataset/lazy_tensor_dataset.py": {
+    "mtime": 1784260996.359695,
+    "ast_hash": "44d6f4da7bba91868168ace66ad4dc7b",
+    "semantic_hash": "44d6f4da7bba91868168ace66ad4dc7b"
+  },
+  "core/tha4/src/tha4/shion/base/dataset/png_in_dir_dataset.py": {
+    "mtime": 1784260996.359695,
+    "ast_hash": "8df98994a60ecef8e22635550ed9bc92",
+    "semantic_hash": "8df98994a60ecef8e22635550ed9bc92"
+  },
+  "core/tha4/src/tha4/shion/base/dataset/util.py": {
+    "mtime": 1784260996.359695,
+    "ast_hash": "37c25c70f5e7f59157d4491d5e9efed2",
+    "semantic_hash": "37c25c70f5e7f59157d4491d5e9efed2"
+  },
+  "core/tha4/src/tha4/shion/base/dataset/xformed_dataset.py": {
+    "mtime": 1784260996.359695,
+    "ast_hash": "53a5f57df97d06940f7f796ecb0ae210",
+    "semantic_hash": "53a5f57df97d06940f7f796ecb0ae210"
+  },
+  "core/tha4/src/tha4/shion/base/image_util.py": {
+    "mtime": 1784260996.359695,
+    "ast_hash": "5f45b560a26db1defac47cfed614a902",
+    "semantic_hash": "5f45b560a26db1defac47cfed614a902"
+  },
+  "core/tha4/src/tha4/shion/base/loss/__init__.py": {
+    "mtime": 1784260996.359695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "core/tha4/src/tha4/shion/base/loss/computed_scale_loss.py": {
+    "mtime": 1784260996.359695,
+    "ast_hash": "246a5c2a29cd70c545337db2398bcc3d",
+    "semantic_hash": "246a5c2a29cd70c545337db2398bcc3d"
+  },
+  "core/tha4/src/tha4/shion/base/loss/computed_scaled_l2_loss.py": {
+    "mtime": 1784260996.359695,
+    "ast_hash": "31bc78a0050fb90cd377bee0236e64a0",
+    "semantic_hash": "31bc78a0050fb90cd377bee0236e64a0"
+  },
+  "core/tha4/src/tha4/shion/base/loss/l1_loss.py": {
+    "mtime": 1784260996.359695,
+    "ast_hash": "12cde8c40532052cdbf233e6e39d4741",
+    "semantic_hash": "12cde8c40532052cdbf233e6e39d4741"
+  },
+  "core/tha4/src/tha4/shion/base/loss/l2_loss.py": {
+    "mtime": 1784260996.359695,
+    "ast_hash": "487eb316ff35b76b9e99bdec1e80ca9c",
+    "semantic_hash": "487eb316ff35b76b9e99bdec1e80ca9c"
+  },
+  "core/tha4/src/tha4/shion/base/loss/sum_loss.py": {
+    "mtime": 1784260996.359695,
+    "ast_hash": "3e694818cbef0c41306c7af3ae3dcc71",
+    "semantic_hash": "3e694818cbef0c41306c7af3ae3dcc71"
+  },
+  "core/tha4/src/tha4/shion/base/loss/time_dependently_weighted_loss.py": {
+    "mtime": 1784260996.359695,
+    "ast_hash": "52eac69511e08f1bb614542224691119",
+    "semantic_hash": "52eac69511e08f1bb614542224691119"
+  },
+  "core/tha4/src/tha4/shion/base/module_accumulators.py": {
+    "mtime": 1784260996.359695,
+    "ast_hash": "8d7db0d29d3d2f96e5e89293e8e73fc3",
+    "semantic_hash": "8d7db0d29d3d2f96e5e89293e8e73fc3"
+  },
+  "core/tha4/src/tha4/shion/base/optimizer_factories.py": {
+    "mtime": 1784260996.359695,
+    "ast_hash": "52496482f20ac356f9e922ee088c73a0",
+    "semantic_hash": "52496482f20ac356f9e922ee088c73a0"
+  },
+  "core/tha4/src/tha4/shion/base/protocol/single_network_from_batch_input_computation_protocol.py": {
+    "mtime": 1784260996.359695,
+    "ast_hash": "a176b44e35dc101003e8aadff4f2118a",
+    "semantic_hash": "a176b44e35dc101003e8aadff4f2118a"
+  },
+  "core/tha4/src/tha4/shion/base/training/__init__.py": {
+    "mtime": 1784260996.359695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "core/tha4/src/tha4/shion/base/training/single_network.py": {
+    "mtime": 1784260996.359695,
+    "ast_hash": "ceb482c152c1e3bdeeebd763d7a0655e",
+    "semantic_hash": "ceb482c152c1e3bdeeebd763d7a0655e"
+  },
+  "core/tha4/src/tha4/shion/base/training/single_network_with_minibatch.py": {
+    "mtime": 1784260996.359695,
+    "ast_hash": "c474ca2a8a82bf4317ed6ddee360245d",
+    "semantic_hash": "c474ca2a8a82bf4317ed6ddee360245d"
+  },
+  "core/tha4/src/tha4/shion/base/training/two_networks_training_protocol.py": {
+    "mtime": 1784260996.359695,
+    "ast_hash": "7d3b8755842fd17b5a6c0363440a973d",
+    "semantic_hash": "7d3b8755842fd17b5a6c0363440a973d"
+  },
+  "core/tha4/src/tha4/shion/core/__init__.py": {
+    "mtime": 1784260996.359695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "core/tha4/src/tha4/shion/core/cached_computation.py": {
+    "mtime": 1784260996.359695,
+    "ast_hash": "ca5c9018c01b060b4d388564af4328af",
+    "semantic_hash": "ca5c9018c01b060b4d388564af4328af"
+  },
+  "core/tha4/src/tha4/shion/core/load_save.py": {
+    "mtime": 1784260996.359695,
+    "ast_hash": "b73dd6da89becbdbcf768732f3d635f1",
+    "semantic_hash": "b73dd6da89becbdbcf768732f3d635f1"
+  },
+  "core/tha4/src/tha4/shion/core/loss.py": {
+    "mtime": 1784260996.359695,
+    "ast_hash": "443421fd1cf9bcc0a8433fec7ab4e287",
+    "semantic_hash": "443421fd1cf9bcc0a8433fec7ab4e287"
+  },
+  "core/tha4/src/tha4/shion/core/module_accumulator.py": {
+    "mtime": 1784260996.360695,
+    "ast_hash": "ebd1e0dbdf74605ff55fc75619fef13b",
+    "semantic_hash": "ebd1e0dbdf74605ff55fc75619fef13b"
+  },
+  "core/tha4/src/tha4/shion/core/module_factory.py": {
+    "mtime": 1784260996.360695,
+    "ast_hash": "a7ee9b33d6e169708736a557e991a9a2",
+    "semantic_hash": "a7ee9b33d6e169708736a557e991a9a2"
+  },
+  "core/tha4/src/tha4/shion/core/optimizer_factory.py": {
+    "mtime": 1784260996.360695,
+    "ast_hash": "1235bc149a2392c1bce2e23837ab8b84",
+    "semantic_hash": "1235bc149a2392c1bce2e23837ab8b84"
+  },
+  "core/tha4/src/tha4/shion/core/training/__init__.py": {
+    "mtime": 1784260996.360695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "core/tha4/src/tha4/shion/core/training/distrib/__init__.py": {
+    "mtime": 1784260996.360695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "core/tha4/src/tha4/shion/core/training/distrib/device_mapper.py": {
+    "mtime": 1784260996.360695,
+    "ast_hash": "1a541313380e94ca7f9355c248ce0fe7",
+    "semantic_hash": "1a541313380e94ca7f9355c248ce0fe7"
+  },
+  "core/tha4/src/tha4/shion/core/training/distrib/distributed_trainer.py": {
+    "mtime": 1784260996.360695,
+    "ast_hash": "03e413582fbb3a4666f8273521e3642f",
+    "semantic_hash": "03e413582fbb3a4666f8273521e3642f"
+  },
+  "core/tha4/src/tha4/shion/core/training/distrib/distributed_training_states.py": {
+    "mtime": 1784260996.360695,
+    "ast_hash": "979186abd826e9155b1ee5d38bc04025",
+    "semantic_hash": "979186abd826e9155b1ee5d38bc04025"
+  },
+  "core/tha4/src/tha4/shion/core/training/distrib/distributed_training_tasks.py": {
+    "mtime": 1784260996.360695,
+    "ast_hash": "cb7e83f9560ea6f5e134613d67ae7916",
+    "semantic_hash": "cb7e83f9560ea6f5e134613d67ae7916"
+  },
+  "core/tha4/src/tha4/shion/core/training/sample_output_protocol.py": {
+    "mtime": 1784260996.360695,
+    "ast_hash": "bbce545300ae344d6af1073221d82fd9",
+    "semantic_hash": "bbce545300ae344d6af1073221d82fd9"
+  },
+  "core/tha4/src/tha4/shion/core/training/single/__init__.py": {
+    "mtime": 1784260996.360695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "core/tha4/src/tha4/shion/core/training/single/training_states.py": {
+    "mtime": 1784260996.360695,
+    "ast_hash": "e91c27b7c4c26a03b2216a87a1395164",
+    "semantic_hash": "e91c27b7c4c26a03b2216a87a1395164"
+  },
+  "core/tha4/src/tha4/shion/core/training/single/training_tasks.py": {
+    "mtime": 1784260996.360695,
+    "ast_hash": "0c7ac29d43ed9628158967325334755b",
+    "semantic_hash": "0c7ac29d43ed9628158967325334755b"
+  },
+  "core/tha4/src/tha4/shion/core/training/swarm/__init__.py": {
+    "mtime": 1784260996.360695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "core/tha4/src/tha4/shion/core/training/swarm/swarm_training_tasks.py": {
+    "mtime": 1784260996.360695,
+    "ast_hash": "d2aa5b5d068484be6bde1cd2d3ea64bb",
+    "semantic_hash": "d2aa5b5d068484be6bde1cd2d3ea64bb"
+  },
+  "core/tha4/src/tha4/shion/core/training/swarm/swarm_unit_trainer.py": {
+    "mtime": 1784260996.361695,
+    "ast_hash": "658cd4c577e2e82b9b9ad32ceb11b8f2",
+    "semantic_hash": "658cd4c577e2e82b9b9ad32ceb11b8f2"
+  },
+  "core/tha4/src/tha4/shion/core/training/training_protocol.py": {
+    "mtime": 1784260996.361695,
+    "ast_hash": "23c3744081a40de16421d10cfbaf2565",
+    "semantic_hash": "23c3744081a40de16421d10cfbaf2565"
+  },
+  "core/tha4/src/tha4/shion/core/training/util.py": {
+    "mtime": 1784260996.361695,
+    "ast_hash": "f1376053db3bf8382f15bd1fab7b5651",
+    "semantic_hash": "f1376053db3bf8382f15bd1fab7b5651"
+  },
+  "core/tha4/src/tha4/shion/core/training/validation_protocol.py": {
+    "mtime": 1784260996.361695,
+    "ast_hash": "321d9b0417e6174c6639f0212860b961",
+    "semantic_hash": "321d9b0417e6174c6639f0212860b961"
+  },
+  "core/tha4/src/tha4/shion/nn00/__init__.py": {
+    "mtime": 1784260996.361695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "core/tha4/src/tha4/shion/nn00/block_args.py": {
+    "mtime": 1784260996.361695,
+    "ast_hash": "94c25915c42ccda1164ea2bb4a2074e6",
+    "semantic_hash": "94c25915c42ccda1164ea2bb4a2074e6"
+  },
+  "core/tha4/src/tha4/shion/nn00/conv.py": {
+    "mtime": 1784260996.361695,
+    "ast_hash": "1f5f3740cb6c4df1d6b99a945263998c",
+    "semantic_hash": "1f5f3740cb6c4df1d6b99a945263998c"
+  },
+  "core/tha4/src/tha4/shion/nn00/initialization_funcs.py": {
+    "mtime": 1784260996.361695,
+    "ast_hash": "39ba43ec474eaf488558254182c674be",
+    "semantic_hash": "39ba43ec474eaf488558254182c674be"
+  },
+  "core/tha4/src/tha4/shion/nn00/linear_module_args.py": {
+    "mtime": 1784260996.361695,
+    "ast_hash": "ad713810067969e07c5a46a01a14b0a6",
+    "semantic_hash": "ad713810067969e07c5a46a01a14b0a6"
+  },
+  "core/tha4/src/tha4/shion/nn00/nonlinearity_factories.py": {
+    "mtime": 1784260996.361695,
+    "ast_hash": "1431c62d0e501f41e9dcf281113caca5",
+    "semantic_hash": "1431c62d0e501f41e9dcf281113caca5"
+  },
+  "core/tha4/src/tha4/shion/nn00/normalization_layer_factories.py": {
+    "mtime": 1784260996.361695,
+    "ast_hash": "8afbcbe7e7c3df3685b300892a65916b",
+    "semantic_hash": "8afbcbe7e7c3df3685b300892a65916b"
+  },
+  "core/tha4/src/tha4/shion/nn00/normalization_layer_factory.py": {
+    "mtime": 1784260996.361695,
+    "ast_hash": "4d76666404ccb855402ac44d04049c88",
+    "semantic_hash": "4d76666404ccb855402ac44d04049c88"
+  },
+  "core/tha4/src/tha4/shion/nn00/pass_through.py": {
+    "mtime": 1784260996.361695,
+    "ast_hash": "aa66f609e8054bfb2bd4a5923669fb76",
+    "semantic_hash": "aa66f609e8054bfb2bd4a5923669fb76"
+  },
+  "core/tha4/src/tha4/shion/nn00/resnet_block.py": {
+    "mtime": 1784260996.361695,
+    "ast_hash": "9336f250aff1f3f4f102e8407ea62c96",
+    "semantic_hash": "9336f250aff1f3f4f102e8407ea62c96"
+  },
+  "core/tha4/test_tha4_student.py": {
+    "mtime": 1784260996.361695,
+    "ast_hash": "5d9386b7c10b7c6197012e0dbc81021c",
+    "semantic_hash": "5d9386b7c10b7c6197012e0dbc81021c"
+  },
+  "core/tha4/tha4_adapter.py": {
+    "mtime": 1784260996.361695,
+    "ast_hash": "c210719f46eaecb4c67e4cad973fe066",
+    "semantic_hash": "c210719f46eaecb4c67e4cad973fe066"
+  },
+  "core/tha4/tha4_convert_onnx_to_trt.py": {
+    "mtime": 1784260996.361695,
+    "ast_hash": "e3a832e723b2fe19cfbce556eb17fd52",
+    "semantic_hash": "e3a832e723b2fe19cfbce556eb17fd52"
+  },
+  "core/tha4/tha4_core.py": {
+    "mtime": 1784260996.361695,
+    "ast_hash": "672266a77de74b9da10d9394c1b844db",
+    "semantic_hash": "672266a77de74b9da10d9394c1b844db"
+  },
+  "core/tha4/tha4_core_old.py": {
+    "mtime": 1784260996.362695,
+    "ast_hash": "d1e0574b240d70662219177ae56838a0",
+    "semantic_hash": "d1e0574b240d70662219177ae56838a0"
+  },
+  "core/tha4/tha4_student_convert_onnx_to_trt.py": {
+    "mtime": 1784260996.362695,
+    "ast_hash": "49d3cb85783fdf0754674461a43e70a7",
+    "semantic_hash": "49d3cb85783fdf0754674461a43e70a7"
+  },
+  "managers/__init__.py": {
+    "mtime": 1784260996.362695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "managers/args.py": {
+    "mtime": 1784260996.362695,
+    "ast_hash": "7e660ddceceee8c33cb48ea299d59c7c",
+    "semantic_hash": "7e660ddceceee8c33cb48ea299d59c7c"
+  },
+  "managers/create_vtuber_placeholders.py": {
+    "mtime": 1784260996.362695,
+    "ast_hash": "cdb6f5c57bf21d88b974caa4e74e2982",
+    "semantic_hash": "cdb6f5c57bf21d88b974caa4e74e2982"
+  },
+  "managers/debug_input_client.py": {
+    "mtime": 1784260996.362695,
+    "ast_hash": "cde85dc15784e0a59b6b00c712eb185a",
+    "semantic_hash": "cde85dc15784e0a59b6b00c712eb185a"
+  },
+  "managers/ezvtb_rt_interface.py": {
+    "mtime": 1784260996.362695,
+    "ast_hash": "ba69b531d781a20d3b7d7e7f3c9a2eb4",
+    "semantic_hash": "ba69b531d781a20d3b7d7e7f3c9a2eb4"
+  },
+  "managers/face_mesh_client.py": {
+    "mtime": 1784260996.362695,
+    "ast_hash": "72c76f14f9a008ca2743b72c223da2a1",
+    "semantic_hash": "72c76f14f9a008ca2743b72c223da2a1"
+  },
+  "managers/i_facial_mocap_client.py": {
+    "mtime": 1784260996.362695,
+    "ast_hash": "3ab7546528705dddaed95483fe997067",
+    "semantic_hash": "3ab7546528705dddaed95483fe997067"
+  },
+  "managers/main.py": {
+    "mtime": 1784260996.362695,
+    "ast_hash": "3495fe44c619963b781d027b60d4b396",
+    "semantic_hash": "3495fe44c619963b781d027b60d4b396"
+  },
+  "managers/model_downloader.py": {
+    "mtime": 1784260996.362695,
+    "ast_hash": "5a196f56b07f3f2149bb0a9765d920ca",
+    "semantic_hash": "5a196f56b07f3f2149bb0a9765d920ca"
+  },
+  "managers/model_infer_client.py": {
+    "mtime": 1784260996.362695,
+    "ast_hash": "f2103d2e19bc6e24c52cb86109021d84",
+    "semantic_hash": "f2103d2e19bc6e24c52cb86109021d84"
+  },
+  "managers/mouse_client.py": {
+    "mtime": 1784260996.373695,
+    "ast_hash": "0934efbbade4a75118fe534a33ea2c2b",
+    "semantic_hash": "0934efbbade4a75118fe534a33ea2c2b"
+  },
+  "managers/open_see_face_client.py": {
+    "mtime": 1784260996.373695,
+    "ast_hash": "305f9d1b53b162e8a36e6e8997b197c5",
+    "semantic_hash": "305f9d1b53b162e8a36e6e8997b197c5"
+  },
+  "managers/web_server.py": {
+    "mtime": 1784260996.373695,
+    "ast_hash": "48cd88759666484eebcb852e054147eb",
+    "semantic_hash": "48cd88759666484eebcb852e054147eb"
+  },
+  "utils/__init__.py": {
+    "mtime": 1784260996.373695,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "utils/facial_points.py": {
+    "mtime": 1784260996.373695,
+    "ast_hash": "8117dcda63f3e62579d14e3f83d6cbc4",
+    "semantic_hash": "8117dcda63f3e62579d14e3f83d6cbc4"
+  },
+  "utils/filter.py": {
+    "mtime": 1784260996.373695,
+    "ast_hash": "e050db54f5107e762921de2e95322339",
+    "semantic_hash": "e050db54f5107e762921de2e95322339"
+  },
+  "utils/fps.py": {
+    "mtime": 1784260996.373695,
+    "ast_hash": "ded369ce40c316bb86cc5ccb7ee82f5b",
+    "semantic_hash": "ded369ce40c316bb86cc5ccb7ee82f5b"
+  },
+  "utils/pose.py": {
+    "mtime": 1784260996.373695,
+    "ast_hash": "655bbe498fda5a9a358bb1c7b3bd5ccf",
+    "semantic_hash": "655bbe498fda5a9a358bb1c7b3bd5ccf"
+  },
+  "utils/pose_simplify.py": {
+    "mtime": 1784260996.373695,
+    "ast_hash": "c00db507f92c689b4c99e5763728376d",
+    "semantic_hash": "c00db507f92c689b4c99e5763728376d"
+  },
+  "utils/preprocess.py": {
+    "mtime": 1784260996.374695,
+    "ast_hash": "2402203c84b486bfe9a1430b3839a238",
+    "semantic_hash": "2402203c84b486bfe9a1430b3839a238"
+  },
+  "utils/shared_mem_guard.py": {
+    "mtime": 1784260996.374695,
+    "ast_hash": "8b5668187b6ad5b0d3eb3d634173716a",
+    "semantic_hash": "8b5668187b6ad5b0d3eb3d634173716a"
+  },
+  "utils/timer_wait.py": {
+    "mtime": 1784260996.374695,
+    "ast_hash": "0f234b186cab69c20e199e8e30e26220",
+    "semantic_hash": "0f234b186cab69c20e199e8e30e26220"
+  },
+  "utils/utils.py": {
+    "mtime": 1784260996.374695,
+    "ast_hash": "e1b79b549dea8c074df0af570aca012c",
+    "semantic_hash": "e1b79b549dea8c074df0af570aca012c"
+  }
+}
