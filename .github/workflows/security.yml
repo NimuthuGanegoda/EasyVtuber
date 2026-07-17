@@ -2,9 +2,9 @@ name: "Security Scan"
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "Development" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "Development" ]
   schedule:
     - cron: '28 12 * * 4'
 

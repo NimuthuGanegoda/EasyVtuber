@@ -1,5 +1,8 @@
 import { useRef, useEffect, useState } from 'react';
 import { useVtuber, BackgroundType, OverlayItem, PoseData } from './hooks/useVtuber';
+import { useContributors, FALLBACK_COUNT } from './hooks/useContributors';
+import { WebGLCharacterRenderer } from './utils/webglRenderer';
+import { PerformanceMonitor } from './components/PerformanceMonitor';
 
 // Character rendering constants
 const CHAR_CENTER_X = 256;
@@ -143,9 +146,70 @@ function drawHUD(ctx: CanvasRenderingContext2D, pose: PoseData | null, tracking:
   }
 }
 
+function ContributorsSection() {
+  const { contributors, loading, error } = useContributors();
+
+  if (loading) {
+    return (
+      <div className="contributors-list">
+        {Array.from({ length: FALLBACK_COUNT }, (_, i) => (
+          <div key={i} className="contributor-row skeleton-row">
+            <div className="skeleton-circle" />
+            <div className="contributor-info">
+              <div className="skeleton-line skeleton-line-sm" />
+              <div className="skeleton-line skeleton-line-xs" />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="contributors-list">
+      {error && (
+        <div className="contributor-fallback-hint" title={error}>
+          <span className="contributors-badge">CACHED</span>
+        </div>
+      )}
+      {contributors.map((c, i) => (
+        <a
+          key={i}
+          href={c.html_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="contributor-row"
+        >
+          <div className="contributor-avatar-wrapper">
+            <img
+              className="contributor-avatar"
+              src={c.avatar_url}
+              alt={c.name}
+              loading="lazy"
+            />
+          </div>
+          <div className="contributor-info">
+            <span className="contributor-name">
+              {c.emoji} {c.name}
+            </span>
+            <span className="contributor-role">{c.role}</span>
+          </div>
+          {c.contributions > 0 && (
+            <span className="contributor-contributions" title={`${c.contributions} contributions`}>
+              {c.contributions}
+            </span>
+          )}
+        </a>
+      ))}
+    </div>
+  );
+}
+
 function App() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
+  const glCanvasRef = useRef<HTMLCanvasElement>(null);
+  const webglRendererRef = useRef<WebGLCharacterRenderer | null>(null);
   const [activeTab, setActiveTab] = useState<'expressions' | 'backgrounds' | 'overlays' | 'hotkeys' | 'settings'>('expressions');
   const initStarted = useRef(false);
   const animFrameRef = useRef(0);
@@ -160,16 +224,25 @@ function App() {
     }
   }, [vtuber.loadModels]);
 
-  // Persistent render refs (avoid RAF re-creation on every frame)
-  // Canvas is always rendered below, so this ref will be available when the RAF effect runs
-  const renderDataRef = useRef({ pose: null as PoseData | null, overlays: vtuber.overlays, tracking: true });
-
-  // Keep render data ref in sync with state (runs after every render, not every RAF)
+  // Initialize WebGL renderer on the hidden GL canvas
   useEffect(() => {
-    renderDataRef.current = { pose: vtuber.pose, overlays: vtuber.overlays, tracking: vtuber.isTracking };
-  });
+    const glCanvas = glCanvasRef.current;
+    if (!glCanvas) return;
+    glCanvas.width = 512;
+    glCanvas.height = 512;
+    try {
+      webglRendererRef.current = new WebGLCharacterRenderer(glCanvas);
+    } catch {
+      console.warn('WebGL renderer init failed, falling back to Canvas 2D');
+    }
 
-  // Single persistent RAF render loop
+    return () => {
+      webglRendererRef.current?.destroy();
+      webglRendererRef.current = null;
+    };
+  }, []);
+
+  // Single persistent RAF render loop — WebGL for character, Canvas 2D for overlays/HUD
   useEffect(() => {
     const canvas = overlayCanvasRef.current;
     if (!canvas) return;
@@ -184,10 +257,26 @@ function App() {
       if (!running) return;
       ctx.clearRect(0, 0, 512, 512);
 
-      const data = renderDataRef.current;
-      drawCharacter(ctx, data.pose);
-      drawOverlays(ctx, data.overlays);
-      drawHUD(ctx, data.pose, data.tracking);
+      // Read fresh pose/overlay data from refs — updates every frame without React
+      const currentPose = vtuber.poseRef.current;
+      const currentOverlays = vtuber.overlaysRef.current;
+      const isTracking = vtuber.trackingRef.current;
+
+      // Try WebGL first, fall back to Canvas 2D
+      const gl = webglRendererRef.current;
+      const webglDrawn = gl ? gl.render(currentPose) : false;
+
+      if (webglDrawn && glCanvasRef.current) {
+        // Composite WebGL output onto the 2D canvas
+        ctx.drawImage(glCanvasRef.current, 0, 0);
+      } else {
+        // Fallback: draw character with Canvas 2D
+        drawCharacter(ctx, currentPose);
+      }
+
+      // Overlays and HUD always render on Canvas 2D (text/compositing)
+      drawOverlays(ctx, currentOverlays);
+      drawHUD(ctx, currentPose, isTracking);
 
       animFrameRef.current = requestAnimationFrame(render);
     };
@@ -197,6 +286,8 @@ function App() {
       running = false;
       cancelAnimationFrame(animFrameRef.current);
     };
+    // vtuber refs are stable — no deps needed, this effect runs once
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -306,22 +397,21 @@ function App() {
                 <h3 className="panel-title">Scene Backgrounds</h3>
                 <div className="background-grid">
                   {[
-                    { id: 'gradient' as BackgroundType, label: 'Cyberpunk', colors: ['#0a0a0c', '#1a1a2e', '#16213e'] },
-                    { id: 'gradient' as BackgroundType, label: 'Sunset', colors: ['#ff6b6b', '#ffa500', '#ffd93d'] },
-                    { id: 'gradient' as BackgroundType, label: 'Forest', colors: ['#0f3443', '#34e89e', '#1a2a1a'] },
-                    { id: 'gradient' as BackgroundType, label: 'Ocean', colors: ['#0072ff', '#00c6ff', '#0a1628'] },
-                    { id: 'gradient' as BackgroundType, label: 'Lavender', colors: ['#667eea', '#764ba2', '#1a0a2e'] },
-                    { id: 'gradient' as BackgroundType, label: 'Crimson', colors: ['#200122', '#6f0000', '#1a0a0a'] },
-                    { id: 'none' as BackgroundType, label: 'Transparent', colors: ['#000000', '#000000'] },
-                    { id: 'blur' as BackgroundType, label: 'Blur Dark', colors: ['#0a0a0c', '#0a0a0c'] },
+                    { id: 'gradient' as BackgroundType, label: 'Cyberpunk', colors: ['#0a0a0c', '#1a1a2e', '#16213e'], gradientStr: 'linear-gradient(135deg, #0a0a0c 0%, #1a1a2e 50%, #16213e 100%)' },
+                    { id: 'gradient' as BackgroundType, label: 'Sunset', colors: ['#ff6b6b', '#ffa500', '#ffd93d'], gradientStr: 'linear-gradient(135deg, #ff6b6b 0%, #ffa500 50%, #ffd93d 100%)' },
+                    { id: 'gradient' as BackgroundType, label: 'Forest', colors: ['#0f3443', '#34e89e', '#1a2a1a'], gradientStr: 'linear-gradient(135deg, #0f3443 0%, #34e89e 50%, #1a2a1a 100%)' },
+                    { id: 'gradient' as BackgroundType, label: 'Ocean', colors: ['#0072ff', '#00c6ff', '#0a1628'], gradientStr: 'linear-gradient(135deg, #0072ff 0%, #00c6ff 50%, #0a1628 100%)' },
+                    { id: 'gradient' as BackgroundType, label: 'Lavender', colors: ['#667eea', '#764ba2', '#1a0a2e'], gradientStr: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #1a0a2e 100%)' },
+                    { id: 'gradient' as BackgroundType, label: 'Crimson', colors: ['#200122', '#6f0000', '#1a0a0a'], gradientStr: 'linear-gradient(135deg, #200122 0%, #6f0000 50%, #1a0a0a 100%)' },
+                    { id: 'none' as BackgroundType, label: 'Transparent', colors: ['#000000', '#000000'], gradientStr: 'transparent' },
+                    { id: 'blur' as BackgroundType, label: 'Blur Dark', colors: ['#0a0a0c', '#0a0a0c'], gradientStr: 'rgba(0,0,0,0.6)' },
                   ].map((bg, i) => (
                     <button
                       key={`${bg.id}-${i}`}
-                      className={`bg-btn ${vtuber.backgroundValue.includes(bg.colors[0]) ? 'active' : ''}`}
+                      className={`bg-btn ${vtuber.backgroundValue === (bg.gradientStr || bg.colors[0]) ? 'active' : ''}`}
                       onClick={() => {
                         if (bg.id === 'gradient') {
-                          const grad = `linear-gradient(135deg, ${bg.colors[0]} 0%, ${bg.colors[1]} 50%, ${bg.colors[2] || bg.colors[1]} 100%)`;
-                          vtuber.setBackground('gradient', grad);
+                          vtuber.setBackground('gradient', bg.gradientStr!);
                         } else {
                           vtuber.setBackground(bg.id);
                         }
@@ -501,7 +591,13 @@ function App() {
               muted
             />
 
-            {/* Canvas always rendered so the RAF loop ref works */}
+            {/* Hidden WebGL canvas for GPU-accelerated character rendering */}
+            <canvas
+              ref={glCanvasRef}
+              className="gl-canvas"
+            />
+
+            {/* Main 2D canvas for overlays, HUD, and fallback rendering */}
             <canvas
               ref={overlayCanvasRef}
               className={`overlay-canvas ${vtuber.isLoaded ? '' : 'canvas-hidden'}`}
@@ -551,11 +647,32 @@ function App() {
                 )}
               </div>
             )}
+
+            {/* Performance Monitor overlay */}
+            <PerformanceMonitor
+              fps={vtuber.fps}
+              inferenceTime={vtuber.inferenceTime}
+              isTracking={vtuber.isTracking}
+            />
           </div>
         </main>
 
-        {/* Right Panel - Live Stats */}
+        {/* Right Panel - Live Stats & Info */}
         <aside className="right-panel">
+          {/* Sakura - AI Assistant */}
+          <div className="assistant-card">
+            <img
+              className="assistant-avatar"
+              src="https://api.dicebear.com/9.x/lorelei/svg?seed=Sakura&backgroundColor=ffb7c5&radius=50"
+              alt="Sakura"
+            />
+            <div className="assistant-info">
+              <span className="assistant-name">Sakura</span>
+              <span className="assistant-title">AI Assistant</span>
+            </div>
+            <span className="assistant-status" />
+          </div>
+
           <h3 className="panel-title">Live Statistics</h3>
           <div className="stats-grid">
             <div className="stat-card">
@@ -607,6 +724,14 @@ function App() {
               </span>
             </div>
           </div>
+
+          <h3 className="panel-title" style={{ marginTop: 24 }}>
+            Contributors
+            {!vtuber.isLoaded && (
+              <span className="contributors-badge">GitHub</span>
+            )}
+          </h3>
+          <ContributorsSection />
 
           <h3 className="panel-title" style={{ marginTop: 24 }}>Pose Values</h3>
           <div className="pose-bars">

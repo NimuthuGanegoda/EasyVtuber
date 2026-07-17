@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { FaceLandmarker, FilesetResolver } from '@mediapipe/tasks-vision';
-import { extractPose, PoseData as PoseExtractData } from '../utils/poseExtractor';
+import { extractPose, PoseData as PoseExtractData, Landmark } from '../utils/poseExtractor';
 
 // Re-export for use in App.tsx
 export type PoseData = PoseExtractData;
@@ -80,7 +80,6 @@ const DEFAULT_HOTKEYS: HotkeyAction[] = [
 export function useVtuber() {
   const poseRef = useRef<PoseData | null>(null);
   const overlaysRef = useRef<OverlayItem[]>(DEFAULT_OVERLAYS);
-  const trackingStateRef = useRef(true);
 
   const [state, setState] = useState<VtuberState>({
     status: 'Initializing Core Systems...',
@@ -107,6 +106,35 @@ export function useVtuber() {
   const expressionRef = useRef<ExpressionState>(DEFAULT_EXPRESSION);
   const hotkeysRef = useRef<HotkeyAction[]>(DEFAULT_HOTKEYS);
   const trackingRef = useRef(true);
+  const lastStateSyncRef = useRef(0);
+  const STATE_SYNC_INTERVAL = 50; // ms — throttle React state updates to ~20fps
+  const frameIdRef = useRef(0);
+
+  // Web Worker for off-thread pose extraction (opt-in — disabled by default)
+  // Enable by setting USE_WORKER to true. Worker is created only once.
+  const USE_WORKER = false;
+  const workerRef = useRef<Worker | null>(null);
+  const workerPoseRef = useRef<PoseData | null>(null);
+
+  useEffect(() => {
+    if (!USE_WORKER) return;
+    try {
+      const w = new Worker(
+        new URL('../utils/poseWorker.ts', import.meta.url),
+        { type: 'module' }
+      );
+      w.onmessage = (e: MessageEvent) => {
+        workerPoseRef.current = e.data.pose as PoseData;
+      };
+      workerRef.current = w;
+    } catch (err) {
+      console.warn('Pose worker init failed:', err);
+    }
+    return () => {
+      workerRef.current?.terminate();
+      workerRef.current = null;
+    };
+  }, []);
 
   const updateState = useCallback((partial: Partial<VtuberState>) => {
     setState(prev => ({ ...prev, ...partial }));
@@ -140,6 +168,10 @@ export function useVtuber() {
 
   const toggleTracking = useCallback(() => {
     trackingRef.current = !trackingRef.current;
+    if (trackingRef.current) {
+      // Force an immediate state sync on next frame
+      lastStateSyncRef.current = 0;
+    }
     setState(prev => ({ ...prev, isTracking: trackingRef.current }));
   }, []);
 
@@ -213,22 +245,51 @@ export function useVtuber() {
       return;
     }
 
-    const now = performance.now();
+    const timestamp = performance.now();
+    frameIdRef.current++;
 
-    // Track FPS
-    fpsFrames.current = [...fpsFrames.current.filter(t => now - t < 1000), now];
+    // Track FPS with a rolling window (ref only — no re-render)
+    fpsFrames.current.push(timestamp);
+    while (fpsFrames.current[0] < timestamp - 1000) {
+      fpsFrames.current.shift();
+    }
     const currentFps = fpsFrames.current.length;
 
     try {
       if (trackingRef.current) {
-        const faceResult = faceLm.detectForVideo(video, now);
+        const inferenceStart = performance.now();
+        const faceResult = faceLm.detectForVideo(video, timestamp);
         if (faceResult.faceLandmarks && faceResult.faceLandmarks.length > 0) {
           const landmarks = faceResult.faceLandmarks[0];
           if (landmarks) {
-            const pose = extractPose(landmarks);
-            poseRef.current = pose;
-            trackingStateRef.current = trackingRef.current;
-            setState(prev => ({ ...prev, pose, fps: currentFps }));
+            const rawLandmarks = landmarks as unknown as Landmark[];
+
+            // Toggle pose extraction path: Worker (async) vs sync
+            const worker = workerRef.current;
+            if (worker && USE_WORKER) {
+              // Off-thread path: post landmarks to worker
+              worker.postMessage({ id: frameIdRef.current, landmarks: rawLandmarks });
+              // Use latest worker result if available, otherwise skip pose update
+              if (workerPoseRef.current) {
+                poseRef.current = workerPoseRef.current;
+              }
+            } else {
+              // Synchronous path (default — fast enough for single-threaded)
+              const pose = extractPose(rawLandmarks);
+              poseRef.current = pose;
+            }
+
+            // Throttle React state updates to ~20fps
+            if (timestamp - lastStateSyncRef.current > STATE_SYNC_INTERVAL) {
+              lastStateSyncRef.current = timestamp;
+              const inferenceTime = Math.round(performance.now() - inferenceStart);
+              setState(prev => ({
+                ...prev,
+                pose: poseRef.current,
+                fps: currentFps,
+                inferenceTime,
+              }));
+            }
           }
         }
       }
@@ -313,5 +374,9 @@ export function useVtuber() {
     removeOverlay,
     updateOverlay,
     setState: updateState,
+    // Expose refs for the canvas draw loop to read without React re-renders
+    poseRef,
+    overlaysRef,
+    trackingRef,
   };
 }
