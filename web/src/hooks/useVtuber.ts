@@ -80,6 +80,10 @@ const DEFAULT_HOTKEYS: HotkeyAction[] = [
 
 export function useVtuber() {
   const poseRef = useRef<PoseData | null>(null);
+  // Raw MediaPipe landmarks, exposed alongside the derived PoseData for
+  // renderers that do their own solving from raw points (e.g. Kalidokit for
+  // driving a VRM model) rather than consuming our extractPose() output.
+  const landmarksRef = useRef<Landmark[] | null>(null);
   const overlaysRef = useRef<OverlayItem[]>(DEFAULT_OVERLAYS);
 
   const [state, setState] = useState<VtuberState>({
@@ -290,6 +294,7 @@ export function useVtuber() {
           const landmarks = faceResult.faceLandmarks[0];
           if (landmarks) {
             const rawLandmarks = landmarks as unknown as Landmark[];
+            landmarksRef.current = rawLandmarks;
 
             // MediaPipe's ML-derived blendshape scores (blink, jaw-open, etc.)
             // are materially more accurate than geometry computed from raw
@@ -429,6 +434,7 @@ export function useVtuber() {
     setState: updateState,
     // Expose refs for the canvas draw loop to read without React re-renders
     poseRef,
+    landmarksRef,
     overlaysRef,
     trackingRef,
   };

@@ -61,6 +61,29 @@ The "Elite Edition" has been rewritten for maximum performance on modern browser
 2. Run `npm install` and `npm run dev`.
 3. Open the provided local link.
 
+### 🎭 Character model (VRM)
+
+By default the web app draws a simple procedural cartoon avatar (Canvas2D/WebGL
+shapes) — no external assets needed, works out of the box. For a real,
+professionally-rigged 3D character instead:
+
+1. Design/export a character as a `.vrm` file. We recommend
+   [VRoid Studio](https://vroid.com/en/studio) (free, from Pixiv) — build a
+   character visually and export as VRM; since you're the creator, you own
+   full rights to redistribute it.
+2. Place the file at `web/public/models/character.vrm` and commit it.
+3. That's it — the app detects the model automatically at startup and drives
+   its head rotation, blink, and mouth shape from your webcam via
+   [Kalidokit](https://github.com/yeemachine/kalidokit) (MediaPipe → VRM
+   solving). No model present, or it fails to load? The app falls back to the
+   procedural avatar automatically — nothing breaks either way.
+
+We deliberately did **not** build this against Live2D: its SDK license
+explicitly requires a paid license for "VTuber tracking tools" like this one,
+regardless of company size, which isn't something a public open-source repo
+can quietly assume its way around. VRM + `@pixiv/three-vrm` + Kalidokit is
+MIT-family licensed end to end.
+
 ---
 
 ## 🛡️ Security & Integrity

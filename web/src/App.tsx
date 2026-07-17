@@ -2,6 +2,14 @@ import { useRef, useEffect, useState } from 'react';
 import { useVtuber, BackgroundType, OverlayItem, PoseData } from './hooks/useVtuber';
 import { useContributors, FALLBACK_COUNT } from './hooks/useContributors';
 import { WebGLCharacterRenderer } from './utils/webglRenderer';
+import { VRMCharacterRenderer } from './utils/vrmRenderer';
+
+// Path to a real VRM character model, if one has been supplied (see
+// web/README, "Character model"). Progressive enhancement: if this 404s,
+// VRMCharacterRenderer.loadModel() fails gracefully and the app falls back
+// to the procedural WebGL/Canvas2D renderer below, so the app still works
+// with no model present.
+const VRM_MODEL_URL = './models/character.vrm';
 import { PerformanceMonitor } from './components/PerformanceMonitor';
 
 // Character rendering constants
@@ -470,6 +478,8 @@ function App() {
   const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
   const glCanvasRef = useRef<HTMLCanvasElement>(null);
   const webglRendererRef = useRef<WebGLCharacterRenderer | null>(null);
+  const vrmCanvasRef = useRef<HTMLCanvasElement>(null);
+  const vrmRendererRef = useRef<VRMCharacterRenderer | null>(null);
   const [activeTab, setActiveTab] = useState<'expressions' | 'backgrounds' | 'overlays' | 'hotkeys' | 'settings'>('expressions');
   const initStarted = useRef(false);
   const animFrameRef = useRef(0);
@@ -503,6 +513,36 @@ function App() {
     };
   }, []);
 
+  // Initialize the VRM (real character model) renderer on its own hidden
+  // canvas — separate from the procedural gl-canvas since they're two
+  // independent WebGL contexts. Progressive enhancement: loadModel()
+  // resolves false if no model is present or it fails to load, and the
+  // render loop below falls back to the procedural renderer in that case.
+  useEffect(() => {
+    const vrmCanvas = vrmCanvasRef.current;
+    if (!vrmCanvas) return;
+    vrmCanvas.width = 512;
+    vrmCanvas.height = 512;
+    let cancelled = false;
+    try {
+      const renderer = new VRMCharacterRenderer(vrmCanvas);
+      vrmRendererRef.current = renderer;
+      renderer.loadModel(VRM_MODEL_URL).then((ok) => {
+        if (!ok && !cancelled) {
+          console.info('No VRM character model loaded — using procedural fallback renderer.');
+        }
+      });
+    } catch (e) {
+      console.warn('VRM renderer init failed, falling back:', e);
+    }
+
+    return () => {
+      cancelled = true;
+      vrmRendererRef.current?.destroy();
+      vrmRendererRef.current = null;
+    };
+  }, []);
+
   // Single persistent RAF render loop — WebGL for character, Canvas 2D for overlays/HUD
   useEffect(() => {
     const canvas = overlayCanvasRef.current;
@@ -525,11 +565,21 @@ function App() {
       const currentOverlays = vtuber.overlaysRef.current;
       const isTracking = vtuber.trackingRef.current;
 
-      // Try WebGL first, fall back to Canvas 2D
-      const gl = webglRendererRef.current;
-      const webglDrawn = gl ? gl.render(currentPose) : false;
+      // Fallback chain: real VRM character model (if one is present) ->
+      // procedural WebGL shapes -> Canvas2D shapes. VRM is driven straight
+      // from raw landmarks (Kalidokit does its own solving), not the
+      // derived/smoothed PoseData the other two renderers use.
+      const vrmRenderer = vrmRendererRef.current;
+      const vrmDrawn = vrmRenderer?.isReady()
+        ? vrmRenderer.render(vtuber.landmarksRef.current)
+        : false;
 
-      if (webglDrawn && glCanvasRef.current) {
+      const gl = webglRendererRef.current;
+      const webglDrawn = !vrmDrawn && gl ? gl.render(currentPose) : false;
+
+      if (vrmDrawn && vrmCanvasRef.current) {
+        ctx.drawImage(vrmCanvasRef.current, 0, 0);
+      } else if (webglDrawn && glCanvasRef.current) {
         // Composite WebGL output onto the 2D canvas
         ctx.drawImage(glCanvasRef.current, 0, 0);
       } else {
@@ -874,6 +924,12 @@ function App() {
             {/* Hidden WebGL canvas for GPU-accelerated character rendering */}
             <canvas
               ref={glCanvasRef}
+              className="gl-canvas"
+            />
+
+            {/* Hidden canvas for the real VRM character model, when present */}
+            <canvas
+              ref={vrmCanvasRef}
               className="gl-canvas"
             />
 
