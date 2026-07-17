@@ -834,12 +834,15 @@ class MainFrame(wx.Frame):
 
 def main():
     app = wx.App()
-    
-    # Start Server-Client protocol to fetch missing AI models
+
+    # Offline-only local check: warns if no model weights are installed yet,
+    # but never blocks the launcher from opening (this app never downloads
+    # anything itself — see backend/managers/model_downloader.py).
     try:
-        from src.model_downloader import check_and_download_models
-        if not check_and_download_models(None):
-            sys.exit(1)
+        if _DESKTOP_ROOT not in sys.path:
+            sys.path.append(_DESKTOP_ROOT)
+        from backend.managers.model_downloader import check_models_present
+        check_models_present(None)
     except Exception as e:
         print(f"Failed to check models: {e}")
 

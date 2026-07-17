@@ -30,16 +30,35 @@ separate NVIDIA SDK that isn't on PyPI; see "TensorRT-RTX acceleration"
 below if you want that path. Without it, the app still runs on the
 ONNXRuntime provider (DirectML on Windows, CPU/CUDA elsewhere).
 
+## Offline by design
+
+This app never opens a network connection on its own — no telemetry, no
+license checks, no auto-download, nothing "phones home." Everything it
+needs (model weights, character images, dependencies) must already be on
+disk before you launch it; it does not need LAN, WiFi, or internet access
+to run, and it works the same with your network adapter disabled entirely.
+
+The only code paths that touch a socket at all are opt-in tracking inputs
+you must explicitly enable with a flag (`--ifm_input`, `--osf_input`,
+`--vmc_input`) or the local debug output server (`--output_web`, bound to
+`127.0.0.1` by default) — none of these run unless you ask for them, and
+none require internet, only (for the tracking inputs) another device on
+your own LAN if you're not sending from the same machine.
+
 ## Model weights
 
-**Not bundled — you must download them separately.** The files under
+**Not bundled — you must place them yourself.** The files under
 `data/models/<tha3|tha4|tha4_student>/...` in a fresh checkout are empty
-placeholders, not real model data, and this app's own auto-download
-(`backend/managers/model_downloader.py`) points at a release asset that
-doesn't exist yet, so it will report a clear failure rather than fake success.
+placeholders, not real model data. Consistent with "offline by design"
+above, this app does **not** attempt to download them for you — the GUI
+launcher just checks locally on startup whether any model variant is
+present and shows a warning if not (`backend/managers/model_downloader.py`);
+it never opens a connection to check or fetch anything.
 
-Real ONNX-format weights (THA3, RIFE, waifu2x, Real-ESRGAN — exported by
-`ezvtb_rt`'s author for this exact runtime) are published here:
+To get real ONNX-format weights (THA3, RIFE, waifu2x, Real-ESRGAN — exported
+by `ezvtb_rt`'s author for this exact runtime), download them yourself
+(on any machine with internet, then transfer the files over if the machine
+running this app is offline) from:
 
 - https://github.com/zpeng11/ezvtuber-rt/releases/download/0.0.1/20241220.zip
   (~1.6GB; verified live)
@@ -56,8 +75,8 @@ CC-BY 4.0 (attribution: Pramook Khungurn), commercial use permitted.
 
 Until real weights are in place for whichever `--model_version` you select,
 everything else (tracking, launcher, output pipeline) runs fine, but model
-loading will fail with a traceback in the console. The app now detects this
-and exits with a clear message within a second instead of hanging forever
+loading will fail with a traceback in the console. The app detects this and
+exits with a clear message within a second instead of hanging forever
 (which is what it did before — the main process waited on the inference
 process indefinitely with no indication it had died).
 
