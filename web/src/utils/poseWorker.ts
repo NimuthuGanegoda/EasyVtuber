@@ -10,6 +10,7 @@ export interface PoseWorkerMessage {
   id: number;
   landmarks: Landmark[];
   blendshapes?: Record<string, number>;
+  transformMatrix?: number[];
 }
 
 export interface PoseWorkerResult {
@@ -26,14 +27,14 @@ if (typeof self !== 'undefined' && 'postMessage' in self) {
   workerSelf = self as DedicatedWorkerGlobalScope;
 
   workerSelf.onmessage = (event: MessageEvent<PoseWorkerMessage>) => {
-    const { id, landmarks, blendshapes } = event.data;
+    const { id, landmarks, blendshapes, transformMatrix } = event.data;
 
     if (!landmarks || landmarks.length === 0) {
       return;
     }
 
     try {
-      const pose = extractPose(landmarks, blendshapes);
+      const pose = extractPose(landmarks, blendshapes, transformMatrix);
       const result: PoseWorkerResult = {
         id,
         pose,

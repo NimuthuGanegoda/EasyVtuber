@@ -215,6 +215,7 @@ export function useVtuber() {
           delegate: 'GPU',
         },
         outputFaceBlendshapes: true,
+        outputFacialTransformationMatrixes: true,
         runningMode: 'VIDEO',
         numFaces: 1,
       });
@@ -300,18 +301,22 @@ export function useVtuber() {
               for (const c of categories) blendshapes[c.categoryName] = c.score;
             }
 
+            // The transformation matrix gives accurate head pose (see
+            // poseExtractor.ts) — pass the raw column-major data through.
+            const transformMatrix = faceResult.facialTransformationMatrixes?.[0]?.data;
+
             // Toggle pose extraction path: Worker (async) vs sync
             const worker = workerRef.current;
             if (worker && useWorkerRef.current) {
               // Off-thread path: post landmarks to worker
-              worker.postMessage({ id: frameIdRef.current, landmarks: rawLandmarks, blendshapes });
+              worker.postMessage({ id: frameIdRef.current, landmarks: rawLandmarks, blendshapes, transformMatrix });
               // Use latest worker result if available, otherwise skip pose update
               if (workerPoseRef.current) {
                 poseRef.current = workerPoseRef.current;
               }
             } else {
               // Synchronous path (default — fast enough for single-threaded)
-              const pose = extractPose(rawLandmarks, blendshapes);
+              const pose = extractPose(rawLandmarks, blendshapes, transformMatrix);
               poseRef.current = pose;
             }
 

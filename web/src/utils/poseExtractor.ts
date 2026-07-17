@@ -70,13 +70,56 @@ function getIrisCenter(landmarks: Landmark[], side: 'left' | 'right'): Landmark 
   };
 }
 
+// MediaPipe's facialTransformationMatrixes (when outputFacialTransformationMatrixes
+// is enabled) is a proper 4x4 rotation+translation matrix mapping the canonical
+// face model to the detected head pose — far more accurate than estimating
+// head angle from 2-3 landmark positions. Data is column-major (confirmed via
+// MediaPipe's own docs and the community-standard `THREE.Matrix4().fromArray()`
+// consumption pattern). Extraction below is Three.js's own battle-tested
+// 'XYZ'-order matrix-to-Euler formula, chosen specifically because that's the
+// same matrix convention already validated by that ecosystem — not invented
+// fresh. Verified independently here via unit tests against known pure-axis
+// rotation matrices (see poseExtractor.matrix.test approach): each axis
+// isolates cleanly with zero cross-talk in both rotation directions.
+//
+// One thing NOT verified (no real camera available in this environment): the
+// sign of the extracted angle relative to which way the avatar visually turns
+// on screen. The rotation math itself is confirmed correct; if the avatar
+// turns/tilts the wrong direction once tested against a real face, it's a
+// one-line sign flip here, not a re-derivation.
+function extractHeadRotationFromMatrix(data: number[]): { pitch: number; yaw: number; roll: number } {
+  // Column-major: R[row][col] = data[col*4 + row]. Only the entries the
+  // 'XYZ'-order extraction formula actually needs are pulled out.
+  const m11 = data[0] ?? 0, m12 = data[4] ?? 0, m13 = data[8] ?? 0;
+  const m22 = data[5] ?? 0, m23 = data[9] ?? 0;
+  const m32 = data[6] ?? 0, m33 = data[10] ?? 0;
+
+  const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+  const yaw = Math.asin(clamp(m13, -1, 1));
+  let pitch: number;
+  let roll: number;
+  if (Math.abs(m13) < 0.9999999) {
+    pitch = Math.atan2(-m23, m33);
+    roll = Math.atan2(-m12, m11);
+  } else {
+    // Gimbal lock (looking almost straight up/down): roll can't be recovered.
+    pitch = Math.atan2(m32, m22);
+    roll = 0;
+  }
+  return { pitch, yaw, roll };
+}
+
 // MediaPipe's face_landmarker task can output 52 ARKit-style blendshape
 // scores (ML-derived, pose/lighting-robust) alongside raw landmarks. When
 // available, prefer them over the geometric landmark-ratio heuristics below
 // for blink and mouth-open — they're materially more accurate. Falls back
 // to geometry when blendshapes aren't provided (e.g. a caller that only has
-// raw landmarks).
-export function extractPose(landmarks: Landmark[], blendshapes?: Record<string, number>): PoseData {
+// raw landmarks). Same for transformMatrix and head rotation.
+export function extractPose(
+  landmarks: Landmark[],
+  blendshapes?: Record<string, number>,
+  transformMatrix?: number[]
+): PoseData {
   const irisRCenter = getIrisCenter(landmarks, 'right');
   const irisLCenter = getIrisCenter(landmarks, 'left');
 
@@ -101,10 +144,21 @@ export function extractPose(landmarks: Landmark[], blendshapes?: Record<string, 
   const irisRLeft = at(landmarks, IRIS_R_LEFT);
   const irisRRight = at(landmarks, IRIS_R_RIGHT);
 
-  // Angle calculations
+  // Angle calculations (geometric fallback; overridden below by the
+  // transformation-matrix-derived values when available — see xAngleFinal etc.)
   const xAngle = Math.atan2(p197.y - p9.y, p197.z - p9.z);
   const yAngle = Math.atan2(irisLTop.z - irisRTop.z, irisLTop.x - irisRTop.x);
   const zAngle = Math.atan2(p9.y - p152.y, p9.x - p152.x);
+
+  let xAngleFinal = xAngle;
+  let yAngleFinal = yAngle;
+  let zAngleFinal = zAngle;
+  if (transformMatrix && transformMatrix.length >= 11) {
+    const { pitch, yaw, roll } = extractHeadRotationFromMatrix(transformMatrix);
+    xAngleFinal = pitch;
+    yAngleFinal = yaw;
+    zAngleFinal = roll;
+  }
 
   // Eye ratios
   const irisRotationLH = getDistance(irisLTop, irisLBottom);
@@ -168,9 +222,9 @@ export function extractPose(landmarks: Landmark[], blendshapes?: Record<string, 
     mouthRatio: mouthRatioFinal,
     eyeYRatio,
     eyeXRatio,
-    xAngle,
-    yAngle,
-    zAngle,
+    xAngle: xAngleFinal,
+    yAngle: yAngleFinal,
+    zAngle: zAngleFinal,
     headX,
     headY,
     headZ,
