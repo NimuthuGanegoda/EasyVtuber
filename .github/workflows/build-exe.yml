@@ -23,14 +23,24 @@ jobs:
         python -m pip install --upgrade pip
         # We only install CPU versions for the lightweight client
         pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
-        # Install wxpython for the UI
-        pip install wxpython requests Pillow onnxruntime-openvino numpy scipy protobuf pynput mediapipe==0.10.11 opencv-python pyanime4k==3.1.0 pyvirtualcam==0.9.1 pyopengl onnx tqdm OneEuroFilter sounddevice brotli
+        # Install wxpython for the UI. onnxruntime-openvino (not plain
+        # onnxruntime, which requirements.txt lists for source installs) is
+        # used deliberately here for the packaged client's Intel-friendly
+        # acceleration -- installing both in the same env can conflict.
+        # SpoutGL/python-osc/fastapi/uvicorn are optional-feature deps
+        # (Spout2 output, VMC input, web output) not covered by the base
+        # list above -- previously missing here entirely, so those features
+        # never actually worked in any published .exe build.
+        pip install wxpython requests Pillow onnxruntime-openvino numpy scipy protobuf pynput mediapipe==0.10.11 opencv-python pyanime4k==3.1.0 pyvirtualcam==0.9.1 pyopengl onnx tqdm OneEuroFilter sounddevice brotli python-osc SpoutGL fastapi uvicorn
         pip install pyinstaller
 
     - name: Generate App Icon
       run: |
         cd desktop
-        python -c "from PIL import Image; Image.open('data/models/tha4_student/character.png').resize((256, 256)).save('app_icon.ico')"
+        # data/models/tha4_student/character.png is a placeholder (0 bytes
+        # until real model weights are installed) -- use a real bundled
+        # character image instead, matching the app's own default character.
+        python -c "from PIL import Image; Image.open('backend/data/images/Houshou_Marine.png').resize((256, 256)).save('app_icon.ico')"
 
     - name: Build EXE with PyInstaller
       run: |
@@ -38,15 +48,26 @@ jobs:
         # Ensure directories exist for PyInstaller
         if (!(Test-Path "data")) { New-Item -ItemType Directory -Path "data" }
         if (!(Test-Path "backend/data/images")) { New-Item -ItemType Directory -Path "backend/data/images" }
-        
+
         # We bundle everything into a single standalone .exe
         # We map images to both 'data/images' (for launcher) and 'backend/data/images' (for backend logic)
+        # --hidden-import flags cover optional-feature deps only reached via
+        # a runtime conditional import (e.g. vmc_client.py, web_server.py,
+        # the Spout2 branch in main.py) that PyInstaller's static analysis
+        # of the launcher2.py entry point won't discover on its own.
         pyinstaller --noconfirm --onefile --windowed --icon="app_icon.ico" --name "EasyVtuberClient" `
           --add-data "backend/data/images;data/images" `
           --add-data "backend/data/images;backend/data/images" `
           --add-data "backend;backend" `
           --add-data "main.py;." `
           --paths "." `
+          --hidden-import "pythonosc" `
+          --hidden-import "pythonosc.dispatcher" `
+          --hidden-import "pythonosc.osc_server" `
+          --hidden-import "pythonosc.udp_client" `
+          --hidden-import "SpoutGL" `
+          --hidden-import "fastapi" `
+          --hidden-import "uvicorn" `
           "gui/launcher2.py"
         
     - name: Create Release and Upload Client
