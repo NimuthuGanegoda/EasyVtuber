@@ -38,9 +38,13 @@ def generate_frames():
 def video_feed():
     return StreamingResponse(generate_frames(), media_type="multipart/x-mixed-replace; boundary=frame")
 
-def start_server(port=8000):
+def start_server(port=8000, host="127.0.0.1"):
     def run():
-        uvicorn.run(app, host="0.0.0.0", port=port, log_level="warning")
+        # Loopback-only by default: this stream has no authentication, so
+        # binding 0.0.0.0 would expose the user's live camera-driven output
+        # to anyone else on the local network. Pass host="0.0.0.0" explicitly
+        # to opt into LAN sharing.
+        uvicorn.run(app, host=host, port=port, log_level="warning")
     t = threading.Thread(target=run, daemon=True)
     t.start()
     return t

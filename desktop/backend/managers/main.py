@@ -1,6 +1,7 @@
 import numpy as np
 import time
 import os
+import sys
 from .model_infer_client import ModelClientProcess
 from .args import args
 from ..utils.preprocess import resize_to_512_center, apply_color_curves
@@ -11,13 +12,22 @@ from ..utils.timer_wait import wait_until
 from PIL import Image
 from ..utils.fps import FPS
 import pyvirtualcam
-from OpenGL.GL import GL_RGBA
 
 
 def main():
     # Load character image - Robust path
     project_root = os.path.normpath(os.path.join(os.path.dirname(__file__), '..', '..'))
-    image_path = os.path.join(project_root, 'backend', 'data', 'images', f"{args.character}.png")
+    images_dir = os.path.join(project_root, 'backend', 'data', 'images')
+    image_path = os.path.join(images_dir, f"{args.character}.png")
+    if not os.path.exists(image_path):
+        available = sorted(
+            f[:-4] for f in os.listdir(images_dir) if f.lower().endswith('.png')
+        ) if os.path.isdir(images_dir) else []
+        raise FileNotFoundError(
+            f"Character image not found: {image_path}\n"
+            f"Available characters: {', '.join(available) if available else '(none found)'}\n"
+            f"Pass one with --character <name>."
+        )
     img = Image.open(image_path)
     img = img.convert('RGBA')
     
@@ -55,6 +65,9 @@ def main():
     elif args.osf_input is not None:
         from .open_see_face_client import OSFClientProcess
         input_process = OSFClientProcess(pose_position_shm)
+    elif args.vmc_input is not None:
+        from .vmc_client import VMCClientProcess
+        input_process = VMCClientProcess(pose_position_shm)
     elif args.mouse_input is not None:
         from .mouse_client import MouseClientProcess
         input_process = MouseClientProcess(pose_position_shm)
@@ -95,9 +108,18 @@ def main():
                                           fmt=pyvirtualcam.PixelFormat.RGB)
         print(f'Using virtual camera: {virtual_cam.device}')
     elif args.output_spout2:
-        from PySpout import SpoutSender
-        spout_sender = SpoutSender("EasyVtuber", cam_width_scale * args.model_output_size,
-                                   args.model_output_size, GL_RGBA)
+        if sys.platform != 'win32':
+            raise RuntimeError("Spout2 output is only supported on Windows.")
+        try:
+            import SpoutGL
+            from SpoutGL.enums import GL_RGBA as SPOUT_GL_RGBA
+        except ImportError as e:
+            raise ImportError(
+                "Spout2 output requires the 'SpoutGL' package. Install it with: "
+                "pip install SpoutGL"
+            ) from e
+        spout_sender = SpoutGL.SpoutSender()
+        spout_sender.setSenderName("EasyVtuber")
     elif args.output_web:
         from .web_server import start_server
         start_server(port=8000)
@@ -114,7 +136,19 @@ def main():
 
     print("Interval set to {:.3f} seconds".format(interval))
     while True:
-        infer_process.finish_event.wait()
+        # Poll with a timeout instead of waiting forever: if the inference
+        # process dies during model load (e.g. missing/invalid model weight
+        # files), finish_event is never set and this would otherwise hang
+        # indefinitely with no indication anything went wrong.
+        while not infer_process.finish_event.wait(timeout=1.0):
+            if not infer_process.is_alive():
+                raise RuntimeError(
+                    "Model inference process exited unexpectedly (see the "
+                    "traceback above for the cause). This is usually caused "
+                    "by missing or invalid model weight files — see "
+                    "desktop/README.md, 'Model weights' section, for how to "
+                    "obtain them."
+                )
         infer_process.finish_event.clear()
         for i in range(n_frames):
             ret_batch_shm_channels[i].acquire()
@@ -138,7 +172,11 @@ def main():
             if args.output_virtual_cam:
                 virtual_cam.send(np_ret_shms[i])
             elif args.output_spout2:
-                spout_sender.send_image(np_ret_shms[i], False)
+                spout_sender.sendImage(
+                    np_ret_shms[i].tobytes(),
+                    cam_width_scale * args.model_output_size,
+                    args.model_output_size,
+                    SPOUT_GL_RGBA, False, 0)
             elif args.output_web:
                 from .web_server import send_frame
                 send_frame(np_ret_shms[i])

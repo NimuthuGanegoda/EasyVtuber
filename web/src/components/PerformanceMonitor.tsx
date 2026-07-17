@@ -38,8 +38,11 @@ export function PerformanceMonitor({
   inferRef.current = inferenceTime;
   trackingRef.current = isTracking;
 
-  // Stable RAF loop — reads from refs, not stale closures
+  // Stable RAF loop — reads from refs, not stale closures.
+  // Only runs while the panel is visible so the monitor itself (DOM scan
+  // included) doesn't add per-frame overhead when collapsed.
   useEffect(() => {
+    if (!visible) return;
     let running = true;
     const update = () => {
       if (!running) return;
@@ -77,7 +80,7 @@ export function PerformanceMonitor({
       running = false;
       cancelAnimationFrame(animRef.current);
     };
-  }, []);
+  }, [visible]);
 
   // Toggle with backtick key
   useEffect(() => {

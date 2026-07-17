@@ -484,7 +484,7 @@ function App() {
                     className="btn-secondary"
                     onClick={() => {
                       const emojis = ['🌸', '⭐', '❤️', '✨', '🎀', '💫', '🌟', '💖'];
-                      const emoji = emojis[Math.floor(Math.random() * emojis.length)];
+                      const emoji = emojis[Math.floor(Math.random() * emojis.length)] ?? '🌸';
                       vtuber.addOverlay({
                         id: String(Date.now()),
                         type: 'emoji',

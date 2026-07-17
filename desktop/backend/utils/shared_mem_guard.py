@@ -1,16 +1,26 @@
 from __future__ import annotations
 import os
+import sys
+import tempfile
 import time
-import fcntl
 from contextlib import contextmanager
 from multiprocessing import shared_memory
 from typing import Optional, Union
 
+_IS_WINDOWS = sys.platform == 'win32'
+
+if _IS_WINDOWS:
+    import msvcrt
+else:
+    import fcntl
+
+
 class SharedMemoryGuard:
     """
-    Two-process exclusive access wrapper using File-based locking (Linux/Unix):
+    Two-process exclusive access wrapper using File-based locking:
     - payload SharedMemory is provided externally
     - Uses file locking for cross-process synchronization
+      (fcntl.flock on POSIX, msvcrt.locking on Windows)
     """
 
     def __init__(
@@ -22,10 +32,18 @@ class SharedMemoryGuard:
         self.payload_shm = payload
 
         # 2) create/open lock file for synchronization
-        lock_dir = "/tmp/easyvtuber_locks"
+        lock_dir = os.path.join(tempfile.gettempdir(), "easyvtuber_locks")
         os.makedirs(lock_dir, exist_ok=True)
         self.lock_file_path = os.path.join(lock_dir, f"{ctrl_name}.lock")
-        self._lock_file = open(self.lock_file_path, 'w')
+        # 'a+b' creates the file if missing without truncating it if another
+        # process already created it (create is atomic at the OS level).
+        open(self.lock_file_path, 'a+b').close()
+        self._lock_file = open(self.lock_file_path, 'r+b')
+        if _IS_WINDOWS:
+            # msvcrt.locking requires at least one byte in the region it locks.
+            self._lock_file.seek(0)
+            self._lock_file.write(b'\0')
+            self._lock_file.flush()
 
     # ---- payload view: zero-copy for numpy ----
     def payload_view(self) -> memoryview:
@@ -40,10 +58,13 @@ class SharedMemoryGuard:
         start_time = time.time()
         while True:
             try:
-                # Attempt to acquire an exclusive lock
-                fcntl.flock(self._lock_file, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                if _IS_WINDOWS:
+                    self._lock_file.seek(0)
+                    msvcrt.locking(self._lock_file.fileno(), msvcrt.LK_NBLCK, 1)
+                else:
+                    fcntl.flock(self._lock_file, fcntl.LOCK_EX | fcntl.LOCK_NB)
                 return True
-            except (IOError, BlockingIOError):
+            except (IOError, OSError, BlockingIOError):
                 if timeout_ms is not None:
                     elapsed = (time.time() - start_time) * 1000
                     if elapsed >= timeout_ms:
@@ -52,7 +73,11 @@ class SharedMemoryGuard:
 
     def release(self) -> None:
         """Release the file lock."""
-        fcntl.flock(self._lock_file, fcntl.LOCK_UN)
+        if _IS_WINDOWS:
+            self._lock_file.seek(0)
+            msvcrt.locking(self._lock_file.fileno(), msvcrt.LK_UNLCK, 1)
+        else:
+            fcntl.flock(self._lock_file, fcntl.LOCK_UN)
 
     @contextmanager
     def lock(self, timeout_ms: Optional[int] = None):
@@ -70,7 +95,7 @@ class SharedMemoryGuard:
             try:
                 self.release()
                 self._lock_file.close()
-            except:
+            except Exception:
                 pass
             self._lock_file = None
         self.payload_shm.close()

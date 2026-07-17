@@ -12,8 +12,8 @@ const IRIS_L_RIGHT = 382;
 
 const IRIS_R_TOP = 159;
 const IRIS_R_BOTTOM = 145;
-const IRIS_R_LEFT = 33;
-const IRIS_R_RIGHT = 155;
+const IRIS_R_LEFT = 155;
+const IRIS_R_RIGHT = 33;
 
 // MediaPipe IRIS indices
 const FACEMESH_LEFT_IRIS = [474, 475, 476, 477];
@@ -45,13 +45,23 @@ function getDistance(p1: Landmark, p2: Landmark): number {
   );
 }
 
+// MediaPipe FaceLandmarker always returns 478 landmarks (468 mesh + 10 iris)
+// when iris refinement is enabled, which this app relies on for the indices
+// above — this accessor just gives the type checker a guarantee to work with.
+function at(landmarks: Landmark[], idx: number): Landmark {
+  const p = landmarks[idx];
+  if (!p) throw new Error(`Missing landmark at index ${idx}`);
+  return p;
+}
+
 function getIrisCenter(landmarks: Landmark[], side: 'left' | 'right'): Landmark {
   const indices = side === 'left' ? FACEMESH_LEFT_IRIS : FACEMESH_RIGHT_IRIS;
   let x = 0, y = 0, z = 0;
   indices.forEach((idx) => {
-    x += landmarks[idx].x;
-    y += landmarks[idx].y;
-    z += landmarks[idx].z;
+    const p = at(landmarks, idx);
+    x += p.x;
+    y += p.y;
+    z += p.z;
   });
   return {
     x: x / indices.length,
@@ -64,59 +74,49 @@ export function extractPose(landmarks: Landmark[]): PoseData {
   const irisRCenter = getIrisCenter(landmarks, 'right');
   const irisLCenter = getIrisCenter(landmarks, 'left');
 
-  const mouthH = landmarks[MOUTH_TOP].y - landmarks[MOUTH_BOTTOM].y;
-  const mouthW =
-    landmarks[MOUTH_RIGHT].x -
-    (landmarks[MOUTH_LEFT1].x + landmarks[MOUTH_LEFT2].x) / 2;
+  const mouthTop = at(landmarks, MOUTH_TOP);
+  const mouthBottom = at(landmarks, MOUTH_BOTTOM);
+  const mouthRight = at(landmarks, MOUTH_RIGHT);
+  const mouthLeft1 = at(landmarks, MOUTH_LEFT1);
+  const mouthLeft2 = at(landmarks, MOUTH_LEFT2);
+  const mouthH = mouthTop.y - mouthBottom.y;
+  const mouthW = mouthRight.x - (mouthLeft1.x + mouthLeft2.x) / 2;
   const mouthRatio = Math.abs(mouthH / mouthW);
 
+  const p197 = at(landmarks, 197);
+  const p9 = at(landmarks, 9);
+  const p152 = at(landmarks, 152);
+  const irisLTop = at(landmarks, IRIS_L_TOP);
+  const irisLBottom = at(landmarks, IRIS_L_BOTTOM);
+  const irisLLeft = at(landmarks, IRIS_L_LEFT);
+  const irisLRight = at(landmarks, IRIS_L_RIGHT);
+  const irisRTop = at(landmarks, IRIS_R_TOP);
+  const irisRBottom = at(landmarks, IRIS_R_BOTTOM);
+  const irisRLeft = at(landmarks, IRIS_R_LEFT);
+  const irisRRight = at(landmarks, IRIS_R_RIGHT);
+
   // Angle calculations
-  const xAngle = Math.atan2(
-    landmarks[197].y - landmarks[9].y,
-    landmarks[197].z - landmarks[9].z
-  );
-  const yAngle = Math.atan2(
-    landmarks[IRIS_L_TOP].z - landmarks[IRIS_R_TOP].z,
-    landmarks[IRIS_L_TOP].x - landmarks[IRIS_R_TOP].x
-  );
-  const zAngle = Math.atan2(
-    landmarks[9].y - landmarks[152].y,
-    landmarks[9].x - landmarks[152].x
-  );
+  const xAngle = Math.atan2(p197.y - p9.y, p197.z - p9.z);
+  const yAngle = Math.atan2(irisLTop.z - irisRTop.z, irisLTop.x - irisRTop.x);
+  const zAngle = Math.atan2(p9.y - p152.y, p9.x - p152.x);
 
   // Eye ratios
-  const irisRotationLH = getDistance(
-    landmarks[IRIS_L_TOP],
-    landmarks[IRIS_L_BOTTOM]
-  );
-  const irisRotationLW = getDistance(
-    landmarks[IRIS_L_RIGHT],
-    landmarks[IRIS_L_LEFT]
-  );
-  const irisRotationRH = getDistance(
-    landmarks[IRIS_R_TOP],
-    landmarks[IRIS_R_BOTTOM]
-  );
-  const irisRotationRW = getDistance(
-    landmarks[IRIS_R_RIGHT],
-    landmarks[IRIS_R_LEFT]
-  );
+  const irisRotationLH = getDistance(irisLTop, irisLBottom);
+  const irisRotationLW = getDistance(irisLRight, irisLLeft);
+  const irisRotationRH = getDistance(irisRTop, irisRBottom);
+  const irisRotationRW = getDistance(irisRRight, irisRLeft);
 
   const irisRotationLHTemp = Math.sqrt(
-    (irisLCenter.x - landmarks[IRIS_L_TOP].x) ** 2 +
-      (irisLCenter.y - landmarks[IRIS_L_TOP].y) ** 2
+    (irisLCenter.x - irisLTop.x) ** 2 + (irisLCenter.y - irisLTop.y) ** 2
   );
   const irisRotationLWTemp = Math.sqrt(
-    (irisLCenter.x - landmarks[IRIS_L_RIGHT].x) ** 2 +
-      (irisLCenter.y - landmarks[IRIS_L_RIGHT].y) ** 2
+    (irisLCenter.x - irisLRight.x) ** 2 + (irisLCenter.y - irisLRight.y) ** 2
   );
   const irisRotationRHTemp = Math.sqrt(
-    (irisRCenter.x - landmarks[IRIS_R_TOP].x) ** 2 +
-      (irisRCenter.y - landmarks[IRIS_R_TOP].y) ** 2
+    (irisRCenter.x - irisRTop.x) ** 2 + (irisRCenter.y - irisRTop.y) ** 2
   );
   const irisRotationRWTemp = Math.sqrt(
-    (irisRCenter.x - landmarks[IRIS_R_RIGHT].x) ** 2 +
-      (irisRCenter.y - landmarks[IRIS_R_RIGHT].y) ** 2
+    (irisRCenter.x - irisRRight.x) ** 2 + (irisRCenter.y - irisRRight.y) ** 2
   );
 
   const eyeXRatio =
@@ -131,18 +131,12 @@ export function extractPose(landmarks: Landmark[]): PoseData {
     3;
 
   const eyeLHTemp =
-    1 -
-    (2 *
-      (landmarks[IRIS_R_BOTTOM].y - landmarks[IRIS_R_TOP].y)) /
-      (landmarks[IRIS_R_LEFT].x - landmarks[IRIS_R_RIGHT].x);
+    1 - (2 * (irisRBottom.y - irisRTop.y)) / (irisRLeft.x - irisRRight.x);
   const eyeRHTemp =
-    1 -
-    (2 *
-      (landmarks[IRIS_L_BOTTOM].y - landmarks[IRIS_L_TOP].y)) /
-      (landmarks[IRIS_L_LEFT].x - landmarks[IRIS_L_RIGHT].x);
+    1 - (2 * (irisLBottom.y - irisLTop.y)) / (irisLLeft.x - irisLRight.x);
 
   // Normalized head position
-  const noseTip = landmarks[1];
+  const noseTip = at(landmarks, 1);
   const headX = (noseTip.x - 0.5) * 2;
   const headY = (noseTip.y - 0.5) * 2;
   const headZ = noseTip.z * 2;

@@ -1,3 +1,5 @@
+/// <reference lib="webworker" />
+
 // Web Worker for offloading face pose extraction from the main thread.
 // Receives raw MediaPipe FaceLandmarker landmarks, computes pose data,
 // and posts back the result.

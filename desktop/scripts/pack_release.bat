@@ -48,7 +48,7 @@ call conda-pack -n ezvtb_rt_venv_release -o %~dp0envs\python_embedded --format n
 
 SET PATH=%~dp0envs\python_embedded;%~dp0envs\python_embedded\Scripts;%~dp0envs\python_embedded\Library\bin;%PATH%
 call python -m pip install %~dp0envs\TensorRT-RTX-1.3.0.35_cu129\python\tensorrt_rtx-1.3.0.35-cp310-none-win_amd64.whl
-call python -m pip install -r requirements.txt --no-warn-script-location
+call python -m pip install -r %~dp0..\requirements\requirements.txt --no-warn-script-location
 
 @RD /S /Q %~dp0envs\miniconda3
 pause

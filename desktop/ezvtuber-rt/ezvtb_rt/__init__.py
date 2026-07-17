@@ -28,7 +28,12 @@ def init_model_path(custom_path: str):
     EZVTB_DATA = custom_path
 __all__ = ["init_model_path"]
 
-# Import main classes for easy access
+# Import main classes for easy access. This whole block is best-effort: any
+# failure here (missing tensorrt_rtx/pycuda, missing CUDA runtime DLL, no
+# compatible GPU) must fall through to the ONNXRuntime-only path below rather
+# than aborting the module import — catching only ImportError previously let
+# an OSError/RuntimeError from cudaSetDevice's ctypes DLL load or a failed
+# cudaSetDevice call kill CoreORT's import too.
 try:
     import os
     from ezvtb_rt.trt_utils import cudaSetDevice
@@ -37,10 +42,9 @@ try:
     import pycuda.autoinit  # Ensure PyCUDA is initialized for TensorRT
     from ezvtb_rt.core_trt import CoreTRT
     __all__.append("CoreTRT")
-except ImportError:
-    print("TensorRT or PyCUDA not available, CoreTRT disabled.")
+except (ImportError, OSError, RuntimeError) as e:
+    print(f"TensorRT or PyCUDA not available, CoreTRT disabled: {e}")
     # TensorRT not available
-    __all__ = []
 
 from ezvtb_rt.core_ort import CoreORT
 __all__.append("CoreORT")

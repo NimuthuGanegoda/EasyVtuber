@@ -3,7 +3,7 @@ import re
 
 
 def convert_to_byte(size):
-    result = re.search('(\d+\.?\d*)(b|kb|mb|gb|tb)', size.lower())
+    result = re.search(r'(\d+\.?\d*)(b|kb|mb|gb|tb)', size.lower())
     if (result and result.groups()):
         unit = result.groups()[1]
         amount = float(result.groups()[0])
@@ -13,13 +13,18 @@ def convert_to_byte(size):
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--character', type=str, default='lambda_00')
+parser.add_argument('--character', type=str, default='Houshou_Marine')
 
 parser.add_argument('--debug_input', action='store_true')
 parser.add_argument('--cam_input', action='store_true')
 parser.add_argument('--mouse_input', type=str)
 parser.add_argument('--ifm_input', type=str)
 parser.add_argument('--osf_input', type=str)
+parser.add_argument('--vmc_input', type=str,
+                     help='Receive tracking data over the VMC protocol (OSC/UDP). '
+                          'Format host:port, e.g. 127.0.0.1:39539 — the host is the '
+                          'local interface to bind; use 0.0.0.0 to accept VMC senders '
+                          'from other devices on your network.')
 
 parser.add_argument('--mouse_audio_input', action='store_true')
 parser.add_argument('--audio_sensitivity', type=float, default=0.02)
@@ -86,7 +91,8 @@ if args.output_spout2:
     args.alpha_split = False  # Disable alpha split for spout2 output
 
 if not args.cam_input and args.mouse_input is None \
-    and args.ifm_input is None and args.osf_input is None:
+    and args.ifm_input is None and args.osf_input is None \
+    and args.vmc_input is None:
     args.debug_input = True  # Default to debug input
 
 if args.sr_a4k:

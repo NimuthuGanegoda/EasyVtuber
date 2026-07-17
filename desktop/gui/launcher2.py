@@ -7,7 +7,8 @@ import wx
 import json
 import sys
 
-ctypes.windll.shcore.SetProcessDpiAwareness(1)
+if sys.platform == 'win32':
+    ctypes.windll.shcore.SetProcessDpiAwareness(1)
 p = None
 cache_simplify_map = {
     'Off': 0,
@@ -29,11 +30,12 @@ cache_simplify_quality_map = {
     'Gaming': 75
 }
 default_arg = {
-    'character': 'lambda_00',
+    'character': 'Houshou_Marine',
     'input': 3,
     'output': 2,
     'ifm': None,
     'osf': '127.0.0.1:11573',
+    'vmc': '127.0.0.1:39539',
     'min_cutoff': 50,
     'beta': 80,
     'is_extend_movement': False,
@@ -68,15 +70,38 @@ finally:
     args = default_arg
 
 p = None
-dirPath = 'data/images'
+# Resolve relative to this file, not the process's CWD (which varies
+# depending on how the launcher is started — CWD-relative 'data/images'
+# doesn't match any real directory and crashed refreshList() on startup).
+_DESKTOP_ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
+dirPath = os.path.join(_DESKTOP_ROOT, 'backend', 'data', 'images')
 characterList = []
 studentModelList = []
 studentModelCharacterMap = {}
 
 def is_nvidia_gpu():
+    if sys.platform != 'win32':
+        return False
+    # Prefer PowerShell's CIM cmdlets: `wmic` is deprecated and removed on
+    # newer Windows 11/Server builds. Decode as UTF-8 (PowerShell's default
+    # console encoding) rather than a hardcoded 'gbk', which only works on
+    # Chinese-locale Windows and raises UnicodeDecodeError everywhere else.
     try:
-        # Get list of graphics card names
-        output = subprocess.check_output("wmic path Win32_VideoController get Name", shell=True).decode('gbk')
+        output = subprocess.check_output(
+            ["powershell", "-NoProfile", "-Command",
+             "(Get-CimInstance Win32_VideoController).Name"],
+            stderr=subprocess.DEVNULL,
+        ).decode('utf-8', errors='ignore')
+        if output.strip():
+            return "NVIDIA" in output.upper()
+    except Exception:
+        pass
+    # Fallback for systems without PowerShell CIM cmdlets available.
+    try:
+        output = subprocess.check_output(
+            "wmic path Win32_VideoController get Name", shell=True,
+            stderr=subprocess.DEVNULL,
+        ).decode(sys.getfilesystemencoding(), errors='ignore')
         return "NVIDIA" in output.upper()
     except Exception:
         return False
@@ -96,7 +121,7 @@ def scanStudentModels():
     studentModelList = []
     studentModelCharacterMap = {}
 
-    custom_models_path = 'data/models/custom_tha4_models'
+    custom_models_path = os.path.join(_DESKTOP_ROOT, 'data', 'models', 'custom_tha4_models')
     if os.path.exists(custom_models_path):
         try:
             for model_name in os.listdir(custom_models_path):
@@ -387,12 +412,14 @@ class LauncherPanel(wx.Panel):
                   choices=characterList)
 
         addOption('input', title='Input Device', desc='Select face tracking source',
-                  choices=['iFacialMocap', 'OpenSeeFace', 'OpenCV(Webcam)', 'Mouse Input', 'Debug Input'],
-                  mapping=[0, 4, 1, 3, 2])
+                  choices=['iFacialMocap', 'OpenSeeFace', 'OpenCV(Webcam)', 'Mouse Input', 'Debug Input', 'VMC Protocol'],
+                  mapping=[0, 4, 1, 3, 2, 5])
         addOption('ifm', title='iFacialMocap IP', desc='IP address for iFacialMocap (default port 49983)', type=2)
         addOption('is_eyebrow', title='Eyebrow', desc='Enable eyebrow tracking (affects performance)', type=1,
                   default=True)
         addOption('osf', title='OpenSeeFace IP:Port', desc='IP and port for OpenSeeFace connection', type=2)
+        addOption('vmc', title='VMC Listen IP:Port', desc='Local address to receive VMC tracking data on (e.g. 127.0.0.1:39539)',
+                  type=2)
         addOption('mouse_audio_input', title='Audio Input', desc='Enable WASAPI audio input for lip sync', type=1)
         addOption('audio_sensitivity', title='Audio Sensitivity', desc='Sensitivity of lip sync to audio level', type=2)
         addOption('audio_threshold', title='Audio Threshold', desc='Noise gate threshold for audio input', type=2)
@@ -475,7 +502,11 @@ class LauncherPanel(wx.Panel):
             else:
                 self.optionSizer.Show(self.optionDict['osf'])
                 self.optionSizer.Show(self.optionDict['is_eyebrow'])
-            if s != 1 and s != 4:
+            if s != 5:
+                self.optionSizer.Hide(self.optionDict['vmc'])
+            else:
+                self.optionSizer.Show(self.optionDict['vmc'])
+            if s != 1 and s != 4 and s != 5:
                 self.optionSizer.Hide(self.optionDict['min_cutoff'])
                 self.optionSizer.Hide(self.optionDict['beta'])
             else:
@@ -649,6 +680,10 @@ class LauncherPanel(wx.Panel):
                 if len(args['osf']):
                     run_args.append('--osf_input')
                     run_args.append(args['osf'])
+            elif args['input'] == 5:
+                if len(args['vmc']):
+                    run_args.append('--vmc_input')
+                    run_args.append(args['vmc'])
 
             if args['breath_cycle']:
                 run_args.append('--breath_cycle')

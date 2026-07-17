@@ -19,3 +19,4 @@ sounddevice
 brotli
 fastapi
 uvicorn
+python-osc

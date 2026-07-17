@@ -15,6 +15,7 @@ web/node_modules/
 
 # Build outputs (docs is tracked for GitHub Pages deployment)
 web/dist/
+*.tsbuildinfo
 
 # IDE
 .vscode/

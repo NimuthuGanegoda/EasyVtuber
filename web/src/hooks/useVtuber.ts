@@ -263,7 +263,7 @@ export function useVtuber() {
 
     // Track FPS with a rolling window (ref only — no re-render)
     fpsFrames.current.push(timestamp);
-    while (fpsFrames.current[0] < timestamp - 1000) {
+    while (fpsFrames.current.length > 0 && fpsFrames.current[0]! < timestamp - 1000) {
       fpsFrames.current.shift();
     }
     const currentFps = fpsFrames.current.length;
@@ -314,6 +314,11 @@ export function useVtuber() {
   }, []);
 
   const handleHotkey = useCallback((e: KeyboardEvent) => {
+    // Don't hijack keystrokes meant for a focused form control (e.g. Space
+    // toggling a checkbox, or typing into a future text field).
+    const target = e.target as HTMLElement | null;
+    if (target && /^(INPUT|SELECT|TEXTAREA)$/.test(target.tagName)) return;
+
     const action = hotkeysRef.current.find(h => {
       if (e.key !== h.key && e.key.toLowerCase() !== h.key.toLowerCase()) return false;
       if (h.ctrl && !e.ctrlKey) return false;
@@ -346,11 +351,17 @@ export function useVtuber() {
         break;
       case 'cycle_background': {
         const bgs: BackgroundType[] = ['gradient', 'none', 'blur'];
+        const defaults: Record<BackgroundType, string> = {
+          none: 'transparent',
+          gradient: 'linear-gradient(135deg, #0a0a0c 0%, #1a1a2e 50%, #16213e 100%)',
+          image: '',
+          blur: 'rgba(0,0,0,0.6)',
+          game: '#1a1a2e',
+        };
         setState(prev => {
           const idx = bgs.indexOf(prev.background);
-          const next = bgs[(idx + 1) % bgs.length];
-          setBackground(next);
-          return prev;
+          const next: BackgroundType = bgs[(idx + 1) % bgs.length] ?? 'gradient';
+          return { ...prev, background: next, backgroundValue: defaults[next] };
         });
         break;
       }
