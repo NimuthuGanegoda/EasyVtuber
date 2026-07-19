@@ -100,108 +100,142 @@ def main():
     last_time: float = time.perf_counter()
     interval: float = 1.0 / args.frame_rate_limit if args.frame_rate_limit > 0 else 0.0
 
-    if args.output_virtual_cam:
-        virtual_cam = pyvirtualcam.Camera(width=cam_width_scale * args.model_output_size,
-                                          height=args.model_output_size,
-                                          fps=args.frame_rate_limit,
-                                          backend='obs',
-                                          fmt=pyvirtualcam.PixelFormat.RGB)
-        print(f'Using virtual camera: {virtual_cam.device}')
-    elif args.output_spout2:
-        if sys.platform != 'win32':
-            raise RuntimeError("Spout2 output is only supported on Windows.")
-        try:
-            import SpoutGL
-            from SpoutGL.enums import GL_RGBA as SPOUT_GL_RGBA
-        except ImportError as e:
-            raise ImportError(
-                "Spout2 output requires the 'SpoutGL' package. Install it with: "
-                "pip install SpoutGL"
-            ) from e
-        spout_sender = SpoutGL.SpoutSender()
-        spout_sender.setSenderName("EasyVtuber")
-    elif args.output_web:
-        from .web_server import start_server
-        start_server(port=8000)
-        print("Using Web Server for output display on http://localhost:8000/")
-    else:
-        print("Using OpenCV windows for output display.")
-
-    pipeline_fps = FPS()
-    last_frame_time = None  # 上一帧输出时间，用于打印帧时间差
-    last_batch_start_time = None  # 上一批就绪时间，用于周期估计
-    n_frames = args.interpolation_scale
-    min_period = n_frames * interval if interval > 0 else n_frames / 60.0  # 60fps 下本批最少占用时间
-    default_period = 1.0 / 15.0  # 约 15fps 推理时的周期，首包无历史时使用
-
-    print("Interval set to {:.3f} seconds".format(interval))
-    while True:
-        # Poll with a timeout instead of waiting forever: if the inference
-        # process dies during model load (e.g. missing/invalid model weight
-        # files), finish_event is never set and this would otherwise hang
-        # indefinitely with no indication anything went wrong.
-        while not infer_process.finish_event.wait(timeout=1.0):
-            if not infer_process.is_alive():
-                raise RuntimeError(
-                    "Model inference process exited unexpectedly (see the "
-                    "traceback above for the cause). This is usually caused "
-                    "by missing or invalid model weight files — see "
-                    "desktop/README.md, 'Model weights' section, for how to "
-                    "obtain them."
-                )
-        infer_process.finish_event.clear()
-        for i in range(n_frames):
-            ret_batch_shm_channels[i].acquire()
-
-        # 动态周期：本批就绪与上一批就绪的时间间隔，用于本批内均匀排期
-        batch_start_time = time.perf_counter()
-        if last_batch_start_time is not None:
-            observed_period = batch_start_time - last_batch_start_time
-            period = max(min_period, min(observed_period, 1.0))
+    virtual_cam = None
+    spout_sender = None
+    SPOUT_GL_RGBA = None
+    try:
+        if args.output_virtual_cam:
+            virtual_cam = pyvirtualcam.Camera(width=cam_width_scale * args.model_output_size,
+                                              height=args.model_output_size,
+                                              fps=args.frame_rate_limit,
+                                              backend='obs',
+                                              fmt=pyvirtualcam.PixelFormat.RGB)
+            print(f'Using virtual camera: {virtual_cam.device}')
+        elif args.output_spout2:
+            if sys.platform != 'win32':
+                raise RuntimeError("Spout2 output is only supported on Windows.")
+            try:
+                import SpoutGL
+                from SpoutGL.enums import GL_RGBA as SPOUT_GL_RGBA
+            except ImportError as e:
+                raise ImportError(
+                    "Spout2 output requires the 'SpoutGL' package. Install it with: "
+                    "pip install SpoutGL"
+                ) from e
+            spout_sender = SpoutGL.SpoutSender()
+            spout_sender.setSenderName("EasyVtuber")
+        elif args.output_web:
+            from .web_server import start_server
+            start_server(port=8000)
+            print("Using Web Server for output display on http://localhost:8000/")
         else:
-            period = max(min_period, default_period)
-        last_batch_start_time = batch_start_time
+            print("Using OpenCV windows for output display.")
 
-        for i in range(n_frames):
-            # 均匀排期 + frame_rate_limit：取两者中较晚的时间发送
-            target_send_time = batch_start_time + i * (period / n_frames)
-            if interval > 0:
-                target_send_time = max(target_send_time, last_time)
-            wait_until(target_send_time)
+        pipeline_fps = FPS()
+        last_batch_start_time = None  # 上一批就绪时间，用于周期估计
+        n_frames = args.interpolation_scale
+        min_period = n_frames * interval if interval > 0 else n_frames / 60.0  # 60fps 下本批最少占用时间
+        default_period = 1.0 / 15.0  # 约 15fps 推理时的周期，首包无历史时使用
 
-            if args.output_virtual_cam:
-                virtual_cam.send(np_ret_shms[i])
-            elif args.output_spout2:
-                spout_sender.sendImage(
-                    np_ret_shms[i].tobytes(),
-                    cam_width_scale * args.model_output_size,
-                    args.model_output_size,
-                    SPOUT_GL_RGBA, False, 0)
-            elif args.output_web:
-                from .web_server import send_frame
-                send_frame(np_ret_shms[i])
+        print("Interval set to {:.3f} seconds".format(interval))
+        while True:
+            # Poll with a timeout instead of waiting forever: if the inference
+            # process dies during model load (e.g. missing/invalid model weight
+            # files), finish_event is never set and this would otherwise hang
+            # indefinitely with no indication anything went wrong.
+            while not infer_process.finish_event.wait(timeout=1.0):
+                if not infer_process.is_alive():
+                    raise RuntimeError(
+                        "Model inference process exited unexpectedly (see the "
+                        "traceback above for the cause). This is usually caused "
+                        "by missing or invalid model weight files — see "
+                        "desktop/README.md, 'Model weights' section, for how to "
+                        "obtain them."
+                    )
+            infer_process.finish_event.clear()
+            for i in range(n_frames):
+                ret_batch_shm_channels[i].acquire()
+
+            # 动态周期：本批就绪与上一批就绪的时间间隔，用于本批内均匀排期
+            batch_start_time = time.perf_counter()
+            if last_batch_start_time is not None:
+                observed_period = batch_start_time - last_batch_start_time
+                period = max(min_period, min(observed_period, 1.0))
             else:
-                cv2.imshow("EasyVtuber Debug Frame", np_ret_shms[i])
-                cv2.waitKey(1)
-            now_send = time.perf_counter()
-            last_frame_time = now_send
-            # 限速：下一帧最早在 last_time + interval，若已落后于当前时间则对齐到 now
-            if interval > 0:
-                last_time += interval
-                if last_time < now_send:
-                    last_time = now_send
-            ret_batch_shm_channels[i].release()
-        output_pipeline_fps_val = pipeline_fps() * args.interpolation_scale
-        infer_process.output_pipeline_fps.value = output_pipeline_fps_val
-        print(
-            "Infer Process FPS: {:.2f}, Input FPS: {:.2f}, Model Avg Interval: {:.2f} ms, Cache Hit Ratio: {:.2f}%, GPU Cache Hit Ratio: {:.2f}%, Output Pipeline FPS {:.5f}".format(
-                infer_process.pipeline_fps_number.value,
-                input_fps.value,
-                infer_process.average_model_interval.value * 1000,
-                infer_process.cache_hit_ratio.value * 100,
-                infer_process.gpu_cache_hit_ratio.value * 100,
-                output_pipeline_fps_val
-            ), end='\r', flush=True)
+                period = max(min_period, default_period)
+            last_batch_start_time = batch_start_time
+
+            for i in range(n_frames):
+                # 均匀排期 + frame_rate_limit：取两者中较晚的时间发送
+                target_send_time = batch_start_time + i * (period / n_frames)
+                if interval > 0:
+                    target_send_time = max(target_send_time, last_time)
+                wait_until(target_send_time)
+
+                if args.output_virtual_cam:
+                    virtual_cam.send(np_ret_shms[i])
+                elif args.output_spout2:
+                    spout_sender.sendImage(
+                        np_ret_shms[i].tobytes(),
+                        cam_width_scale * args.model_output_size,
+                        args.model_output_size,
+                        SPOUT_GL_RGBA, False, 0)
+                elif args.output_web:
+                    from .web_server import send_frame
+                    send_frame(np_ret_shms[i])
+                else:
+                    cv2.imshow("EasyVtuber Debug Frame", np_ret_shms[i])
+                    cv2.waitKey(1)
+                now_send = time.perf_counter()
+                # 限速：下一帧最早在 last_time + interval，若已落后于当前时间则对齐到 now
+                if interval > 0:
+                    last_time += interval
+                    if last_time < now_send:
+                        last_time = now_send
+                ret_batch_shm_channels[i].release()
+            output_pipeline_fps_val = pipeline_fps() * args.interpolation_scale
+            infer_process.output_pipeline_fps.value = output_pipeline_fps_val
+            print(
+                "Infer Process FPS: {:.2f}, Input FPS: {:.2f}, Model Avg Interval: {:.2f} ms, Cache Hit Ratio: {:.2f}%, GPU Cache Hit Ratio: {:.2f}%, Output Pipeline FPS {:.5f}".format(
+                    infer_process.pipeline_fps_number.value,
+                    input_fps.value,
+                    infer_process.average_model_interval.value * 1000,
+                    infer_process.cache_hit_ratio.value * 100,
+                    infer_process.gpu_cache_hit_ratio.value * 100,
+                    output_pipeline_fps_val
+                ), end='\r', flush=True)
+    finally:
+        try:
+            if input_process is not None and input_process.is_alive():
+                input_process.terminate()
+                input_process.join(timeout=2.0)
+        except Exception:
+            pass
+        try:
+            if infer_process is not None and infer_process.is_alive():
+                infer_process.terminate()
+                infer_process.join(timeout=2.0)
+        except Exception:
+            pass
+        try:
+            cv2.destroyAllWindows()
+        except Exception:
+            pass
+        try:
+            if virtual_cam is not None:
+                virtual_cam.close()
+        except Exception:
+            pass
+        try:
+            infer_process.ret_shared_mem.close()
+            infer_process.ret_shared_mem.unlink()
+        except Exception:
+            pass
+        try:
+            pose_position_shm.close()
+            pose_position_shm.unlink()
+        except Exception:
+            pass
 
 
 if __name__ == "__main__":

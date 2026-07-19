@@ -1,4 +1,5 @@
 import ctypes
+import importlib.util
 import os
 import subprocess
 import threading
@@ -51,6 +52,7 @@ default_arg = {
     'frame_rate_limit': '30',
     'sr': "Off",
     'use_tensorrt': False,
+    'allow_unsafe_launch': False,
     'preset': 'Low',
     'mouse_audio_input': False,
     'audio_sensitivity': '0.02',
@@ -70,10 +72,16 @@ finally:
     args = default_arg
 
 p = None
-# Resolve relative to this file, not the process's CWD (which varies
-# depending on how the launcher is started — CWD-relative 'data/images'
-# doesn't match any real directory and crashed refreshList() on startup).
-_DESKTOP_ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
+
+
+def _runtime_desktop_root():
+    if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+        return os.path.normpath(sys._MEIPASS)
+    return os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
+
+
+# Resolve relative to this file/runtime bundle, not the process CWD.
+_DESKTOP_ROOT = _runtime_desktop_root()
 dirPath = os.path.join(_DESKTOP_ROOT, 'backend', 'data', 'images')
 characterList = []
 studentModelList = []
@@ -148,6 +156,91 @@ def scanStudentModels():
 
 refreshList()
 scanStudentModels()
+
+
+def _module_available(module_name):
+    return importlib.util.find_spec(module_name) is not None
+
+
+def _check_camera_access():
+    cap = None
+    try:
+        import cv2
+        if sys.platform == 'win32':
+            cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+        else:
+            cap = cv2.VideoCapture(0)
+        if not cap.isOpened():
+            return False
+        ok, _ = cap.read()
+        return bool(ok)
+    except Exception:
+        return False
+    finally:
+        if cap is not None:
+            cap.release()
+
+
+def run_preflight(launch_args):
+    errors = []
+    warnings = []
+
+    main_script = os.path.join(_DESKTOP_ROOT, 'main.py')
+    if not os.path.exists(main_script):
+        errors.append(f"Runtime entrypoint not found: {main_script}")
+
+    if launch_args.get('use_tensorrt'):
+        if sys.platform != 'win32':
+            errors.append("TensorRT mode is currently supported only on Windows builds.")
+        if not hasTRTSupport:
+            errors.append("TensorRT was selected but no NVIDIA GPU was detected.")
+        py_ver = sys.version_info
+        if not (py_ver.major == 3 and py_ver.minor == 10):
+            errors.append("TensorRT path requires Python 3.10 in this project.")
+
+    output_mode = launch_args.get('output')
+    if output_mode == 0:
+        if sys.platform != 'win32':
+            errors.append("Spout2 output is Windows-only.")
+        if not _module_available('SpoutGL'):
+            errors.append("Spout2 output requires SpoutGL. Install optional Windows dependencies.")
+    elif output_mode == 3:
+        if not _module_available('fastapi') or not _module_available('uvicorn'):
+            errors.append("Web output requires FastAPI and Uvicorn. Install optional Windows dependencies.")
+    elif output_mode == 1:
+        if not _module_available('pyvirtualcam'):
+            errors.append("Virtual camera output requires pyvirtualcam.")
+
+    input_mode = launch_args.get('input')
+    if input_mode == 1 and not _check_camera_access():
+        errors.append("Webcam input selected but camera could not be opened.")
+    if input_mode == 5:
+        vmc = launch_args.get('vmc', '')
+        if not vmc or ':' not in vmc:
+            errors.append("VMC input must be in host:port format (example: 127.0.0.1:39539).")
+
+    model_select = launch_args.get('model_select', '')
+    model_name = ''
+    if model_select.startswith('tha4_student_'):
+        model_name = model_select.replace('tha4_student_', '', 1)
+    try:
+        if _DESKTOP_ROOT not in sys.path:
+            sys.path.append(_DESKTOP_ROOT)
+        from backend.managers.model_downloader import validate_selected_model
+        ok, model_dir, missing = validate_selected_model(
+            model_select=model_select,
+            model_name=model_name,
+            use_tensorrt=bool(launch_args.get('use_tensorrt')),
+        )
+        if not ok:
+            errors.append(
+                f"Model files are missing for '{model_select}' in {model_dir} (missing: {', '.join(missing)})."
+            )
+    except Exception as exc:
+        warnings.append(f"Could not validate selected model files before launch: {exc}")
+
+    return errors, warnings
+
 
 def min_cutoff_mapper(value, revert=False):
     """
@@ -364,6 +457,7 @@ class LauncherPanel(wx.Panel):
         self.optionDict = {}
         self.main_output_lines = []   # Copy of main stdout
         self.main_stderr_lines = []   # Copy of main stderr
+        self._stopping = False
         self.mainSizer = wx.BoxSizer(wx.VERTICAL)
         controlSizer = wx.BoxSizer(wx.HORIZONTAL)
         self.widgetSizer = wx.BoxSizer(wx.VERTICAL)
@@ -441,6 +535,9 @@ class LauncherPanel(wx.Panel):
 
         addOption('use_tensorrt', title='TensorRT Acceleration',
                   desc='Faster performance, longer startup (NVIDIA GPU only)',
+                  type=1)
+        addOption('allow_unsafe_launch', title='Allow Unsafe Launch',
+                  desc='Bypass preflight blocks for unsupported/missing dependencies',
                   type=1)
 
         addOption('frame_rate_limit', title='FPS Limit', desc='Frame rate cap',
@@ -628,17 +725,36 @@ class LauncherPanel(wx.Panel):
         self.btnLaunch.SetLabelText('Working...')
 
         if p is not None:
-            creation_flags = 0
-            if sys.platform == 'win32':
-                creation_flags = 0x08000000
-            subprocess.run(['taskkill', '/F', '/PID', str(p.pid), '/T'], 
-                          stdout=subprocess.DEVNULL,
-                          stderr=subprocess.DEVNULL,
-                          creationflags=creation_flags)
+            self._stopping = True
+            self._stop_running_process()
             p = None
             self.statusCtrl.Clear()
             self.btnLaunch.SetLabelText("Save & Launch")
         else:
+            self._stopping = False
+            errors, warnings = run_preflight(args)
+            if warnings:
+                print('\n'.join([f"[preflight warning] {w}" for w in warnings]))
+            if errors and not args.get('allow_unsafe_launch'):
+                wx.MessageBox(
+                    "Launch blocked by preflight checks:\n\n- " + "\n- ".join(errors) +
+                    "\n\nEnable 'Allow Unsafe Launch' only if you intentionally want to bypass these checks.",
+                    "Preflight Failed",
+                    wx.ICON_ERROR,
+                )
+                self.btnLaunch.SetLabelText("Save & Launch")
+                return
+            if errors and args.get('allow_unsafe_launch'):
+                proceed = wx.MessageBox(
+                    "Preflight found issues:\n\n- " + "\n- ".join(errors) +
+                    "\n\nUnsafe launch is enabled. Continue anyway?",
+                    "Preflight Warnings",
+                    wx.YES_NO | wx.ICON_WARNING,
+                )
+                if proceed != wx.YES:
+                    self.btnLaunch.SetLabelText("Save & Launch")
+                    return
+
             python_exe = sys.executable
             if 'pythonw' in python_exe.lower():
                 python_exe = python_exe.replace('pythonw.exe', 'python.exe').replace('pythonw', 'python')
@@ -799,7 +915,49 @@ class LauncherPanel(wx.Panel):
                 args=(p.stderr, sys.stderr, self.main_stderr_lines, on_line),
                 daemon=True,
             ).start()
+            threading.Thread(target=self._watch_process_exit, daemon=True).start()
             self.btnLaunch.SetLabelText('Stop')
+
+    def _stop_running_process(self):
+        global p
+        if p is None:
+            return
+        try:
+            if sys.platform == 'win32':
+                creation_flags = 0x08000000
+                subprocess.run(['taskkill', '/F', '/PID', str(p.pid), '/T'],
+                               stdout=subprocess.DEVNULL,
+                               stderr=subprocess.DEVNULL,
+                               creationflags=creation_flags)
+            else:
+                p.terminate()
+        except Exception:
+            pass
+
+    def _watch_process_exit(self):
+        global p
+        proc = p
+        if proc is None:
+            return
+        code = proc.wait()
+        stderr_tail = ''.join(self.main_stderr_lines[-25:])
+        stdout_tail = ''.join(self.main_output_lines[-25:])
+
+        def _finish_ui():
+            global p
+            if p is proc:
+                p = None
+            self.btnLaunch.SetLabelText("Save & Launch")
+            if code != 0 and not self._stopping:
+                details = stderr_tail.strip() or stdout_tail.strip() or "No details captured."
+                wx.MessageBox(
+                    f"EasyVtuber process exited with code {code}.\n\nRecent logs:\n{details}",
+                    "Runtime Error",
+                    wx.ICON_ERROR,
+                )
+            self._stopping = False
+
+        wx.CallAfter(_finish_ui)
 
 
 class MainFrame(wx.Frame):
@@ -812,13 +970,17 @@ class MainFrame(wx.Frame):
     def OnClose(self, e):
         global p
         if p is not None:
-            creation_flags = 0
-            if sys.platform == 'win32':
-                creation_flags = 0x08000000
-            subprocess.run(['taskkill', '/F', '/PID', str(p.pid), '/T'], 
-                          stdout=subprocess.DEVNULL,
-                          stderr=subprocess.DEVNULL,
-                          creationflags=creation_flags)
+            try:
+                if sys.platform == 'win32':
+                    creation_flags = 0x08000000
+                    subprocess.run(['taskkill', '/F', '/PID', str(p.pid), '/T'],
+                                  stdout=subprocess.DEVNULL,
+                                  stderr=subprocess.DEVNULL,
+                                  creationflags=creation_flags)
+                else:
+                    p.terminate()
+            except Exception:
+                pass
         e.Skip()
 
     def InitUi(self):

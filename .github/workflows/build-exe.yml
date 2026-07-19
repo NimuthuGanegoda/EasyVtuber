@@ -21,17 +21,8 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        # We only install CPU versions for the lightweight client
-        pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
-        # Install wxpython for the UI. onnxruntime-openvino (not plain
-        # onnxruntime, which requirements.txt lists for source installs) is
-        # used deliberately here for the packaged client's Intel-friendly
-        # acceleration -- installing both in the same env can conflict.
-        # SpoutGL/python-osc/fastapi/uvicorn are optional-feature deps
-        # (Spout2 output, VMC input, web output) not covered by the base
-        # list above -- previously missing here entirely, so those features
-        # never actually worked in any published .exe build.
-        pip install wxpython requests Pillow onnxruntime-openvino numpy scipy protobuf pynput mediapipe==0.10.11 opencv-python pyanime4k==3.1.0 pyvirtualcam==0.9.1 pyopengl onnx tqdm OneEuroFilter sounddevice brotli python-osc SpoutGL fastapi uvicorn
+        pip install -r desktop/requirements/requirements-core.txt
+        pip install -r desktop/requirements/requirements-windows-optional.txt
         pip install pyinstaller
 
     - name: Generate App Icon
@@ -69,7 +60,17 @@ jobs:
           --hidden-import "fastapi" `
           --hidden-import "uvicorn" `
           "gui/launcher2.py"
-        
+
+    - name: Smoke test packaged exe
+      run: |
+        cd desktop
+        if (!(Test-Path "dist/EasyVtuberClient.exe")) { throw "EXE build missing" }
+        Start-Process -FilePath "dist/EasyVtuberClient.exe"
+        Start-Sleep -Seconds 8
+        $proc = Get-Process EasyVtuberClient -ErrorAction SilentlyContinue
+        if ($null -eq $proc) { throw "Packaged app failed to start" }
+        Stop-Process -Name EasyVtuberClient -Force
+
     - name: Create Release and Upload Client
       uses: softprops/action-gh-release@v1
       if: startsWith(github.ref, 'refs/tags/')

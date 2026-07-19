@@ -1,0 +1,11 @@
+# Optional Windows-only features:
+# - VMC input (python-osc)
+# - Spout2 output (SpoutGL)
+# - Web output (FastAPI/Uvicorn)
+# - DirectML/OpenVINO acceleration providers
+python-osc==1.9.0
+SpoutGL==0.0.1
+fastapi==0.111.1
+uvicorn==0.30.3
+onnxruntime-directml==1.18.1
+onnxruntime-openvino==1.18.0

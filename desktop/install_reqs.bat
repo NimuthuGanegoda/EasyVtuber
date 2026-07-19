@@ -11,17 +11,23 @@ if %errorlevel% neq 0 (
     exit /b
 )
 
-:: Install UV
+:: Version hint (TensorRT wheel support is cp310-only in this repo)
+for /f "tokens=2 delims= " %%a in ('python --version') do set PYVER=%%a
+echo 🐍 Detected Python !PYVER!
+echo 💡 Recommended: Python 3.10 for TensorRT support (ONNX Runtime paths work on newer Python versions).
+
+:: Install UV package manager
 echo 🚀 Installing UV package manager...
-pip install uv
+python -m pip install --upgrade pip
+python -m pip install uv
 
-:: Install dependencies
+:: Install core dependencies (required)
 echo 📦 Installing core dependencies...
-uv pip install -r requirements\requirements.txt
+uv pip install -r requirements\requirements-core.txt
 
-:: NPU / DirectML Optimization
-echo ⚡ Adding DirectML/OpenVINO support for Intel/AMD NPUs/GPUs...
-uv pip install onnxruntime-directml onnxruntime-openvino
+:: Install optional Windows feature dependencies
+echo ⚡ Installing optional Windows feature dependencies (DirectML/OpenVINO, VMC, Spout2, Web output)...
+uv pip install -r requirements\requirements-windows-optional.txt
 
 :: Download placeholder data
 echo 📚 Preparing placeholders...
@@ -31,4 +37,5 @@ echo.
 echo 🌸 Installation Complete! 🌸
 echo 💡 To start the launcher: python gui\launcher2.py
 echo 💡 To start directly: python main.py --character your_character
+echo 💡 Optional TensorRT setup: see desktop\README.md (Windows Quick Start)
 pause
