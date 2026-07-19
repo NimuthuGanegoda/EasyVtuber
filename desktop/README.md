@@ -15,6 +15,24 @@ it also runs on Linux/Mac via the ONNXRuntime CPU/GPU fallback path.
 - An NVIDIA GPU for TensorRT-RTX, or any DirectX 12 GPU for the DirectML
   ONNXRuntime provider on Windows.
 
+## Windows target and functional minimum
+
+Primary Windows deliverable is **source run** from this repository:
+
+1. `desktop\install_reqs.bat`
+2. `python gui\launcher2.py`
+
+Packaged `.exe` builds (`.github/workflows/build-exe.yml`) are a release
+artifact for convenience, not the baseline development/runtime contract.
+
+A Windows setup is considered functionally valid when:
+- Launcher opens.
+- One input path works (Webcam or VMC).
+- One model variant loads with local files present.
+- One output path works (VirtualCam or Debug).
+- Stop/relaunch from launcher is clean.
+- Missing optional dependencies show actionable errors (no silent crash).
+
 ## Install
 
 From the `desktop/` folder:
@@ -29,6 +47,13 @@ etc.) via pip. It does **not** install `tensorrt_rtx`/`pycuda` — those are a
 separate NVIDIA SDK that isn't on PyPI; see "TensorRT-RTX acceleration"
 below if you want that path. Without it, the app still runs on the
 ONNXRuntime provider (DirectML on Windows, CPU/CUDA elsewhere).
+
+### Dependency baselines (Windows)
+
+- `requirements/requirements-core.txt`: required runtime dependencies.
+- `requirements/requirements-windows-optional.txt`: optional Windows features
+  (Spout2 output, VMC input, Web output, DirectML/OpenVINO providers).
+- `requirements/requirements.txt`: compatibility wrapper that points to core.
 
 ## Offline by design
 
@@ -127,3 +152,23 @@ bones, physics. Unmapped blend shapes are silently ignored.
 
 If TensorRT-RTX isn't installed or fails to initialize, the app automatically
 falls back to ONNXRuntime.
+
+## Windows troubleshooting
+
+- **Preflight blocks launch in launcher**  
+  Read the listed missing dependency/model/output mismatch and fix it, or
+  enable **Allow Unsafe Launch** only for intentional bypass.
+
+- **Spout2 output fails**  
+  Spout2 is Windows-only and requires `SpoutGL` installed.
+
+- **Web output fails**  
+  Install optional deps (`fastapi`, `uvicorn`) from
+  `requirements/requirements-windows-optional.txt`.
+
+- **TensorRT option unavailable**  
+  Requires NVIDIA GPU detection and Python 3.10 runtime for this repo.
+
+- **Model load crashes quickly after launch**  
+  Verify selected model variant files exist under `desktop/data/models` and
+  are non-empty.

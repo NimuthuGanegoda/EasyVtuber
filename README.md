@@ -130,12 +130,32 @@ If you need even higher quality, frame interpolation (RIFE), or native OBS trans
 
 *See `desktop/README.md` for full desktop instructions.*
 
+### 🪟 Windows Quick Start (Primary desktop target)
+
+1. Open `desktop\` in terminal.
+2. Run `install_reqs.bat`.
+3. Launch with `python gui\launcher2.py`.
+4. Keep TensorRT optional; ONNX Runtime (DirectML/OpenVINO/CPU) is the default fallback path.
+
+Functional minimum on Windows:
+- Launcher opens
+- Webcam or VMC input works
+- One model loads from local files
+- VirtualCam or Debug output works
+- Start/Stop relaunch is stable
+
 ---
 
 ## 🚀 Hardware Optimization
 
 - **Web Version**: Automatically uses your browser's WebGL/WebGPU for acceleration.
 - **Desktop Version**: Optimized for **Intel NPU**, **Apple Silicon**, and **High-end GPUs**.
+
+### Recommended desktop hardware tiers (Windows)
+
+- **Tier 1 (best stability/performance):** NVIDIA GPU + optional TensorRT
+- **Tier 2 (broad compatibility):** AMD/Intel GPU via DirectML
+- **Tier 3 (fallback):** CPU/OpenVINO path when no GPU acceleration is available
 
 ---
 
