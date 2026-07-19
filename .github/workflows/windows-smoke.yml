@@ -7,6 +7,9 @@ on:
     branches: [ "Development" ]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   smoke:
     runs-on: windows-latest
