@@ -15,10 +15,10 @@ EasyVtuber has been upgraded to run entirely in your web browser. No Python, no 
 👉 **[https://NimuthuGanegoda.github.io/EasyVtuber/](https://NimuthuGanegoda.github.io/EasyVtuber/)**
 
 ### 🛠️ Fix: "Loading..." Problem
-If the page stays on "Loading Elite Experience...", it is usually because the AI models are quite large (~20MB). 
+If the page stays on a loading state, it is usually because the AI models are quite large (~20MB).
 1. **Wait:** Give it 30-60 seconds on the first load.
 2. **WebGPU/WebGL:** Ensure your browser has **Hardware Acceleration** enabled in settings.
-3. **CORS/Mixed Content:** If you connect a local backend, click the **Lock (🔒)** icon in your browser, go to **Site Settings**, and set **"Insecure content"** to **Allow**.
+3. **Camera:** If the viewport shows a camera error, check that nothing else is using the webcam and that the site has camera permission — the app now names the exact cause instead of spinning forever.
 
 ---
 
@@ -37,29 +37,24 @@ To use your "Elite" avatar in Discord, Zoom, or OBS:
 3. Click **"Start Virtual Camera"** in OBS.
 4. In Discord, select **"OBS Virtual Camera"**.
 
-### ✨ Web Features:
-- **Zero Install**: Runs 100% on your device using TensorFlow.js.
-- **Auto-Elite Detection**: Automatically scales performance based on your CPU/RAM.
-- **Smart Setup Guidance**: In-app tips to fix common browser security and connection issues.
-- **Privacy First**: All processing happens locally in your browser.
-- **Smart Account**: Automatically remembers your last used model and settings.
+### ✨ Web Features
+- **Zero Install**: Runs 100% on your device — MediaPipe face tracking in WebAssembly, no server round-trip.
+- **Three renderers, graceful fallback**: a real VRM model if you supply one, otherwise GPU-accelerated procedural WebGL, otherwise Canvas 2D.
+- **Privacy First**: All processing happens locally in your browser; nothing is uploaded.
+- **Settings that persist**: camera source, GPU/CPU delegate, FPS cap and debug overlay are saved in `localStorage`.
 
 ---
 
-## 🚀 New: Elite V2 (TypeScript + React + Wasm)
+## 🚀 Elite V2 (TypeScript + React + Wasm)
 
 The "Elite Edition" has been rewritten for maximum performance on modern browsers using **React** and **MediaPipe Wasm**.
 
-### ✨ V2 Features:
-- **Modular Core**: Replaced the heavy JS bundle with a sleek React/TypeScript architecture.
-- **Wasm Acceleration**: MediaPipe tracking now runs in high-performance WebAssembly.
-- **Vite Pipeline**: Instant-on development and optimized builds.
-- **Hyper-Potato Mode**: Dedicated optimizations for ancient Intel hardware.
-
-### 🛠️ How to run V2:
-1. Navigate to the `web` folder.
-2. Run `npm install` and `npm run dev`.
-3. Open the provided local link.
+### 🛠️ How to run V2
+```bash
+cd web
+npm install
+npm run dev      # http://localhost:5173
+```
 
 ### 🎭 Character model (VRM)
 
@@ -75,8 +70,10 @@ professionally-rigged 3D character instead:
 3. That's it — the app detects the model automatically at startup and drives
    its head rotation, blink, and mouth shape from your webcam via
    [Kalidokit](https://github.com/yeemachine/kalidokit) (MediaPipe → VRM
-   solving). No model present, or it fails to load? The app falls back to the
-   procedural avatar automatically — nothing breaks either way.
+   solving). The camera frames the model from its own bounding box, so chibi
+   and non-standard proportions stay in shot. No model present, or it fails to
+   load? The app falls back to the procedural avatar automatically — nothing
+   breaks either way.
 
 We deliberately did **not** build this against Live2D: its SDK license
 explicitly requires a paid license for "VTuber tracking tools" like this one,
@@ -88,37 +85,51 @@ MIT-family licensed end to end.
 
 ## 🛡️ Security & Integrity
 
-EasyVtuber Elite is built with a security-first mindset:
-- **Strict Content Security Policy (CSP)**: Prevents unauthorized scripts and protects your session.
-- **Automated Vulnerability Scanning**: Integrated CodeQL and Dependabot monitoring.
-- **Sanitized Inputs**: All user-provided data is rigorously cleaned before processing.
-- **Privacy First**: Tracking and inference happen 100% locally in your browser/device.
-
----
-
-## 👤 Elite Account System
-
-Sync your experience across devices with the **Velvet Rope** account system:
-- **Cloud Sync**: Save your character selections, neural engine settings, and UI preferences.
-- **Secure Authentication**: Powered by **Firebase** (Email & GitHub OAuth).
-- **Pro Access**: Exclusive access to experimental features like WebGPU acceleration for registered souls.
+- **Strict Content Security Policy (CSP)**: `web/index.html` whitelists exactly the origins the app needs (MediaPipe CDN, GitHub API, avatar hosts). No wildcard script sources.
+- **Automated Vulnerability Scanning**: CodeQL (`security.yml`) and Dependabot monitoring — both now run on `main` and on pull requests.
+- **Local-only inference**: tracking, solving and rendering all happen on your machine.
+- **Desktop web output is loopback-only** by default: the MJPEG server binds `127.0.0.1` and has no authentication, so LAN exposure is opt-in.
 
 ---
 
 ## 📂 Project Structure
-- **`/` (Root)**: Production Web Deployment (Live Environment).
-- **`/web`**: **Source Code (Elite V2)** - React + TS + Firebase.
-- **`/desktop`**: **Desktop Suite** - Python/PyTorch local environment.
-- **`/legacy`**: Archived JS bundles and older implementations.
+
+| Path | What it is |
+| --- | --- |
+| `/web` | **Source** for the web app — React + TypeScript + Vite + MediaPipe |
+| `/docs` | **Build output** of `/web`, committed and deployed by GitHub Pages (`deploy-pages.yml`). Regenerate with `npm --prefix web run build`; CI fails if it is stale. |
+| `/` (`index.html`) | Forwards to `docs/` so the repository root URL works |
+| `/desktop` | **Desktop suite** — Python + ONNX Runtime/TensorRT (THA3/THA4 via `ezvtuber-rt`) |
+| `/legacy` | Archived JS bundles and older implementations (kept for reference, not built) |
 
 ---
 
 ## 🛠️ Contributor Excellence
 
-We demand technical perfection. Before submitting a PR:
-1. Ensure all code is typed with **Strict TypeScript**.
-2. Run `npm run lint` in the `/web` directory.
-3. Run `npm run format` to adhere to our elite aesthetic standards.
+Before submitting a PR:
+
+```bash
+cd web
+npm ci
+npm run typecheck     # strict TypeScript, no emits
+npm run lint          # ESLint (react-hooks, typescript-eslint)
+npm run format:check  # Prettier
+npm test              # Vitest
+npm run build         # must leave docs/ unchanged (see below)
+```
+
+And for the Python side:
+
+```bash
+python -m pip install -r desktop/requirements/requirements-dev.txt
+python -m pytest desktop/tests -q
+```
+
+All of the above are enforced by CI (`web-ci.yml`, `python-package.yml`,
+`windows-smoke.yml`). If you change anything under `web/src`, run
+`npm --prefix web run build` and commit the regenerated `docs/` in the same PR.
+
+---
 
 ## 🧪 Desktop Usage (For Power Users)
 
@@ -126,7 +137,12 @@ If you need even higher quality, frame interpolation (RIFE), or native OBS trans
 
 1. Navigate to the `desktop` folder.
 2. Run `install_reqs.sh` or `install_reqs.bat`.
-3. Launch with `python main.py`.
+3. Launch the GUI with `python gui/launcher2.py` (or directly: `python main.py --character <name>`).
+
+**Model weights are not bundled.** A fresh checkout ships empty placeholder
+files, so the first launch will tell you what's missing. Download them once and
+drop them under `desktop/data/models/` — see **`desktop/README.md` → "Model
+weights"** for the exact layout and sources.
 
 *See `desktop/README.md` for full desktop instructions.*
 
@@ -135,7 +151,7 @@ If you need even higher quality, frame interpolation (RIFE), or native OBS trans
 1. Open `desktop\` in terminal.
 2. Run `install_reqs.bat`.
 3. Launch with `python gui\launcher2.py`.
-4. Keep TensorRT optional; ONNX Runtime (DirectML/OpenVINO/CPU) is the default fallback path.
+4. Keep TensorRT optional; ONNX Runtime (DirectML/OpenVINO/CPU) is the default fallback path. If TensorRT is selected but unavailable, the console now says exactly why before falling back.
 
 Functional minimum on Windows:
 - Launcher opens
@@ -149,7 +165,7 @@ Functional minimum on Windows:
 ## 🚀 Hardware Optimization
 
 - **Web Version**: Automatically uses your browser's WebGL/WebGPU for acceleration.
-- **Desktop Version**: Optimized for **Intel NPU**, **Apple Silicon**, and **High-end GPUs**.
+- **Desktop Version**: Optimized for **Intel NPU**, **Apple Silicon**, and **High-end GPUs**. See `desktop/docs/NPU_OPTIMIZATION_GUIDE.md` and `desktop/docs/PerformanceTest.md`.
 
 ### Recommended desktop hardware tiers (Windows)
 
@@ -162,8 +178,7 @@ Functional minimum on Windows:
 ## 🧑‍🎤 Credits & Acknowledgments
 *   **Original Engine**: [Talking Head Anime 4](http://pkhungurn.github.io/talking-head-anime-4/) by **Pramook Khungurn**.
 *   **Tracking**: [MediaPipe](https://google.github.io/mediapipe/) by Google.
-*   **Inference**: [TensorFlow.js](https://www.tensorflow.org/js).
-*   **Code Graph Analysis**: [Graphify](https://github.com/Graphify-Labs/graphify) by **Graphify Labs**.
+*   **Desktop Runtime**: [ezvtuber-rt](https://github.com/zpeng11/ezvtuber-rt) by **zpeng11** (THA3/THA4 ONNX + TensorRT).
 *   **Desktop Re-Engineering**: Enhanced and modularized by **Nimuthu**.
 
 ---

@@ -30,6 +30,10 @@ updates:
           - "vite*"
           - "@vitejs/*"
 
+  # Related requirement files (requirements-windows-optional.txt,
+  # requirements-torch.txt) are not parsed by Dependabot; bump those by hand.
+  # requirements.txt only includes requirements-core.txt, so core pins are
+  # covered.
   - package-ecosystem: "pip"
     directory: "/desktop/requirements"
     schedule:
@@ -44,6 +48,10 @@ updates:
     commit-message:
       prefix: "chore"
       include: "scope"
+    groups:
+      python:
+        patterns:
+          - "*"
 
   - package-ecosystem: "github-actions"
     directory: "/"
