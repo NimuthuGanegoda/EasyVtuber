@@ -1,0 +1,4 @@
+# Optional: only required by the legacy PyTorch poser (desktop/backend/core/models.py).
+# The ONNX/TensorRT runtime used by `python main.py` does NOT need this.
+# Skipping it saves ~2.5 GB of install size.
+torch==2.5.1

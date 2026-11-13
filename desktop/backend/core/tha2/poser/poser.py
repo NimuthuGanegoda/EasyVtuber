@@ -1,8 +1,14 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Tuple, List, Optional
+from typing import TYPE_CHECKING, Tuple, List, Optional
 
-from torch import Tensor
+# torch is only referenced in type annotations here. Importing it eagerly made
+# this module (and therefore the pure-Python pose-parameter tables that the
+# ONNX runtime needs) depend on a ~2.5GB install.
+if TYPE_CHECKING:  # pragma: no cover
+    from torch import Tensor
 
 
 class PoseParameterCategory(Enum):

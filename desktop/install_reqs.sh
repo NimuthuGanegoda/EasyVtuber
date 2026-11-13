@@ -24,6 +24,9 @@ elif [[ "$OSTYPE" == "darwin"* ]]; then
     uv pip install onnxruntime-silicon
 fi
 
+# PyTorch is deliberately not installed: the ONNX runtime does not need it.
+# Install requirements/requirements-torch.txt only for the legacy PyTorch poser.
+
 echo "📚 Downloading placeholder data..."
 python3 backend/managers/create_vtuber_placeholders.py
 

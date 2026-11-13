@@ -1,6 +1,5 @@
 import os
 import sys
-import wx
 
 # This app is designed to run fully offline: it never opens a network
 # connection on its own. Model weights are large (100s of MB - GB) neural
@@ -105,7 +104,11 @@ def check_models_present(parent_frame=None):
             return True
 
     print(f"No model weights found under {models_dir}. See desktop/README.md, 'Model weights', for how to install them.")
+    # wx is imported here rather than at module scope: this module must be
+    # importable headlessly (tests, CI, the CLI check) without a display server.
     try:
+        import wx
+
         wx.MessageBox(
             "No AI model files were found.\n\n"
             "This app works fully offline and never downloads anything "

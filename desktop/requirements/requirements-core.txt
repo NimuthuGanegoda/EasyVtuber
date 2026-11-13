@@ -13,7 +13,9 @@ onnx==1.16.1
 onnxruntime==1.18.1
 requests==2.32.3
 tqdm==4.66.4
-torch==2.5.1
+# torch is only needed for the legacy PyTorch THA2/THA3 poser path.
+# The ONNX runtime used by the app does not need it — install it from
+# requirements-torch.txt only if you use backend/core/models.py.
 OneEuroFilter==0.2.1
 sounddevice==0.4.7
 brotli==1.1.0

@@ -8,6 +8,7 @@ from pythonosc.dispatcher import Dispatcher
 from pythonosc.osc_server import BlockingOSCUDPServer
 
 from .args import args
+from ..utils.net import parse_host_port
 from ..utils.shared_mem_guard import SharedMemoryGuard
 from ..utils.fps import FPS
 from ..utils.filter import OneEuroFilterNumpy
@@ -66,9 +67,8 @@ class VMCClientProcess(Process):
     def __init__(self, pose_position_shm: shared_memory.SharedMemory):
         super().__init__()
         self.pose_position_shm = pose_position_shm
-        host_port = args.vmc_input.split(':')
-        self.host = host_port[0] or "127.0.0.1"
-        self.port = int(host_port[1]) if len(host_port) > 1 else 39539
+        # Was a naive split(':'), which mangled IPv6 addresses.
+        self.host, self.port = parse_host_port(args.vmc_input)
         self.fps = Value('f', 0.0)
 
     def run(self):

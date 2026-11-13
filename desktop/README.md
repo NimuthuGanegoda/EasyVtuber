@@ -53,7 +53,34 @@ ONNXRuntime provider (DirectML on Windows, CPU/CUDA elsewhere).
 - `requirements/requirements-core.txt`: required runtime dependencies.
 - `requirements/requirements-windows-optional.txt`: optional Windows features
   (Spout2 output, VMC input, Web output, DirectML/OpenVINO providers).
+- `requirements/requirements-dev.txt`: pytest/numpy/scipy only — what CI uses.
+  Enough to import and test the launcher/backend helpers headlessly.
+- `requirements/requirements-torch.txt`: **optional.** PyTorch is only needed by
+  the legacy PyTorch poser in `backend/core/models.py`. The ONNX/TensorRT
+  runtime this app actually runs does not import it, so it is not installed by
+  default (saves ~2.5 GB).
 - `requirements/requirements.txt`: compatibility wrapper that points to core.
+
+### Tests
+
+```
+python -m pip install -r requirements/requirements-dev.txt
+python -m pytest tests -q
+```
+
+The suite covers argument parsing, the shared host:port parser, the slider
+mappers, the producer/consumer frame layout, and the torch-free import boundary.
+It runs on Linux and Windows in CI (`python-package.yml`, `windows-smoke.yml`).
+
+`ezvtuber-rt/test/*_test.py` are **not** part of this suite: they need a GPU and
+real ONNX weights. See `ezvtuber-rt/README.md` for how to run them.
+
+### Which launcher?
+
+`gui/launcher2.py` (wxPython) is the only launcher. The older tkinter
+`gui/launcher.py` was removed: it resolved `data/images` and `launcher.json`
+relative to the process working directory, so it silently lost settings and
+characters when started from anywhere but `desktop/`.
 
 ## Offline by design
 
@@ -135,7 +162,12 @@ standard used by VSeeFace, SnekStudio's VMCSender, Unreal's VMC Receiver
 actor, and most VR/webcam trackers with a VMC export mode. Point any VMC
 sender at the host:port you pass here. Use `0.0.0.0:<port>` instead of
 `127.0.0.1` only if the sender runs on a different device on your network —
-`127.0.0.1` is safer by default since VMC has no authentication.
+`127.0.0.1` is safer by default since VMC has no authentication and no sender
+verification: anything that can reach the port can drive your avatar.
+
+IPv6 addresses must be bracketed (`[::1]:39539`); a bare `::1` is accepted and
+uses the default port. The launcher validates the value before launching and
+reports the specific parse error instead of failing at runtime.
 
 Currently mapped: head rotation (pitch/yaw/roll, from the `Head` bone),
 blinking, mouth vowel shapes (A/I/U/E/O and common ARKit/VRM aliases), and
