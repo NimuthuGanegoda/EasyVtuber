@@ -1,12 +1,15 @@
 name: "Security Scan"
 
+# Triggers were pinned to a "Development" branch that does not exist, so CodeQL
+# had never actually scanned this repository.
 on:
   push:
-    branches: [ "Development" ]
+    branches: [ "main" ]
   pull_request:
-    branches: [ "Development" ]
+    branches: [ "main" ]
   schedule:
     - cron: '28 12 * * 4'
+  workflow_dispatch:
 
 jobs:
   analyze:

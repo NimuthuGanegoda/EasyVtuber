@@ -2,23 +2,45 @@
 // Draws the VTuber character using WebGL shaders for performance.
 // Falls back to a no-op if WebGL is unavailable.
 
-import { PoseData, ExpressionState } from '../hooks/useVtuber';
+import type { ExpressionState } from '../types';
+import type { PoseData } from './poseExtractor';
+import {
+  CHAR_CENTER_X,
+  CHAR_CENTER_Y,
+  COL_HAIR,
+  COL_HAIR_DARK,
+  COL_HAIR_LIGHT,
+  COL_IRIS,
+  COL_IRIS_DARK,
+  COL_MOUTH,
+  COL_MOUTH_INNER,
+  COL_PUPIL,
+  COL_SKIN,
+  COL_SKIN_SHADE,
+  EYE_H,
+  EYE_SPACING,
+  EYE_W,
+  HEAD_R as HEAD_RADIUS,
+  HEAD_ROLL_GAIN,
+  HEAD_TILT_GAIN,
+  HEAD_TURN_GAIN,
+  IRIS_R as IRIS_RADIUS,
+  MOUTH_MAX_W,
+  MOUTH_Y,
+  PUPIL_R as PUPIL_RADIUS,
+  blushRadius,
+  eyeOffsets,
+  eyeOpenness,
+  mouthOpening,
+  toRgba,
+} from '../character/spec';
 
-const DEFAULT_EXPRESSION: ExpressionState = { mouthOpen: 0, eyebrowRaise: 0, eyeSmile: 0, cheekPuff: 0 };
-
-// Character rendering constants (mirrored from App.tsx)
-const CHAR_CENTER_X = 256;
-const CHAR_CENTER_Y = 230;
-const HEAD_RADIUS = 66;
-const EYE_SPACING = 24;
-const EYE_W = 13;
-const EYE_H = 16;
-const IRIS_RADIUS = 8.6;
-const PUPIL_RADIUS = 4;
-// Relative to head center (was 240 -- combined with the cy offset that put
-// the mouth at canvas y~460, well below the body, not on the face).
-const MOUTH_Y = 34;
-const MOUTH_MAX_W = 20;
+const DEFAULT_EXPRESSION: ExpressionState = {
+  mouthOpen: 0,
+  eyebrowRaise: 0,
+  eyeSmile: 0,
+  cheekPuff: 0,
+};
 
 // ─── Vertex Shader ────────────────────────────────────────────────────────
 
@@ -238,10 +260,14 @@ export class WebGLCharacterRenderer {
       this.positionBuffer = gl.createBuffer();
       gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
       const vertices = new Float32Array([
-        0, 0,
-        this.canvas.width, 0,
-        0, this.canvas.height,
-        this.canvas.width, this.canvas.height,
+        0,
+        0,
+        this.canvas.width,
+        0,
+        0,
+        this.canvas.height,
+        this.canvas.width,
+        this.canvas.height,
       ]);
       gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
 
@@ -318,46 +344,54 @@ export class WebGLCharacterRenderer {
 
   private buildShapes(pose: PoseData | null, expression: ExpressionState): ShapeCmd[] {
     const shapes: ShapeCmd[] = [];
-    const W = this.canvas.width;
-    const H = this.canvas.height;
 
-    const headTilt = pose ? (pose.xAngle || 0) * 40 : 0;
-    const headTurn = pose ? (pose.yAngle || 0) * 30 : 0;
-    const headRoll = pose ? (pose.zAngle || 0) * 6 * (Math.PI / 180) : 0;
+    // Head-pose mapping and palette both come from character/spec.ts, so this
+    // renderer and the Canvas 2D fallback move and colour identically.
+    const headTilt = pose ? (pose.xAngle || 0) * HEAD_TILT_GAIN : 0;
+    const headTurn = pose ? (pose.yAngle || 0) * HEAD_TURN_GAIN : 0;
+    const headRoll = pose ? (pose.zAngle || 0) * HEAD_ROLL_GAIN * (Math.PI / 180) : 0;
 
     const cx = CHAR_CENTER_X + headTurn;
     const cy = CHAR_CENTER_Y + headTilt;
 
-    const skin = (a: number): [number, number, number, number] => [1, 0.89, 0.84, a];
-    const skinShade = (a: number): [number, number, number, number] => [1, 0.796, 0.722, a];
-    const hair = (a: number): [number, number, number, number] => [1, 0.361, 0.581, a];
-    const hairDark = (a: number): [number, number, number, number] => [0.839, 0.239, 0.459, a];
-    const hairLight = (a: number): [number, number, number, number] => [1, 0.616, 0.753, a];
-    const iris = (a: number): [number, number, number, number] => [0.639, 0.31, 0.839, a];
-    const irisDark = (a: number): [number, number, number, number] => [0.42, 0.165, 0.58, a];
-    const pupil = (a: number): [number, number, number, number] => [0.165, 0.063, 0.188, a];
-    const white = (a: number): [number, number, number, number] => [1, 0.973, 0.984, a];
-    const mouthCol = (a: number): [number, number, number, number] => [0.761, 0.247, 0.42, a];
-    const mouthInner = (a: number): [number, number, number, number] => [0.478, 0.122, 0.239, a];
+    const skin = (a: number) => toRgba(COL_SKIN, a);
+    const skinShade = (a: number) => toRgba(COL_SKIN_SHADE, a);
+    const hair = (a: number) => toRgba(COL_HAIR, a);
+    const hairDark = (a: number) => toRgba(COL_HAIR_DARK, a);
+    const hairLight = (a: number) => toRgba(COL_HAIR_LIGHT, a);
+    const iris = (a: number) => toRgba(COL_IRIS, a);
+    const irisDark = (a: number) => toRgba(COL_IRIS_DARK, a);
+    const pupil = (a: number) => toRgba(COL_PUPIL, a);
+    const white = (a: number) => [1, 0.973, 0.984, a] as [number, number, number, number];
+    const mouthCol = (a: number) => toRgba(COL_MOUTH, a);
+    const mouthInner = (a: number) => toRgba(COL_MOUTH_INNER, a);
 
     // ── Body ──
     shapes.push({
       type: 7, // SHAPE_ELLIPSE_BG
-      cx, cy: cy + HEAD_RADIUS * 2.4,
-      rx: HEAD_RADIUS * 1.25, ry: HEAD_RADIUS * 1.6,
+      cx,
+      cy: cy + HEAD_RADIUS * 2.4,
+      rx: HEAD_RADIUS * 1.25,
+      ry: HEAD_RADIUS * 1.6,
       color: hairLight(0.85),
       color2: hair(0.75),
-      radius: 0, angle: 0, extras: 0,
+      radius: 0,
+      angle: 0,
+      extras: 0,
     });
 
     // ── Hair tails (behind everything, flow down past shoulders) ──
     for (const side of [-1, 1]) {
       shapes.push({
         type: 1, // SHAPE_ELLIPSE
-        cx: cx + side * HEAD_RADIUS * 0.78, cy: cy + HEAD_RADIUS * 1.1,
-        rx: HEAD_RADIUS * 0.28, ry: HEAD_RADIUS * 1.0,
+        cx: cx + side * HEAD_RADIUS * 0.78,
+        cy: cy + HEAD_RADIUS * 1.1,
+        rx: HEAD_RADIUS * 0.28,
+        ry: HEAD_RADIUS * 1.0,
         color: hairDark(0.95),
-        radius: 0, angle: side * 0.1 + headRoll, extras: 0,
+        radius: 0,
+        angle: side * 0.1 + headRoll,
+        extras: 0,
       });
     }
 
@@ -366,29 +400,41 @@ export class WebGLCharacterRenderer {
     // inside a hair blob ──
     shapes.push({
       type: 1, // SHAPE_ELLIPSE
-      cx, cy: cy + HEAD_RADIUS * 0.1,
-      rx: HEAD_RADIUS * 0.82, ry: HEAD_RADIUS * 1.1,
+      cx,
+      cy: cy + HEAD_RADIUS * 0.1,
+      rx: HEAD_RADIUS * 0.82,
+      ry: HEAD_RADIUS * 1.1,
       color: hairDark(0.95),
-      radius: 0, angle: headRoll, extras: 0,
+      radius: 0,
+      angle: headRoll,
+      extras: 0,
     });
 
     // ── Neck ──
     shapes.push({
       type: 2, // SHAPE_RECT
-      cx, cy: cy + HEAD_RADIUS * 1.0,
-      rx: 26, ry: HEAD_RADIUS * 0.55,
+      cx,
+      cy: cy + HEAD_RADIUS * 1.0,
+      rx: 26,
+      ry: HEAD_RADIUS * 0.55,
       color: skinShade(0.9),
-      radius: 0, angle: headRoll, extras: 0,
+      radius: 0,
+      angle: headRoll,
+      extras: 0,
     });
 
     // ── Head / face ──
     shapes.push({
       type: 7, // SHAPE_ELLIPSE_BG
-      cx, cy,
-      rx: HEAD_RADIUS * 0.92, ry: HEAD_RADIUS * 1.05,
+      cx,
+      cy,
+      rx: HEAD_RADIUS * 0.92,
+      ry: HEAD_RADIUS * 1.05,
       color: skin(0.98),
       color2: skinShade(0.55),
-      radius: 0, angle: headRoll, extras: 0,
+      radius: 0,
+      angle: headRoll,
+      extras: 0,
     });
 
     // ── Jaw/chin shading — gives the lower face actual structure instead
@@ -398,10 +444,14 @@ export class WebGLCharacterRenderer {
     // cover just the chin area.
     shapes.push({
       type: 1, // SHAPE_ELLIPSE
-      cx, cy: cy + HEAD_RADIUS * 0.95,
-      rx: HEAD_RADIUS * 0.7, ry: HEAD_RADIUS * 0.45,
+      cx,
+      cy: cy + HEAD_RADIUS * 0.95,
+      rx: HEAD_RADIUS * 0.7,
+      ry: HEAD_RADIUS * 0.45,
       color: [0.706, 0.431, 0.373, 0.1],
-      radius: 0, angle: headRoll, extras: 0,
+      radius: 0,
+      angle: headRoll,
+      extras: 0,
     });
 
     // ── Nose: a soft shadow ellipse (bridge) + tip highlight -- a straight
@@ -409,33 +459,47 @@ export class WebGLCharacterRenderer {
     // uses two small soft-edged ellipses instead ──
     shapes.push({
       type: 1, // SHAPE_ELLIPSE
-      cx: cx + 0.8, cy: cy + HEAD_RADIUS * 0.16,
-      rx: 1.4, ry: HEAD_RADIUS * 0.11,
+      cx: cx + 0.8,
+      cy: cy + HEAD_RADIUS * 0.16,
+      rx: 1.4,
+      ry: HEAD_RADIUS * 0.11,
       color: [0.47, 0.27, 0.235, 0.22],
-      radius: 0, angle: headRoll, extras: 0,
+      radius: 0,
+      angle: headRoll,
+      extras: 0,
     });
     shapes.push({
       type: 0, // SHAPE_CIRCLE
-      cx: cx + 1.5, cy: cy + HEAD_RADIUS * 0.27,
-      rx: 0, ry: 0,
+      cx: cx + 1.5,
+      cy: cy + HEAD_RADIUS * 0.27,
+      rx: 0,
+      ry: 0,
       color: [1, 0.92, 0.88, 0.5],
-      radius: 2, angle: 0, extras: 0,
+      radius: 2,
+      angle: 0,
+      extras: 0,
     });
 
     // ── Bangs (front hair over the forehead) ──
     shapes.push({
       type: 6, // SHAPE_ARC (top-half only)
-      cx, cy: cy - HEAD_RADIUS * 0.35,
-      rx: 0, ry: 0,
+      cx,
+      cy: cy - HEAD_RADIUS * 0.35,
+      rx: 0,
+      ry: 0,
       color: hairLight(0.95),
-      radius: HEAD_RADIUS * 0.98, angle: headRoll, extras: 0,
+      radius: HEAD_RADIUS * 0.98,
+      angle: headRoll,
+      extras: 0,
     });
 
     // ── Eyes ──
-    const eyeOpenL = pose ? Math.max(0.06, 1 - pose.eyeLHTemp) : 1;
-    const eyeOpenR = pose ? Math.max(0.06, 1 - pose.eyeRHTemp) : 1;
-    const eyeXOffset = pose ? Math.max(-4, Math.min(4, pose.eyeXRatio * 3)) : 0;
-    const eyeYOffset = pose ? Math.max(-3, Math.min(3, pose.eyeYRatio * 3)) : 0;
+    const openness = eyeOpenness(pose?.eyeLHTemp ?? 0, pose?.eyeRHTemp ?? 0);
+    const eyeOpenL = openness.left;
+    const eyeOpenR = openness.right;
+    const eyeOffset = eyeOffsets(pose?.eyeXRatio ?? 0, pose?.eyeYRatio ?? 0);
+    const eyeXOffset = eyeOffset.x;
+    const eyeYOffset = eyeOffset.y;
 
     for (const side of [-1, 1]) {
       const ex = side * EYE_SPACING;
@@ -449,14 +513,26 @@ export class WebGLCharacterRenderer {
       if (expression.eyeSmile > 0.5) {
         const segLen = EYE_W * 0.95;
         shapes.push({
-          type: 3, cx: cx + ex - segLen * 0.42, cy: ey + EYE_H * 0.25,
-          rx: 0, ry: 0, color: hairDark(0.9),
-          radius: 2.4, angle: -0.55, extras: segLen,
+          type: 3,
+          cx: cx + ex - segLen * 0.42,
+          cy: ey + EYE_H * 0.25,
+          rx: 0,
+          ry: 0,
+          color: hairDark(0.9),
+          radius: 2.4,
+          angle: -0.55,
+          extras: segLen,
         });
         shapes.push({
-          type: 3, cx: cx + ex + segLen * 0.42, cy: ey + EYE_H * 0.25,
-          rx: 0, ry: 0, color: hairDark(0.9),
-          radius: 2.4, angle: 0.55, extras: segLen,
+          type: 3,
+          cx: cx + ex + segLen * 0.42,
+          cy: ey + EYE_H * 0.25,
+          rx: 0,
+          ry: 0,
+          color: hairDark(0.9),
+          radius: 2.4,
+          angle: 0.55,
+          extras: segLen,
         });
         continue;
       }
@@ -470,19 +546,27 @@ export class WebGLCharacterRenderer {
       // eh shrinks well below EYE_W).
       shapes.push({
         type: 1, // SHAPE_ELLIPSE
-        cx: cx + ex, cy: ey,
-        rx: EYE_W + 2, ry: eh + 2,
+        cx: cx + ex,
+        cy: ey,
+        rx: EYE_W + 2,
+        ry: eh + 2,
         color: hairDark(0.6),
-        radius: 0, angle: 0, extras: 0,
+        radius: 0,
+        angle: 0,
+        extras: 0,
       });
 
       // White of eye
       shapes.push({
         type: 1, // SHAPE_ELLIPSE
-        cx: cx + ex, cy: ey,
-        rx: EYE_W, ry: eh,
+        cx: cx + ex,
+        cy: ey,
+        rx: EYE_W,
+        ry: eh,
         color: white(0.98),
-        radius: 0, angle: 0, extras: 0,
+        radius: 0,
+        angle: 0,
+        extras: 0,
       });
 
       // Iris sits slightly low in the eye (a sliver of white above it,
@@ -496,33 +580,50 @@ export class WebGLCharacterRenderer {
         // Iris (radial gradient for depth)
         shapes.push({
           type: 5, // SHAPE_RADIAL_GRAD
-          cx: irisX, cy: irisY,
-          rx: IRIS_RADIUS, ry: IRIS_RADIUS,
-          color: iris(1), color2: irisDark(1),
-          radius: 0, angle: 0, extras: 0,
+          cx: irisX,
+          cy: irisY,
+          rx: IRIS_RADIUS,
+          ry: IRIS_RADIUS,
+          color: iris(1),
+          color2: irisDark(1),
+          radius: 0,
+          angle: 0,
+          extras: 0,
         });
         // Pupil
         shapes.push({
           type: 0, // SHAPE_CIRCLE
-          cx: irisX, cy: irisY,
-          rx: 0, ry: 0,
+          cx: irisX,
+          cy: irisY,
+          rx: 0,
+          ry: 0,
           color: pupil(1),
-          radius: PUPIL_RADIUS, angle: 0, extras: 0,
+          radius: PUPIL_RADIUS,
+          angle: 0,
+          extras: 0,
         });
         // Highlights — the biggest visual cue for an anime-style eye
         shapes.push({
           type: 0, // SHAPE_CIRCLE
-          cx: irisX - 3, cy: irisY - 4,
-          rx: 0, ry: 0,
+          cx: irisX - 3,
+          cy: irisY - 4,
+          rx: 0,
+          ry: 0,
           color: white(0.95),
-          radius: 2.6, angle: 0, extras: 0,
+          radius: 2.6,
+          angle: 0,
+          extras: 0,
         });
         shapes.push({
           type: 0, // SHAPE_CIRCLE
-          cx: irisX + 2.5, cy: irisY + 2.5,
-          rx: 0, ry: 0,
+          cx: irisX + 2.5,
+          cy: irisY + 2.5,
+          rx: 0,
+          ry: 0,
           color: white(0.8),
-          radius: 1.3, angle: 0, extras: 0,
+          radius: 1.3,
+          angle: 0,
+          extras: 0,
         });
       }
     }
@@ -541,41 +642,58 @@ export class WebGLCharacterRenderer {
 
       shapes.push({
         type: 3, // SHAPE_LINE
-        cx: midX, cy: midY,
-        rx: 0, ry: 0,
+        cx: midX,
+        cy: midY,
+        rx: 0,
+        ry: 0,
         color: hairDark(0.9),
-        radius: 3, angle, extras: len,
+        radius: 3,
+        angle,
+        extras: len,
       });
     }
 
     // ── Mouth ── (manual "mouth open" override forces it wide, whichever is bigger wins)
-    const mouthOpen = Math.max(pose ? Math.min(pose.mouthRatio * 26, 22) : 0, expression.mouthOpen * 18);
+    const mouthOpen = mouthOpening(pose ? pose.mouthRatio : null, expression.mouthOpen);
     if (mouthOpen < 2) {
       shapes.push({
         type: 3, // SHAPE_LINE
-        cx, cy: cy + MOUTH_Y,
-        rx: 0, ry: 0,
+        cx,
+        cy: cy + MOUTH_Y,
+        rx: 0,
+        ry: 0,
         color: mouthCol(0.85),
-        radius: 1.8, angle: 0, extras: MOUTH_MAX_W * 0.85,
+        radius: 1.8,
+        angle: 0,
+        extras: MOUTH_MAX_W * 0.85,
       });
     } else {
       const my = cy + MOUTH_Y + mouthOpen * 0.3;
-      const mrx = MOUTH_MAX_W * 0.62, mry = mouthOpen * 0.55;
+      const mrx = MOUTH_MAX_W * 0.62,
+        mry = mouthOpen * 0.55;
       // Outline ellipse behind the fill (RING is circular-only in this
       // shader and would mismatch the mouth's actual ellipse aspect ratio).
       shapes.push({
         type: 1, // SHAPE_ELLIPSE
-        cx, cy: my,
-        rx: mrx + 1.5, ry: mry + 1.5,
+        cx,
+        cy: my,
+        rx: mrx + 1.5,
+        ry: mry + 1.5,
         color: mouthCol(0.85),
-        radius: 0, angle: 0, extras: 0,
+        radius: 0,
+        angle: 0,
+        extras: 0,
       });
       shapes.push({
         type: 1, // SHAPE_ELLIPSE
-        cx, cy: my,
-        rx: mrx, ry: mry,
+        cx,
+        cy: my,
+        rx: mrx,
+        ry: mry,
         color: mouthInner(0.95),
-        radius: 0, angle: 0, extras: 0,
+        radius: 0,
+        angle: 0,
+        extras: 0,
       });
     }
 
@@ -584,23 +702,31 @@ export class WebGLCharacterRenderer {
     for (const side of [-1, 1]) {
       shapes.push({
         type: 1, // SHAPE_ELLIPSE
-        cx: cx + side * HEAD_RADIUS * 0.85, cy: cy + HEAD_RADIUS * 0.55,
-        rx: HEAD_RADIUS * 0.18, ry: HEAD_RADIUS * 0.55,
+        cx: cx + side * HEAD_RADIUS * 0.85,
+        cy: cy + HEAD_RADIUS * 0.55,
+        rx: HEAD_RADIUS * 0.18,
+        ry: HEAD_RADIUS * 0.55,
         color: hair(0.95),
-        radius: 0, angle: side * 0.06 + headRoll, extras: 0,
+        radius: 0,
+        angle: side * 0.06 + headRoll,
+        extras: 0,
       });
     }
 
     // ── Blush ── (manual "cheek puff" override enlarges + darkens it)
-    const puffR = 13 + expression.cheekPuff * 8;
+    const puffR = blushRadius(expression.cheekPuff);
     for (const side of [-1, 1]) {
       shapes.push({
         type: 5, // SHAPE_RADIAL_GRAD
-        cx: cx + side * HEAD_RADIUS * 0.55, cy: cy + HEAD_RADIUS * 0.35,
-        rx: puffR, ry: puffR,
+        cx: cx + side * HEAD_RADIUS * 0.55,
+        cy: cy + HEAD_RADIUS * 0.35,
+        rx: puffR,
+        ry: puffR,
         color: hair(0.35 + expression.cheekPuff * 0.25),
-        color2: [1, 0.361, 0.581, 0],
-        radius: 0, angle: 0, extras: 0,
+        color2: toRgba(COL_HAIR, 0),
+        radius: 0,
+        angle: 0,
+        extras: 0,
       });
     }
 

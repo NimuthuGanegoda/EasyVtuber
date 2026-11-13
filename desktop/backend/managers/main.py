@@ -11,7 +11,11 @@ from multiprocessing import shared_memory
 from ..utils.timer_wait import wait_until
 from PIL import Image
 from ..utils.fps import FPS
-import pyvirtualcam
+from ..utils import output_layout
+
+# Port the MJPEG web output listens on. desktop/index.html and
+# docs/index.html reference this URL — keep them in sync if you change it.
+WEB_OUTPUT_PORT = 8000
 
 
 def main():
@@ -83,17 +87,19 @@ def main():
     infer_process.daemon = True
     infer_process.start()
 
-    cam_width_scale = 2 if args.alpha_split else 1
-    ret_channels = 3 if args.output_virtual_cam or args.output_debug or args.output_web else 4
+    # Buffer layout must match model_infer_client.py exactly — see
+    # backend/utils/output_layout.py for why these used to disagree.
+    cam_width_scale = output_layout.channel_width_scale(args)
+    frame_shape = output_layout.frame_shape(args)
+    frame_bytes = output_layout.frame_bytes(args)
     ret_batch_shm_channels = [
         SharedMemoryGuard(infer_process.ret_shared_mem, ctrl_name=f"ret_shm_ctrl_batch_{i}")
         for i in range(args.interpolation_scale)
     ]
     np_ret_shms = [
-        np.ndarray((args.model_output_size, cam_width_scale * args.model_output_size, ret_channels), dtype=np.uint8,
+        np.ndarray(frame_shape, dtype=np.uint8,
                    buffer=infer_process.ret_shared_mem.buf[
-                       i * cam_width_scale * args.model_output_size * args.model_output_size * ret_channels:
-                       (i + 1) * cam_width_scale * args.model_output_size * args.model_output_size * ret_channels])
+                       i * frame_bytes:(i + 1) * frame_bytes])
         for i in range(args.interpolation_scale)
     ]
 
@@ -102,9 +108,11 @@ def main():
 
     virtual_cam = None
     spout_sender = None
+    send_frame = None
     SPOUT_GL_RGBA = None
     try:
         if args.output_virtual_cam:
+            import pyvirtualcam  # only required for this output mode
             virtual_cam = pyvirtualcam.Camera(width=cam_width_scale * args.model_output_size,
                                               height=args.model_output_size,
                                               fps=args.frame_rate_limit,
@@ -125,9 +133,11 @@ def main():
             spout_sender = SpoutGL.SpoutSender()
             spout_sender.setSenderName("EasyVtuber")
         elif args.output_web:
-            from .web_server import start_server
-            start_server(port=8000)
-            print("Using Web Server for output display on http://localhost:8000/")
+            # Imported once here instead of inside the per-frame loop below.
+            from .web_server import send_frame as _send_frame, start_server
+            send_frame = _send_frame
+            start_server(port=WEB_OUTPUT_PORT)
+            print(f"Using Web Server for output display on http://localhost:{WEB_OUTPUT_PORT}/")
         else:
             print("Using OpenCV windows for output display.")
 
@@ -138,6 +148,10 @@ def main():
         default_period = 1.0 / 15.0  # 约 15fps 推理时的周期，首包无历史时使用
 
         print("Interval set to {:.3f} seconds".format(interval))
+        # Guards acquired for the current batch. Tracked explicitly so a crash
+        # mid-batch releases them: leaving one locked makes the *next* launch
+        # block forever on acquire(), which looked like a hang on startup.
+        acquired = []
         while True:
             # Poll with a timeout instead of waiting forever: if the inference
             # process dies during model load (e.g. missing/invalid model weight
@@ -153,8 +167,18 @@ def main():
                         "obtain them."
                     )
             infer_process.finish_event.clear()
-            for i in range(n_frames):
-                ret_batch_shm_channels[i].acquire()
+            acquired = []
+            try:
+                for i in range(n_frames):
+                    ret_batch_shm_channels[i].acquire()
+                    acquired.append(i)
+            except BaseException:
+                for i in acquired:
+                    try:
+                        ret_batch_shm_channels[i].release()
+                    except Exception:
+                        pass
+                raise
 
             # 动态周期：本批就绪与上一批就绪的时间间隔，用于本批内均匀排期
             batch_start_time = time.perf_counter()
@@ -165,34 +189,43 @@ def main():
                 period = max(min_period, default_period)
             last_batch_start_time = batch_start_time
 
-            for i in range(n_frames):
-                # 均匀排期 + frame_rate_limit：取两者中较晚的时间发送
-                target_send_time = batch_start_time + i * (period / n_frames)
-                if interval > 0:
-                    target_send_time = max(target_send_time, last_time)
-                wait_until(target_send_time)
+            try:
+                for i in range(n_frames):
+                    # 均匀排期 + frame_rate_limit：取两者中较晚的时间发送
+                    target_send_time = batch_start_time + i * (period / n_frames)
+                    if interval > 0:
+                        target_send_time = max(target_send_time, last_time)
+                    wait_until(target_send_time)
 
-                if args.output_virtual_cam:
-                    virtual_cam.send(np_ret_shms[i])
-                elif args.output_spout2:
-                    spout_sender.sendImage(
-                        np_ret_shms[i].tobytes(),
-                        cam_width_scale * args.model_output_size,
-                        args.model_output_size,
-                        SPOUT_GL_RGBA, False, 0)
-                elif args.output_web:
-                    from .web_server import send_frame
-                    send_frame(np_ret_shms[i])
-                else:
-                    cv2.imshow("EasyVtuber Debug Frame", np_ret_shms[i])
-                    cv2.waitKey(1)
-                now_send = time.perf_counter()
-                # 限速：下一帧最早在 last_time + interval，若已落后于当前时间则对齐到 now
-                if interval > 0:
-                    last_time += interval
-                    if last_time < now_send:
-                        last_time = now_send
-                ret_batch_shm_channels[i].release()
+                    if args.output_virtual_cam:
+                        virtual_cam.send(np_ret_shms[i])
+                    elif args.output_spout2:
+                        spout_sender.sendImage(
+                            np_ret_shms[i].tobytes(),
+                            cam_width_scale * args.model_output_size,
+                            args.model_output_size,
+                            SPOUT_GL_RGBA, False, 0)
+                    elif args.output_web:
+                        send_frame(np_ret_shms[i])
+                    else:
+                        cv2.imshow("EasyVtuber Debug Frame", np_ret_shms[i])
+                        cv2.waitKey(1)
+                    now_send = time.perf_counter()
+                    # 限速：下一帧最早在 last_time + interval，若已落后于当前时间则对齐到 now
+                    if interval > 0:
+                        last_time += interval
+                        if last_time < now_send:
+                            last_time = now_send
+                    ret_batch_shm_channels[i].release()
+                    acquired.remove(i)
+            finally:
+                # Release anything still held if a frame failed mid-batch.
+                for held in list(acquired):
+                    try:
+                        ret_batch_shm_channels[held].release()
+                    except Exception:
+                        pass
+                acquired.clear()
             output_pipeline_fps_val = pipeline_fps() * args.interpolation_scale
             infer_process.output_pipeline_fps.value = output_pipeline_fps_val
             print(

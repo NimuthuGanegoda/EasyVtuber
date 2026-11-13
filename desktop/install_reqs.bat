@@ -29,6 +29,10 @@ uv pip install -r requirements\requirements-core.txt
 echo ⚡ Installing optional Windows feature dependencies (DirectML/OpenVINO, VMC, Spout2, Web output)...
 uv pip install -r requirements\requirements-windows-optional.txt
 
+:: PyTorch is NOT installed by default: the ONNX/TensorRT runtime this app uses
+:: does not need it (~2.5 GB saved). Install requirements-torch.txt only for the
+:: legacy PyTorch poser path.
+
 :: Download placeholder data
 echo 📚 Preparing placeholders...
 python backend\managers\create_vtuber_placeholders.py

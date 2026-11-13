@@ -1,0 +1,76 @@
+# Checks the web app (web/) and verifies that the committed build in docs/
+# actually matches the source.
+#
+# Nothing used to verify either. `npm run lint` did not exist (the README told
+# contributors to run it), and docs/ is a hand-committed build that had already
+# drifted from web/src — so the deployed site could silently be any age.
+
+name: Web CI
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "web/**"
+      - "docs/**"
+      - ".github/workflows/web-ci.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "web/**"
+      - "docs/**"
+      - ".github/workflows/web-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: web-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Check formatting
+        run: npm run format:check
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      # The build writes into ../docs (outDir), which is tracked and deployed by
+      # deploy-pages.yml. If this step fails, run `npm --prefix web run build`
+      # and commit the result.
+      - name: Verify docs/ is up to date
+        working-directory: .
+        run: |
+          if ! git diff --quiet -- docs/; then
+            echo "::error::docs/ is stale. Run 'npm --prefix web run build' and commit docs/."
+            git diff --stat -- docs/
+            exit 1
+          fi

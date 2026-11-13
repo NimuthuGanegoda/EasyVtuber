@@ -3,10 +3,12 @@ import os
 from multiprocessing import Process, Value, shared_memory, Event
 import cv2
 import numpy as np
+import sys
 import time
 from .ezvtb_rt_interface import get_core
 from .args import args
 from ..utils.shared_mem_guard import SharedMemoryGuard
+from ..utils import output_layout
 from ..utils.pose_simplify import pose_simplify
 from ..utils.fps import FPS, Interval
 from typing import List
@@ -17,10 +19,13 @@ class ModelClientProcess(Process):
         self.input_image = input_image
         self.pose_position_shm = pose_position_shm  # 45 floats for pose, 4 floats for position
         
-        self.alpha_width_scale = 2 if args.alpha_split else 1
-        self.ret_channels = 3 if args.output_virtual_cam or args.output_debug else 4
-        self.ret_shape = (args.interpolation_scale, args.model_output_size, self.alpha_width_scale * args.model_output_size, self.ret_channels)
-        self.ret_nbytes = self.alpha_width_scale * args.interpolation_scale * args.model_output_size * args.model_output_size * self.ret_channels # RGBA
+        # Layout is shared with main.py so producer and consumer cannot drift
+        # (they used to disagree whenever --output_web was the only output).
+        self.alpha_width_scale = output_layout.channel_width_scale(args)
+        self.ret_channels = output_layout.ret_channel_count(args)
+        self.ret_frame_shape = output_layout.frame_shape(args)
+        self.ret_frame_bytes = output_layout.frame_bytes(args)
+        self.ret_nbytes = output_layout.total_buffer_bytes(args)
         self.ret_shared_mem = shared_memory.SharedMemory(create=True, size=self.ret_nbytes)
         
         self.last_model_interval = Value('f', 0.0)
@@ -46,9 +51,9 @@ class ModelClientProcess(Process):
             for i in range(args.interpolation_scale)
         ]
         np_ret_shms = [
-            np.ndarray((args.model_output_size, self.alpha_width_scale * args.model_output_size, self.ret_channels), dtype=np.uint8,
-                        buffer=self.ret_shared_mem.buf[i * self.alpha_width_scale * args.model_output_size * args.model_output_size * self.ret_channels:
-                                                       (i + 1) * self.alpha_width_scale * args.model_output_size * args.model_output_size * self.ret_channels])
+            np.ndarray(self.ret_frame_shape, dtype=np.uint8,
+                       buffer=self.ret_shared_mem.buf[
+                           i * self.ret_frame_bytes:(i + 1) * self.ret_frame_bytes])
             for i in range(args.interpolation_scale)
         ]
 
@@ -121,8 +126,19 @@ class ModelClientProcess(Process):
 
             self.pipeline_fps_number.value = pipeline_fps()
             for i in range(args.interpolation_scale):
+                frame = output_images[i]
+                if frame.shape != np_ret_shms[i].shape:
+                    # Without this the write below fails as a confusing numpy
+                    # broadcast error (or silently mis-strides) when the
+                    # producer and output_layout disagree on frame format.
+                    raise RuntimeError(
+                        f"output frame {i} has shape {frame.shape} but the shared "
+                        f"buffer is {np_ret_shms[i].shape}. post_process_ret and "
+                        "backend/utils/output_layout.py must agree for these launch "
+                        f"flags ({' '.join(sys.argv[1:])})."
+                    )
                 with ret_batch_shm_guard[i].lock(): # get pressure from main process if ret not consumed
-                    np_ret_shms[i][:, :, :] = output_images[i]
+                    np_ret_shms[i][:, :, :] = frame
 
             self.finish_event.set() # Back pressure main process loop if infer slow
 
@@ -139,9 +155,14 @@ class ModelClientProcess(Process):
         if args.bongo:
             rotate_angle -= 5
 
-        rm = cv2.getRotationMatrix2D((output_images[0].shape[1] / 2, output_images[0].shape[0] / 2), rotate_angle, k_scale)
-        rm[0, 2] += dx + output_images[0].shape[1] / 2 - output_images[0].shape[1] / 2
-        rm[1, 2] += dy + output_images[0].shape[0] / 2 - output_images[0].shape[0] / 2
+        # getRotationMatrix2D already rotates about the image centre, so the
+        # translation is just the requested pan. (This used to read
+        # `dx + w/2 - w/2`, i.e. `dx` with two dead terms that made it look as
+        # though the centre needed re-adding.)
+        rm = cv2.getRotationMatrix2D(
+            (output_images[0].shape[1] / 2, output_images[0].shape[0] / 2), rotate_angle, k_scale)
+        rm[0, 2] += dx
+        rm[1, 2] += dy
 
         ret = []
         for i in range(output_images.shape[0]):
@@ -175,7 +196,11 @@ class ModelClientProcess(Process):
                 alpha_image = cv2.cvtColor(alpha_channel, cv2.COLOR_GRAY2RGB)
                 rgb_channels = cv2.hconcat([rgb_channels, alpha_image])
 
-            if args.output_debug:
+            # Opaque-consumer branches must match output_layout.ret_channel_count()
+            # exactly, or the write into the shared buffer below raises (or, worse,
+            # silently strides wrong). `--output_web` alone used to fall through to
+            # the 4-channel RGBA branch while the buffer was 3-channel.
+            if output_layout.uses_bgr_frames(args):
                 if args.alpha_split:
                     bgr_channels = cv2.cvtColor(rgb_channels, cv2.COLOR_RGB2BGR)
                 else:

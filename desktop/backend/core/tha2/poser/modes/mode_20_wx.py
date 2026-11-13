@@ -7,7 +7,7 @@ import scipy.optimize
 
 from tha2.mocap.ifacialmocap_constants import *
 from tha2.mocap.ifacialmocap_pose_converter import IFacialMocapPoseConverter
-from tha2.poser.modes.mode_20 import get_pose_parameters
+from tha2.poser.modes.pose_parameters import get_pose_parameters
 
 
 def clamp(x, min_value, max_value):

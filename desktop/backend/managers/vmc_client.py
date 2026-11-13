@@ -1,3 +1,4 @@
+import functools
 import math
 import threading
 import time
@@ -8,6 +9,7 @@ from pythonosc.dispatcher import Dispatcher
 from pythonosc.osc_server import BlockingOSCUDPServer
 
 from .args import args
+from ..utils.net import parse_host_port
 from ..utils.shared_mem_guard import SharedMemoryGuard
 from ..utils.fps import FPS
 from ..utils.filter import OneEuroFilterNumpy
@@ -39,6 +41,23 @@ _LOOK_UP_NAMES = {"lookup", "eyelookupleft", "eyelookupright"}
 _LOOK_DOWN_NAMES = {"lookdown", "eyelookdownleft", "eyelookdownright"}
 
 
+def _handler_errors_are_harmless(func):
+    """A malformed OSC message must not take the whole receiver down.
+
+    pythonosc runs handlers inline in the serve_forever thread, so anything that
+    escapes a handler stops all further VMC input — the avatar just freezes with
+    no error. Senders do emit junk (wrong argument count, strings where floats
+    are expected), so drop the bad message and keep listening.
+    """
+    @functools.wraps(func)
+    def wrapper(*a, **kw):
+        try:
+            return func(*a, **kw)
+        except Exception:  # noqa: BLE001 - deliberately broad, see docstring
+            return None
+    return wrapper
+
+
 def _quat_to_euler(x: float, y: float, z: float, w: float):
     """Quaternion -> (pitch, yaw, roll) in radians, matching Unity/VMC's axis
     convention: X=pitch (look up/down), Y=yaw (turn left/right), Z=roll (tilt
@@ -66,9 +85,8 @@ class VMCClientProcess(Process):
     def __init__(self, pose_position_shm: shared_memory.SharedMemory):
         super().__init__()
         self.pose_position_shm = pose_position_shm
-        host_port = args.vmc_input.split(':')
-        self.host = host_port[0] or "127.0.0.1"
-        self.port = int(host_port[1]) if len(host_port) > 1 else 39539
+        # Was a naive split(':'), which mangled IPv6 addresses.
+        self.host, self.port = parse_host_port(args.vmc_input)
         self.fps = Value('f', 0.0)
 
     def run(self):
@@ -85,16 +103,18 @@ class VMCClientProcess(Process):
             'look_x': 0.0, 'look_y': 0.0,
         }
 
+        @_handler_errors_are_harmless
         def on_bone(address, *osc_args):
             if len(osc_args) < 8 or osc_args[0] != "Head":
                 return
             _name, _px, _py, _pz, rx, ry, rz, rw = osc_args[:8]
-            pitch, yaw, roll = _quat_to_euler(rx, ry, rz, rw)
+            pitch, yaw, roll = _quat_to_euler(float(rx), float(ry), float(rz), float(rw))
             with state_lock:
                 state['pitch'] = pitch
                 state['yaw'] = yaw
                 state['roll'] = roll
 
+        @_handler_errors_are_harmless
         def on_blend_val(address, *osc_args):
             if len(osc_args) < 2:
                 return
@@ -135,7 +155,14 @@ class VMCClientProcess(Process):
         dispatcher.map(_BLEND_APPLY_ADDR, on_blend_apply)
         dispatcher.set_default_handler(lambda address, *a: None)
 
-        server = BlockingOSCUDPServer((self.host, self.port), dispatcher)
+        try:
+            server = BlockingOSCUDPServer((self.host, self.port), dispatcher)
+        except OSError as exc:
+            raise RuntimeError(
+                f"VMC input could not bind {self.host}:{self.port} ({exc}). Another "
+                "VMC receiver — or a previous EasyVtuber run — is probably already "
+                "using that port; pass a different one with --vmc_input host:port."
+            ) from exc
         server_thread = threading.Thread(target=server.serve_forever, daemon=True)
         server_thread.start()
         print(f"VMC Input listening on {self.host}:{self.port} (waiting for a VMC-compatible sender)")

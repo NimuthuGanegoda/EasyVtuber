@@ -43,15 +43,26 @@ export class VRMCharacterRenderer {
   private ready = false;
   private clock: THREE.Clock;
   private smoothed: SmoothedFace = {
-    blinkL: 0, blinkR: 0, aa: 0, ih: 0, ou: 0, ee: 0, oh: 0, headX: 0, headY: 0, headZ: 0,
+    blinkL: 0,
+    blinkR: 0,
+    aa: 0,
+    ih: 0,
+    ou: 0,
+    ee: 0,
+    oh: 0,
+    headX: 0,
+    headY: 0,
+    headZ: 0,
   };
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
     this.scene = new THREE.Scene();
-    this.camera = new THREE.PerspectiveCamera(22, 1, 0.1, 20);
-    // Framed roughly on a bust/headshot — VRM humanoid rest pose has the
-    // head around y=1.4-1.5m for a standard adult-proportioned model.
+    this.camera = new THREE.PerspectiveCamera(22, 1, 0.05, 50);
+    // Provisional framing; frameCamera() re-fits this once a model is loaded.
+    // Previously the camera was hardcoded to y=1.42/z=1.1, which mis-framed
+    // every model that wasn't a standard adult-height VRM (chibi/VRM0 exports
+    // were cropped or tiny) with no way to adjust.
     this.camera.position.set(0, 1.42, 1.1);
     this.camera.lookAt(0, 1.4, 0);
     this.clock = new THREE.Clock();
@@ -99,6 +110,7 @@ export class VRMCharacterRenderer {
 
       this.scene.add(vrm.scene);
       this.vrm = vrm;
+      this.frameCamera();
       this.ready = true;
       return true;
     } catch (e) {
@@ -110,14 +122,53 @@ export class VRMCharacterRenderer {
     }
   }
 
+  /**
+   * Fit the camera to whatever model was actually loaded: frame head +
+   * shoulders using the humanoid head bone's world position and the model's
+   * own bounding box, so chibi and non-standard rigs stay in shot.
+   */
+  private frameCamera(): void {
+    const vrm = this.vrm;
+    if (!vrm) return;
+
+    vrm.scene.updateMatrixWorld(true);
+    const headNode = vrm.humanoid?.getRawBoneNode('head') ?? null;
+    const headWorld = new THREE.Vector3();
+    if (headNode) headNode.getWorldPosition(headWorld);
+
+    const box = new THREE.Box3().setFromObject(vrm.scene);
+    const size = box.getSize(new THREE.Vector3());
+    const height = Number.isFinite(size.y) && size.y > 0.1 ? size.y : 1.6;
+
+    // Roughly head + shoulders.
+    const frameHeight = Math.max(0.25, height * 0.36);
+    const centerX = headNode ? headWorld.x : 0;
+    const centerY = headNode ? headWorld.y : box.min.y + height * 0.85;
+    const centerZ = headNode ? headWorld.z : 0;
+
+    const fovRadians = (this.camera.fov * Math.PI) / 180;
+    const distance = ((frameHeight * 0.5) / Math.tan(fovRadians / 2)) * 1.05;
+
+    this.camera.position.set(centerX, centerY - frameHeight * 0.12, centerZ + distance);
+    this.camera.lookAt(centerX, centerY - frameHeight * 0.18, centerZ);
+    this.camera.updateProjectionMatrix();
+  }
+
   /** Returns true if it drew a frame (mirrors WebGLCharacterRenderer's contract). */
   render(landmarks: Landmark[] | null): boolean {
     if (!this.ready || !this.vrm || !this.renderer) return false;
     const delta = Math.min(this.clock.getDelta(), 0.1);
 
     if (landmarks && landmarks.length > 0) {
-      const riggedFace = Face.solve(landmarks, { runtime: 'mediapipe', video: null });
-      if (riggedFace) this.applyFace(riggedFace);
+      try {
+        const riggedFace = Face.solve(landmarks, { runtime: 'mediapipe', video: null });
+        if (riggedFace) this.applyFace(riggedFace);
+      } catch (err) {
+        // Kalidokit throws on partial landmark sets. Never let that escape:
+        // this is called from the single RAF loop that draws everything, so an
+        // uncaught throw here would freeze the whole viewport.
+        console.warn('VRM: could not solve face pose, holding last pose', err);
+      }
     }
 
     this.vrm.update(delta);

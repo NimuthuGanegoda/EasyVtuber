@@ -61,16 +61,6 @@ default_arg = {
     'breath_cycle': 'inf'
 }
 
-try:
-    f = open('launcher.json')
-    args = json.load(f)
-    default_arg.update(args)
-    f.close()
-except:
-    pass
-finally:
-    args = default_arg
-
 p = None
 
 
@@ -82,6 +72,28 @@ def _runtime_desktop_root():
 
 # Resolve relative to this file/runtime bundle, not the process CWD.
 _DESKTOP_ROOT = _runtime_desktop_root()
+
+# Saved launcher settings live next to the runtime, not in whatever directory
+# the process happened to start in. The .bat wrappers `cd` into desktop/scripts,
+# so the old relative `open('launcher.json')` wrote settings somewhere the next
+# launch never read back.
+_LAUNCHER_STATE_PATH = os.path.join(_DESKTOP_ROOT, 'launcher.json')
+
+try:
+    with open(_LAUNCHER_STATE_PATH) as f:
+        default_arg.update(json.load(f))
+except (OSError, ValueError):
+    pass
+args = default_arg
+
+# The shared helpers below live in backend/, so make the desktop root importable.
+if _DESKTOP_ROOT not in sys.path:
+    sys.path.append(_DESKTOP_ROOT)
+
+from backend.utils.mappers import beta_mapper, min_cutoff_mapper  # noqa: E402
+from backend.utils.net import parse_host_port  # noqa: E402
+from backend.utils.proc import terminate_process  # noqa: E402
+
 dirPath = os.path.join(_DESKTOP_ROOT, 'backend', 'data', 'images')
 characterList = []
 studentModelList = []
@@ -106,8 +118,9 @@ def is_nvidia_gpu():
         pass
     # Fallback for systems without PowerShell CIM cmdlets available.
     try:
+        # List form, not a shell string: no shell is needed for a fixed command.
         output = subprocess.check_output(
-            "wmic path Win32_VideoController get Name", shell=True,
+            ["wmic", "path", "Win32_VideoController", "get", "Name"],
             stderr=subprocess.DEVNULL,
         ).decode(sys.getfilesystemencoding(), errors='ignore')
         return "NVIDIA" in output.upper()
@@ -216,8 +229,10 @@ def run_preflight(launch_args):
         errors.append("Webcam input selected but camera could not be opened.")
     if input_mode == 5:
         vmc = launch_args.get('vmc', '')
-        if not vmc or ':' not in vmc:
-            errors.append("VMC input must be in host:port format (example: 127.0.0.1:39539).")
+        try:
+            parse_host_port(vmc)
+        except ValueError as exc:
+            errors.append(f"VMC input is invalid: {exc}")
 
     model_select = launch_args.get('model_select', '')
     model_name = ''
@@ -240,30 +255,6 @@ def run_preflight(launch_args):
         warnings.append(f"Could not validate selected model files before launch: {exc}")
 
     return errors, warnings
-
-
-def min_cutoff_mapper(value, revert=False):
-    """
-    Non-linear mapping function: 0-100 integer <-> 0-100 float
-    Uses square function so numbers are denser closer to 0
-    """
-    if revert:
-        # Float -> Int: Use square root inverse mapping
-        return int((value / 100.0) ** 0.5 * 100)
-    # Int -> Float: Use square mapping
-    return (value / 100.0) ** 2 * 100.0
-
-
-def beta_mapper(value, revert=False):
-    """
-    Non-linear mapping function: 0-100 integer <-> 0-1 float
-    Uses square function so numbers are denser closer to 0
-    """
-    if revert:
-        # Float -> Int: Use square root inverse mapping
-        return int((value ** 0.5) * 100)
-    # Int -> Float: Use square mapping
-    return (value / 100.0) ** 2
 
 
 class OptionPanel(wx.Panel):
@@ -691,7 +682,6 @@ class LauncherPanel(wx.Panel):
         onModelSelect()
 
         def onActivate(e):
-            global characterList
             char_ctrl = self.optionDict['character'].control
             tName = char_ctrl.GetStringSelection() if char_ctrl.GetSelection() >= 0 else ''
             refreshList()
@@ -719,9 +709,11 @@ class LauncherPanel(wx.Panel):
         args = {}
         for k in self.optionDict.keys():
             args[k] = self.optionDict[k].GetValue()
-        f = open('launcher.json', mode='w')
-        json.dump(args, f)
-        f.close()
+        try:
+            with open(_LAUNCHER_STATE_PATH, mode='w') as f:
+                json.dump(args, f)
+        except OSError as exc:
+            print(f'[launcher] could not save settings to {_LAUNCHER_STATE_PATH}: {exc}')
         self.btnLaunch.SetLabelText('Working...')
 
         if p is not None:
@@ -837,8 +829,11 @@ class LauncherPanel(wx.Panel):
             if args['interpolation'] is not None:
                 if not 'Off' == args['interpolation']:
                     run_args.append('--use_interpolation')
-                if 'half' in args['interpolation']:
-                    run_args.append('--interpolation_half')
+                # Same reasoning as the model flags above: interpolation_half
+                # defaults to True, so it has to be explicitly disabled.
+                run_args.append(
+                    '--interpolation_half' if 'half' in args['interpolation']
+                    else '--no-interpolation_half')
 
                 if 'x2' in args['interpolation']:
                     run_args.append('--interpolation_scale')
@@ -864,10 +859,15 @@ class LauncherPanel(wx.Panel):
                 else:
                     run_args.append('--model_version')
                     run_args.append('v3')
-                if 'seperable' in args['model_select']:
-                    run_args.append('--model_seperable')
-                if 'half' in args['model_select']:
-                    run_args.append('--model_half')
+                # Emit the flag either way. These default to ON in args.py, so
+                # only passing the positive form meant "Standard" and "Full
+                # precision" were silently ignored.
+                run_args.append(
+                    '--model_seperable' if 'seperable' in args['model_select']
+                    else '--no-model_seperable')
+                run_args.append(
+                    '--model_half' if 'half' in args['model_select']
+                    else '--no-model_half')
 
             if args['frame_rate_limit'] is not None:
                 run_args.append('--frame_rate_limit')
@@ -919,23 +919,11 @@ class LauncherPanel(wx.Panel):
             self.btnLaunch.SetLabelText('Stop')
 
     def _stop_running_process(self):
-        global p
         if p is None:
             return
-        try:
-            if sys.platform == 'win32':
-                creation_flags = 0x08000000
-                subprocess.run(['taskkill', '/F', '/PID', str(p.pid), '/T'],
-                               stdout=subprocess.DEVNULL,
-                               stderr=subprocess.DEVNULL,
-                               creationflags=creation_flags)
-            else:
-                p.terminate()
-        except Exception:
-            pass
+        terminate_process(p)
 
     def _watch_process_exit(self):
-        global p
         proc = p
         if proc is None:
             return
@@ -968,19 +956,8 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_CLOSE, self.OnClose)
 
     def OnClose(self, e):
-        global p
         if p is not None:
-            try:
-                if sys.platform == 'win32':
-                    creation_flags = 0x08000000
-                    subprocess.run(['taskkill', '/F', '/PID', str(p.pid), '/T'],
-                                  stdout=subprocess.DEVNULL,
-                                  stderr=subprocess.DEVNULL,
-                                  creationflags=creation_flags)
-                else:
-                    p.terminate()
-            except Exception:
-                pass
+            terminate_process(p)
         e.Skip()
 
     def InitUi(self):

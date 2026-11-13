@@ -2,9 +2,9 @@ name: Windows Smoke
 
 on:
   pull_request:
-    branches: [ "Development", "main" ]
+    branches: [ "main" ]
   push:
-    branches: [ "Development" ]
+    branches: [ "main" ]
   workflow_dispatch:
 
 permissions:
@@ -26,7 +26,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r desktop/requirements/requirements-core.txt
           pip install -r desktop/requirements/requirements-windows-optional.txt
-          pip install pytest
+          pip install -r desktop/requirements/requirements-dev.txt
 
-      - name: Run Windows smoke tests
-        run: pytest -q desktop/tests/test_windows_smoke.py
+      - name: Run desktop test suite
+        run: python -m pytest desktop/tests -q

@@ -8,8 +8,17 @@ ezvtb_main_path = os.path.normpath(os.path.join(dir_path, "..", "..", 'ezvtuber-
 project_path = ''
 if os.path.exists(ezvtb_path):
     project_path = ezvtb_path
-else:
+elif os.path.exists(ezvtb_main_path):
+    # Tolerate the `ezvtuber-rt-main` directory name produced by extracting the
+    # GitHub zip archive.
     project_path = ezvtb_main_path
+else:
+    raise ImportError(
+        "The 'ezvtuber-rt' runtime package is missing.\n"
+        f"Looked for:\n  - {ezvtb_path}\n  - {ezvtb_main_path}\n"
+        "Restore it from the repository (desktop/ezvtuber-rt) — see "
+        "desktop/README.md."
+    )
 
 if project_path not in sys.path:
     sys.path.append(project_path)
@@ -43,8 +52,15 @@ def get_core(
     if use_tensorrt:
         try:
             from ezvtb_rt.core_trt import CoreTRT as Core
-        except:
-            print("TensorRT is not available, fallback to ONNX Runtime.")
+        except Exception as exc:
+            # Was a bare `except:` — the user asked for TensorRT, silently got
+            # ONNX Runtime (several times slower) and had no way to find out
+            # why. Name the failure so it can be acted on.
+            print(
+                "TensorRT is not available "
+                f"({type(exc).__name__}: {exc}); falling back to ONNX Runtime. "
+                "See desktop/README.md ('TensorRT') for setup requirements."
+            )
             args.use_tensorrt = False
             from ezvtb_rt.core_ort import CoreORT as Core
     else:
