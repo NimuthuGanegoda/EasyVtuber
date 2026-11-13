@@ -3,6 +3,7 @@ import os
 from multiprocessing import Process, Value, shared_memory, Event
 import cv2
 import numpy as np
+import sys
 import time
 from .ezvtb_rt_interface import get_core
 from .args import args
@@ -125,8 +126,19 @@ class ModelClientProcess(Process):
 
             self.pipeline_fps_number.value = pipeline_fps()
             for i in range(args.interpolation_scale):
+                frame = output_images[i]
+                if frame.shape != np_ret_shms[i].shape:
+                    # Without this the write below fails as a confusing numpy
+                    # broadcast error (or silently mis-strides) when the
+                    # producer and output_layout disagree on frame format.
+                    raise RuntimeError(
+                        f"output frame {i} has shape {frame.shape} but the shared "
+                        f"buffer is {np_ret_shms[i].shape}. post_process_ret and "
+                        "backend/utils/output_layout.py must agree for these launch "
+                        f"flags ({' '.join(sys.argv[1:])})."
+                    )
                 with ret_batch_shm_guard[i].lock(): # get pressure from main process if ret not consumed
-                    np_ret_shms[i][:, :, :] = output_images[i]
+                    np_ret_shms[i][:, :, :] = frame
 
             self.finish_event.set() # Back pressure main process loop if infer slow
 

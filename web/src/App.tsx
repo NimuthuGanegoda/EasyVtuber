@@ -81,8 +81,11 @@ const BACKGROUND_PRESETS: {
     gradientStr: 'transparent',
   },
   {
+    // Not a real blur: the canvas has nothing behind it to blur (the root
+    // paints the page background), so this is a dimming preset. It used to be
+    // labelled "Blur Dark", which promised an effect it never applied.
     id: 'blur',
-    label: 'Blur Dark',
+    label: 'Dim Dark',
     colors: ['#0a0a0c', '#0a0a0c'],
     gradientStr: 'rgba(0,0,0,0.6)',
   },
@@ -312,12 +315,7 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const backgroundStyle =
-    vtuber.background === 'gradient'
-      ? vtuber.backgroundValue
-      : vtuber.background === 'blur'
-        ? 'rgba(0,0,0,0.7)'
-        : 'transparent';
+  const backgroundStyle = vtuber.background === 'none' ? 'transparent' : vtuber.backgroundValue;
 
   return (
     <div className="app">
