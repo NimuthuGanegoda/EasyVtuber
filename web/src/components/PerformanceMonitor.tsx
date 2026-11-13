@@ -9,6 +9,20 @@ interface PerfData {
   tracking: boolean;
 }
 
+/** How many samples the sparkline keeps (each sample is a quarter second). */
+const HISTORY_LEN = 20;
+const SAMPLE_INTERVAL_MS = 250;
+
+interface PerformanceWithMemory extends Performance {
+  memory?: { usedJSHeapSize: number; jsHeapSizeLimit: number };
+}
+
+function describeMemory(): string {
+  const mem = (performance as PerformanceWithMemory).memory;
+  if (!mem || typeof mem.usedJSHeapSize !== 'number') return 'N/A';
+  return `${(mem.usedJSHeapSize / 1048576).toFixed(1)} MB`;
+}
+
 export function PerformanceMonitor({
   fps,
   inferenceTime,
@@ -27,10 +41,13 @@ export function PerformanceMonitor({
     domNodes: 0,
     tracking: false,
   });
-  const lastFrameRef = useRef(performance.now());
-  const animRef = useRef(0);
-  const fpsHistoryRef = useRef<number[]>([]);
-  // Use refs for changing props to avoid re-creating the RAF loop every 50ms
+  // The sparkline used to read `fpsHistoryRef.current` inside JSX, so it never
+  // re-rendered when the ref mutated and the bars appeared frozen. History is
+  // real state now.
+  const [history, setHistory] = useState<number[]>([]);
+
+  // Refs for changing props, so the sampling effect doesn't restart every time
+  // a prop changes.
   const fpsRef = useRef(fps);
   const inferRef = useRef(inferenceTime);
   const trackingRef = useRef(isTracking);
@@ -38,56 +55,52 @@ export function PerformanceMonitor({
   inferRef.current = inferenceTime;
   trackingRef.current = isTracking;
 
-  // Stable RAF loop — reads from refs, not stale closures.
-  // Only runs while the panel is visible so the monitor itself (DOM scan
-  // included) doesn't add per-frame overhead when collapsed.
+  // Only sample while the panel is open.
   useEffect(() => {
     if (!visible) return;
-    let running = true;
-    const update = () => {
-      if (!running) return;
+
+    let frameTime = 0;
+    let lastFrame = performance.now();
+    let rafId = 0;
+    const measureFrame = () => {
       const now = performance.now();
-      const frameTime = now - lastFrameRef.current;
-      lastFrameRef.current = now;
+      frameTime = now - lastFrame;
+      lastFrame = now;
+      rafId = requestAnimationFrame(measureFrame);
+    };
+    rafId = requestAnimationFrame(measureFrame);
 
+    // Sample the DOM node count a few times a second instead of every frame:
+    // `document.querySelectorAll('*')` on a production-sized DOM is expensive
+    // enough to distort the very numbers being measured.
+    const sampleId = window.setInterval(() => {
       const currentFps = fpsRef.current;
-      fpsHistoryRef.current.push(currentFps);
-      fpsHistoryRef.current = fpsHistoryRef.current.slice(-30);
-      const avgFps =
-        fpsHistoryRef.current.reduce((a, b) => a + b, 0) /
-        Math.max(fpsHistoryRef.current.length, 1);
-
-      let jsHeap = 'N/A';
-      const mem = (performance as any).memory;
-      if (mem) {
-        jsHeap = `${(mem.usedJSHeapSize / 1048576).toFixed(1)} MB`;
-      }
-
       setPerfData({
-        fps: Math.round(avgFps),
+        fps: currentFps,
         inferenceTime: inferRef.current,
         frameTime: Math.round(frameTime),
-        jsHeap,
-        domNodes: document.querySelectorAll('*').length,
+        jsHeap: describeMemory(),
+        domNodes: document.getElementsByTagName('*').length,
         tracking: trackingRef.current,
       });
+      setHistory((prev) => [...prev.slice(-(HISTORY_LEN - 1)), currentFps]);
+    }, SAMPLE_INTERVAL_MS);
 
-      animRef.current = requestAnimationFrame(update);
-    };
-
-    animRef.current = requestAnimationFrame(update);
     return () => {
-      running = false;
-      cancelAnimationFrame(animRef.current);
+      cancelAnimationFrame(rafId);
+      window.clearInterval(sampleId);
     };
   }, [visible]);
 
   // Toggle with backtick key
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      // Never hijack keystrokes destined for a form control.
+      const target = e.target as HTMLElement | null;
+      if (target && /^(INPUT|SELECT|TEXTAREA)$/.test(target.tagName)) return;
       if (e.key === '`' && !e.ctrlKey && !e.metaKey && !e.altKey) {
         e.preventDefault();
-        setVisible(v => !v);
+        setVisible((v) => !v);
       }
     };
     window.addEventListener('keydown', handler);
@@ -118,24 +131,16 @@ export function PerformanceMonitor({
       </div>
       <div className="perf-body">
         <PerfRow label="FPS" value={String(displayFps)} warning={displayFps < 20} />
-        <PerfRow
-          label="Frame"
-          value={`${frameTime}ms`}
-          warning={frameTime > 50}
-        />
-        <PerfRow
-          label="Inference"
-          value={`${inferenceTime}ms`}
-          warning={inferenceTime > 30}
-        />
+        <PerfRow label="Frame" value={`${frameTime}ms`} warning={frameTime > 50} />
+        <PerfRow label="Inference" value={`${inferenceTime}ms`} warning={inferenceTime > 30} />
         <PerfRow label="Heap" value={jsHeap} />
         <PerfRow label="DOM Nodes" value={String(domNodes)} />
         <PerfRow label="Tracking" value={tracking ? 'LIVE' : 'PAUSED'} />
         {/* Mini FPS sparkline */}
         <div className="perf-sparkline">
-          {fpsHistoryRef.current.slice(-20).map((v, i) => (
+          {history.map((v, i) => (
             <div
-              key={i}
+              key={`${i}-${v}`}
               className="perf-spark-bar"
               style={{
                 height: `${Math.min((v / 60) * 100, 100)}%`,
@@ -149,15 +154,7 @@ export function PerformanceMonitor({
   );
 }
 
-function PerfRow({
-  label,
-  value,
-  warning,
-}: {
-  label: string;
-  value: string;
-  warning?: boolean;
-}) {
+function PerfRow({ label, value, warning }: { label: string; value: string; warning?: boolean }) {
   return (
     <div className={`perf-row ${warning ? 'perf-warning' : ''}`}>
       <span className="perf-label">{label}</span>

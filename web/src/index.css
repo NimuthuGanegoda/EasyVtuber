@@ -48,13 +48,19 @@
   padding: 0;
 }
 
-html, body {
+html,
+body {
   height: 100%;
   overflow: hidden;
 }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family:
+    'Inter',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
   background: var(--bg-primary);
   color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
@@ -155,20 +161,23 @@ body {
   gap: 20px;
 }
 
-.fps-display, .inference-display {
+.fps-display,
+.inference-display {
   display: flex;
   align-items: baseline;
   gap: 6px;
 }
 
-.fps-value, .inf-value {
+.fps-value,
+.inf-value {
   font-family: 'JetBrains Mono', monospace;
   font-size: 18px;
   font-weight: 700;
   color: var(--text-primary);
 }
 
-.fps-label, .inf-label {
+.fps-label,
+.inf-label {
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 1px;
@@ -489,7 +498,7 @@ body {
   letter-spacing: 0.5px;
 }
 
-.overlay-controls input[type="range"] {
+.overlay-controls input[type='range'] {
   width: 100%;
   height: 4px;
   -webkit-appearance: none;
@@ -499,7 +508,7 @@ body {
   outline: none;
 }
 
-.overlay-controls input[type="range"]::-webkit-slider-thumb {
+.overlay-controls input[type='range']::-webkit-slider-thumb {
   -webkit-appearance: none;
   width: 12px;
   height: 12px;
@@ -683,13 +692,17 @@ body {
   height: 512px;
   border-radius: var(--radius-xl);
   overflow: hidden;
-  box-shadow: var(--shadow-lg), 0 0 60px rgba(255, 107, 157, 0.08);
+  box-shadow:
+    var(--shadow-lg),
+    0 0 60px rgba(255, 107, 157, 0.08);
   border: 1px solid var(--border-accent);
   transition: var(--transition-slow);
 }
 
 .render-canvas-wrapper:hover {
-  box-shadow: var(--shadow-lg), 0 0 80px rgba(255, 107, 157, 0.12);
+  box-shadow:
+    var(--shadow-lg),
+    0 0 80px rgba(255, 107, 157, 0.12);
 }
 
 .input-video {
@@ -955,6 +968,26 @@ body {
   font-family: 'JetBrains Mono', monospace;
 }
 
+/* Non-fatal tracking problem — previously these were swallowed entirely and
+   the avatar just stopped moving with no explanation on screen. */
+.tracking-warning {
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  max-width: 90%;
+  padding: 8px 14px;
+  border-radius: 10px;
+  background: rgba(255, 71, 87, 0.14);
+  border: 1px solid var(--red-glow);
+  color: var(--red);
+  font-size: 11px;
+  line-height: 1.45;
+  text-align: center;
+  pointer-events: none;
+  z-index: 5;
+}
+
 /* ============ Right Panel ============ */
 
 /* Assistant Card */
@@ -985,8 +1018,13 @@ body {
 }
 
 @keyframes assistant-glow {
-  0%, 100% { transform: translate(0, 0); }
-  50% { transform: translate(5%, -5%); }
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(5%, -5%);
+  }
 }
 
 .assistant-card:hover {
@@ -1152,7 +1190,12 @@ body {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.04) 25%, rgba(255, 255, 255, 0.08) 50%, rgba(255, 255, 255, 0.04) 75%);
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.04) 25%,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0.04) 75%
+  );
   background-size: 200% 100%;
   animation: skeleton-shimmer 1.5s ease-in-out infinite;
   flex-shrink: 0;
@@ -1161,7 +1204,12 @@ body {
 .skeleton-line {
   height: 10px;
   border-radius: 4px;
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.04) 25%, rgba(255, 255, 255, 0.08) 50%, rgba(255, 255, 255, 0.04) 75%);
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.04) 25%,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0.04) 75%
+  );
   background-size: 200% 100%;
   animation: skeleton-shimmer 1.5s ease-in-out infinite;
 }
@@ -1178,8 +1226,12 @@ body {
 }
 
 @keyframes skeleton-shimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 .contributor-fallback-hint {
@@ -1424,17 +1476,30 @@ body {
 /* ============ Animations ============ */
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes pulse-dot {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 /* ============ Responsive ============ */

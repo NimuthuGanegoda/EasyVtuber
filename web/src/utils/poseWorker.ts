@@ -2,7 +2,11 @@
 
 // Web Worker for offloading face pose extraction from the main thread.
 // Receives raw MediaPipe FaceLandmarker landmarks, computes pose data,
-// and posts back the result.
+// and posts back either the result or a human-readable error.
+//
+// Protocol: one message in, exactly one message out, carrying the same `id`.
+// The main thread keeps at most one frame in flight (see useVtuber), so `id`
+// lets it drop anything stale.
 
 import { extractPose, Landmark } from './poseExtractor';
 
@@ -15,37 +19,44 @@ export interface PoseWorkerMessage {
 
 export interface PoseWorkerResult {
   id: number;
-  pose: ReturnType<typeof extractPose>;
+  pose?: ReturnType<typeof extractPose>;
+  error?: string;
   timestamp: number;
 }
 
-// Worker self-reference for type safety
-let workerSelf: DedicatedWorkerGlobalScope | null = null;
+/**
+ * `typeof WorkerGlobalScope !== 'undefined'` alone is not enough to tell a
+ * worker from a window: the previous `'postMessage' in self` check is *also*
+ * true on `window`, so importing this module from the main thread would have
+ * hijacked `window.onmessage`.
+ */
+const isWorkerScope =
+  typeof WorkerGlobalScope !== 'undefined' &&
+  typeof self !== 'undefined' &&
+  self instanceof WorkerGlobalScope;
 
-// Only run in worker context (skip during bundler module evaluation)
-if (typeof self !== 'undefined' && 'postMessage' in self) {
-  workerSelf = self as DedicatedWorkerGlobalScope;
+if (isWorkerScope) {
+  const ctx = self as unknown as DedicatedWorkerGlobalScope;
 
-  workerSelf.onmessage = (event: MessageEvent<PoseWorkerMessage>) => {
-    const { id, landmarks, blendshapes, transformMatrix } = event.data;
-
-    if (!landmarks || landmarks.length === 0) {
-      return;
-    }
+  ctx.onmessage = (event: MessageEvent<PoseWorkerMessage>) => {
+    const { id, landmarks, blendshapes, transformMatrix } = event.data ?? { id: 0 };
 
     try {
-      const pose = extractPose(landmarks, blendshapes, transformMatrix);
+      const pose = extractPose(landmarks ?? [], blendshapes, transformMatrix);
+      const result: PoseWorkerResult = { id, pose, timestamp: performance.now() };
+      ctx.postMessage(result);
+    } catch (err) {
+      // Report the failure instead of dropping the frame silently — the main
+      // thread surfaces this to the user.
       const result: PoseWorkerResult = {
         id,
-        pose,
+        error: err instanceof Error ? err.message : String(err),
         timestamp: performance.now(),
       };
-      workerSelf!.postMessage(result);
-    } catch (err) {
-      // Silently ignore malformed landmark data
+      ctx.postMessage(result);
     }
   };
 }
 
-// Export a no-op for tree-shaking (the actual worker logic runs via self.onmessage)
+// Export a no-op for tree-shaking (the actual worker logic runs via onmessage)
 export {};

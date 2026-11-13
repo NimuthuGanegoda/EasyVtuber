@@ -9,5 +9,5 @@ if (!root) throw new Error('Root element #root not found');
 createRoot(root).render(
   <StrictMode>
     <App />
-  </StrictMode>
+  </StrictMode>,
 );
