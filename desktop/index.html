@@ -107,23 +107,43 @@
     <div class="status" id="status">Waiting for connection...</div>
 
     <script>
+        function sanitizeStreamHost(raw) {
+            const trimmed = String(raw || '').trim() || 'localhost';
+            const hostPattern = /^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?)*|\[[0-9a-fA-F:]+\])$/;
+            const match = hostPattern.exec(trimmed);
+            if (!match) {
+                return null;
+            }
+            const safeUrl = new URL('http://localhost:8000/');
+            safeUrl.hostname = match[0];
+            if (safeUrl.protocol !== 'http:' || safeUrl.port !== '8000') {
+                return null;
+            }
+            return safeUrl.origin + '/';
+        }
+
         function connect() {
-            const ip = document.getElementById('ipAddress').value || 'localhost';
+            const rawIp = document.getElementById('ipAddress').value;
             const streamImg = document.getElementById('stream');
             const status = document.getElementById('status');
-            
-            const streamUrl = `http://${ip}:8000/`;
-            streamImg.src = streamUrl;
-            
+
+            const streamUrl = sanitizeStreamHost(rawIp);
+            if (!streamUrl) {
+                status.innerText = "❌ Invalid host or IP address.";
+                streamImg.removeAttribute('src');
+                return;
+            }
+
+            streamImg.setAttribute('src', streamUrl);
             status.innerText = `Connecting to ${streamUrl}...`;
-            
+
             streamImg.onload = () => {
                 status.innerText = "🌸 Connected & Streaming";
             };
-            
+
             streamImg.onerror = () => {
                 status.innerText = "❌ Connection Failed. Make sure EasyVtuber is running with Web Output.";
-                streamImg.src = "";
+                streamImg.removeAttribute('src');
             };
         }
 

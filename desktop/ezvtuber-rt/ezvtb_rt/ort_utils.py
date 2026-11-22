@@ -7,6 +7,21 @@ def _ts():
     return datetime.now().strftime('[%m/%d/%Y-%H:%M:%S]')
 
 
+_PROVIDER_TO_DEVICE = {
+    'DmlExecutionProvider': 'dml',
+    'OpenVINOExecutionProvider': 'openvino',
+    'CUDAExecutionProvider': 'cuda',
+}
+
+
+def get_ort_device(session: ort.InferenceSession) -> str:
+    """Map an InferenceSession's active provider to the OrtValue device string."""
+    providers = session.get_providers()
+    if not providers:
+        return 'cpu'
+    return _PROVIDER_TO_DEVICE.get(providers[0], 'cpu')
+
+
 def createORTSession(model_path: str, device_id: int = 0):
     """Create an ONNX Runtime inference session with optimized provider selection."""
     filename = os.path.basename(model_path)

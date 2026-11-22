@@ -4,7 +4,7 @@ Two-stage inference architecture with DirectML GPU acceleration
 import os
 import onnxruntime as ort
 import numpy as np
-from ezvtb_rt.ort_utils import createORTSession
+from ezvtb_rt.ort_utils import createORTSession, get_ort_device
 
 class THA4StudentORTSessions:
     """THA4 Student Model ONNX Runtime implementation with DirectML GPU support
@@ -41,13 +41,7 @@ class THA4StudentORTSessions:
         )
         
         # Dynamically determine device based on the active provider
-        active_provider = self.face_morpher.get_providers()[0]
-        if active_provider == 'DmlExecutionProvider':
-            self.device = 'dml'
-        elif active_provider == 'OpenVINOExecutionProvider':
-            self.device = 'openvino' # Supports Intel NPU
-        else:
-            self.device = 'cpu'
+        self.device = get_ort_device(self.face_morpher)
         
         print(f'THA4 Student Model using device: {self.device}')
         

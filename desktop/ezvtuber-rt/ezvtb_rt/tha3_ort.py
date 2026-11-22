@@ -3,7 +3,7 @@ import onnxruntime as ort
 import onnx
 import numpy as np
 from typing import List
-from ezvtb_rt.ort_utils import createORTSession
+from ezvtb_rt.ort_utils import createORTSession, get_ort_device
 
 class THA3ORTSessions:
     def __init__(self, tha_dir:str, use_eyebrow:bool = True):
@@ -23,13 +23,7 @@ class THA3ORTSessions:
         self.merged = createORTSession(os.path.join(tha_dir, "merge.onnx" if use_eyebrow else 'merge_no_eyebrow.onnx'))
 
         # Dynamically determine device based on the active provider
-        active_provider = self.merged.get_providers()[0]
-        if active_provider == 'DmlExecutionProvider':
-            self.device = 'dml'
-        elif active_provider == 'OpenVINOExecutionProvider':
-            self.device = 'openvino' # Supports Intel NPU
-        else:
-            self.device = 'cpu'
+        self.device = get_ort_device(self.merged)
 
         self.use_eyebrow = use_eyebrow
         if use_eyebrow:

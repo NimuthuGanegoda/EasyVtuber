@@ -1,0 +1,7 @@
+name: "EasyVtuber CodeQL Config"
+
+paths-ignore:
+  - 'docs'
+  - 'docs/**'
+  - 'legacy'
+  - 'legacy/**'

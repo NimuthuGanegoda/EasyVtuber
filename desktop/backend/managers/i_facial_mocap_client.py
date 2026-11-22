@@ -1,5 +1,6 @@
 from multiprocessing import Process, shared_memory, Value
 from .args import args
+from ..utils.net import DEFAULT_IFM_PORT, parse_host_port, resolve_udp_bind_host
 from ..utils.timer_wait import wait_until
 from ..utils.shared_mem_guard import SharedMemoryGuard
 import socket
@@ -16,24 +17,27 @@ class IFMClientProcess(Process):
     def __init__(self, pose_position_shm: shared_memory.SharedMemory):
         super().__init__()
         self.pose_position_shm = pose_position_shm
-        self.address = args.ifm_input.split(':')[0]
-        self.port = int(args.ifm_input.split(':')[1])
+        self.address, self.port = parse_host_port(args.ifm_input, default_port=DEFAULT_IFM_PORT)
         self.fps = Value('f', 0.0)
     def run(self):
         pose_position_shm_guard = SharedMemoryGuard(self.pose_position_shm, ctrl_name="pose_position_shm_ctrl")
         np_pose_shm = np.ndarray((45,), dtype=np.float32, buffer=self.pose_position_shm.buf[:45 * 4])
         np_position_shm = np.ndarray((4,), dtype=np.float32, buffer=self.pose_position_shm.buf[45 * 4:45 * 4 + 4 * 4])
         
-        udpClntSock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        family = socket.AF_INET6 if ':' in self.address else socket.AF_INET
+        bind_host = resolve_udp_bind_host(self.address, self.port)
+
+        udpClntSock = socket.socket(family, socket.SOCK_DGRAM)
 
         data = "iFacialMocap_sahuasouryya9218sauhuiayeta91555dy3719"
 
         data = data.encode('utf-8')
 
         udpClntSock.sendto(data, (self.address, self.port))
+        udpClntSock.close()
 
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.socket.bind(("", self.port))
+        self.socket = socket.socket(family, socket.SOCK_DGRAM)
+        self.socket.bind((bind_host, self.port))
         self.socket.settimeout(5.0) # give ifm app some time to respond
 
         print("Warming up iFacialMocap connection...")

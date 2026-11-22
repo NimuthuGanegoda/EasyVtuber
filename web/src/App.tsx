@@ -153,6 +153,13 @@ function App() {
   const vrmCanvasRef = useRef<HTMLCanvasElement>(null);
   const vrmRendererRef = useRef<VRMCharacterRenderer | null>(null);
   const [activeTab, setActiveTab] = useState<TabId>('expressions');
+  const [rendererMode, setRendererMode] = useState<'VRM 3D' | 'WebGL' | 'Canvas 2D'>('Canvas 2D');
+  const [vrmModelName, setVrmModelName] = useState<string | null>(null);
+  const [vrmError, setVrmError] = useState<string | null>(null);
+  const [newOverlayText, setNewOverlayText] = useState('');
+  const vrmObjectUrlRef = useRef<string | null>(null);
+  const vrmInputRef = useRef<HTMLInputElement>(null);
+  const overlayImageInputRef = useRef<HTMLInputElement>(null);
   const initStarted = useRef(false);
   const animFrameRef = useRef(0);
   const smoothedPoseRef = useRef<PoseData | null>(null);
@@ -164,7 +171,9 @@ function App() {
   // The RAF loop below is created once, so it reads display settings from a
   // ref rather than closing over a stale value.
   const showDebugRef = useRef(settings.showDebug);
-  showDebugRef.current = settings.showDebug;
+  useEffect(() => {
+    showDebugRef.current = settings.showDebug;
+  }, [settings.showDebug]);
 
   const startTracking = useCallback(() => {
     const video = videoRef.current;
@@ -208,7 +217,11 @@ function App() {
     glCanvas.width = CANVAS_SIZE;
     glCanvas.height = CANVAS_SIZE;
     try {
-      webglRendererRef.current = new WebGLCharacterRenderer(glCanvas);
+      const renderer = new WebGLCharacterRenderer(glCanvas);
+      webglRendererRef.current = renderer;
+      if (renderer.isReady()) {
+        queueMicrotask(() => setRendererMode((prev) => (prev === 'VRM 3D' ? prev : 'WebGL')));
+      }
     } catch {
       console.warn('WebGL renderer init failed, falling back to Canvas 2D');
     }
@@ -234,7 +247,11 @@ function App() {
       const renderer = new VRMCharacterRenderer(vrmCanvas);
       vrmRendererRef.current = renderer;
       void renderer.loadModel(VRM_MODEL_URL).then((ok) => {
-        if (!ok && !cancelled) {
+        if (cancelled) return;
+        if (ok) {
+          setRendererMode('VRM 3D');
+          setVrmModelName('character.vrm');
+        } else {
           console.info('No VRM character model loaded — using procedural fallback renderer.');
         }
       });
@@ -244,9 +261,51 @@ function App() {
 
     return () => {
       cancelled = true;
+      if (vrmObjectUrlRef.current) {
+        URL.revokeObjectURL(vrmObjectUrlRef.current);
+        vrmObjectUrlRef.current = null;
+      }
       vrmRendererRef.current?.destroy();
       vrmRendererRef.current = null;
     };
+  }, []);
+
+  const handleVrmUpload = useCallback(async (file: File | undefined) => {
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith('.vrm')) {
+      setVrmError('Please select a .vrm avatar file.');
+      return;
+    }
+    const renderer = vrmRendererRef.current;
+    if (!renderer) {
+      setVrmError('VRM WebGL renderer is unavailable in this browser.');
+      return;
+    }
+    setVrmError(null);
+    const nextUrl = URL.createObjectURL(file);
+    const ok = await renderer.loadModel(nextUrl);
+    if (ok) {
+      if (vrmObjectUrlRef.current) {
+        URL.revokeObjectURL(vrmObjectUrlRef.current);
+      }
+      vrmObjectUrlRef.current = nextUrl;
+      setVrmModelName(file.name);
+      setRendererMode('VRM 3D');
+    } else {
+      URL.revokeObjectURL(nextUrl);
+      setVrmError(`Could not load "${file.name}". Ensure it is a valid VRM 0.x/1.0 model.`);
+    }
+  }, []);
+
+  const handleVrmReset = useCallback(() => {
+    if (vrmObjectUrlRef.current) {
+      URL.revokeObjectURL(vrmObjectUrlRef.current);
+      vrmObjectUrlRef.current = null;
+    }
+    vrmRendererRef.current?.unloadModel();
+    setVrmModelName(null);
+    setVrmError(null);
+    setRendererMode(webglRendererRef.current?.isReady() ? 'WebGL' : 'Canvas 2D');
   }, []);
 
   // Single persistent RAF render loop — WebGL for character, Canvas 2D for overlays/HUD
@@ -278,7 +337,7 @@ function App() {
       // derived/smoothed PoseData the other two renderers use.
       const vrmRenderer = vrmRendererRef.current;
       const vrmDrawn = vrmRenderer?.isReady()
-        ? vrmRenderer.render(vtuber.landmarksRef.current)
+        ? vrmRenderer.render(vtuber.landmarksRef.current, expression)
         : false;
 
       const gl = webglRendererRef.current;
@@ -405,14 +464,9 @@ function App() {
                     <button
                       className="ctrl-btn"
                       onClick={startTracking}
-                      disabled={Boolean(vtuber.error)}
-                      title={
-                        vtuber.error
-                          ? 'Fix the error shown in the viewport, then retry'
-                          : 'Open the camera and start tracking'
-                      }
+                      title="Open the camera and start tracking"
                     >
-                      ▶ Start Tracking
+                      {vtuber.error ? '↻ Retry Tracking' : '▶ Start Tracking'}
                     </button>
                   )}
                 </div>
@@ -460,11 +514,43 @@ function App() {
                       <div className="overlay-preview">
                         {item.type === 'emoji' ? (
                           <span style={{ fontSize: 24 }}>{item.content}</span>
+                        ) : item.type === 'image' && item.content ? (
+                          <img className="overlay-thumb" src={item.content} alt="Overlay" />
                         ) : (
-                          <span className="overlay-type-badge">{item.type}</span>
+                          <span className="overlay-type-badge">{item.content.slice(0, 6)}</span>
                         )}
                       </div>
                       <div className="overlay-controls">
+                        <label>
+                          X Position
+                          <input
+                            type="range"
+                            min="0.05"
+                            max="0.95"
+                            step="0.05"
+                            value={item.x}
+                            onChange={(e) =>
+                              vtuber.updateOverlay(item.id, {
+                                x: parseFloat(e.target.value),
+                              })
+                            }
+                          />
+                        </label>
+                        <label>
+                          Y Position
+                          <input
+                            type="range"
+                            min="0.05"
+                            max="0.95"
+                            step="0.05"
+                            value={item.y}
+                            onChange={(e) =>
+                              vtuber.updateOverlay(item.id, {
+                                y: parseFloat(e.target.value),
+                              })
+                            }
+                          />
+                        </label>
                         <label>
                           Opacity
                           <input
@@ -503,26 +589,92 @@ function App() {
                     </div>
                   ))}
                 </div>
-                <div className="overlay-add">
-                  <button
-                    className="btn-secondary"
-                    onClick={() => {
-                      const emojis = ['🌸', '⭐', '❤️', '✨', '🎀', '💫', '🌟', '💖'];
-                      const emoji = emojis[Math.floor(Math.random() * emojis.length)] ?? '🌸';
-                      vtuber.addOverlay({
-                        id: `overlay-${Date.now()}`,
-                        type: 'emoji',
-                        content: emoji,
-                        x: 0.2 + Math.random() * 0.6,
-                        y: 0.2 + Math.random() * 0.6,
-                        scale: 1,
-                        rotation: 0,
-                        opacity: 0.8,
-                      });
-                    }}
-                  >
-                    ✨ Add Decoration
-                  </button>
+                <div className="overlay-add-stack">
+                  <div className="overlay-text-form">
+                    <input
+                      type="text"
+                      className="overlay-text-input"
+                      placeholder="Stream label text..."
+                      maxLength={40}
+                      value={newOverlayText}
+                      onChange={(e) => setNewOverlayText(e.target.value)}
+                    />
+                    <button
+                      className="btn-secondary overlay-add-btn"
+                      disabled={!newOverlayText.trim()}
+                      onClick={() => {
+                        const text = newOverlayText.trim();
+                        if (!text) return;
+                        vtuber.addOverlay({
+                          id: `overlay-${Date.now()}`,
+                          type: 'text',
+                          content: text,
+                          x: 0.5,
+                          y: 0.88,
+                          scale: 1,
+                          rotation: 0,
+                          opacity: 0.95,
+                        });
+                        setNewOverlayText('');
+                      }}
+                    >
+                      + Text
+                    </button>
+                  </div>
+                  <div className="overlay-add">
+                    <button
+                      className="btn-secondary"
+                      onClick={() => {
+                        const emojis = ['🌸', '⭐', '❤️', '✨', '🎀', '💫', '🌟', '💖'];
+                        const emoji = emojis[Math.floor(Math.random() * emojis.length)] ?? '🌸';
+                        vtuber.addOverlay({
+                          id: `overlay-${Date.now()}`,
+                          type: 'emoji',
+                          content: emoji,
+                          x: 0.2 + Math.random() * 0.6,
+                          y: 0.2 + Math.random() * 0.6,
+                          scale: 1,
+                          rotation: 0,
+                          opacity: 0.85,
+                        });
+                      }}
+                    >
+                      ✨ Add Emoji
+                    </button>
+                    <input
+                      ref={overlayImageInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="sr-only-input"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        e.target.value = '';
+                        if (!file) return;
+                        const reader = new FileReader();
+                        reader.onload = () => {
+                          if (typeof reader.result === 'string') {
+                            vtuber.addOverlay({
+                              id: `overlay-${Date.now()}`,
+                              type: 'image',
+                              content: reader.result,
+                              x: 0.18,
+                              y: 0.18,
+                              scale: 1,
+                              rotation: 0,
+                              opacity: 1,
+                            });
+                          }
+                        };
+                        reader.readAsDataURL(file);
+                      }}
+                    />
+                    <button
+                      className="btn-secondary"
+                      onClick={() => overlayImageInputRef.current?.click()}
+                    >
+                      🖼️ Add Image
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -641,6 +793,32 @@ function App() {
                     </label>
                   </div>
                 </div>
+
+                <h3 className="panel-title" style={{ marginTop: 24 }}>
+                  3D Avatar (.vrm)
+                </h3>
+                <div className="vrm-controls">
+                  <input
+                    ref={vrmInputRef}
+                    type="file"
+                    accept=".vrm"
+                    className="sr-only-input"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      e.target.value = '';
+                      void handleVrmUpload(file);
+                    }}
+                  />
+                  <button className="btn-secondary" onClick={() => vrmInputRef.current?.click()}>
+                    {vrmModelName ? `Loaded: ${vrmModelName}` : '🧍 Load Custom .vrm Model'}
+                  </button>
+                  {vrmModelName && (
+                    <button className="btn-secondary" onClick={handleVrmReset}>
+                      Reset to Procedural Avatar
+                    </button>
+                  )}
+                  {vrmError && <p className="vrm-error-text">{vrmError}</p>}
+                </div>
               </div>
             )}
           </div>
@@ -671,8 +849,8 @@ function App() {
                   <div className="error-state">
                     <div className="error-icon">⚠️</div>
                     <p className="error-text">{vtuber.error}</p>
-                    <button className="btn-primary" onClick={() => window.location.reload()}>
-                      Restart System
+                    <button className="btn-primary" onClick={startTracking}>
+                      Retry Tracking
                     </button>
                   </div>
                 ) : (
@@ -779,12 +957,16 @@ function App() {
               <span>MediaPipe WASM</span>
             </div>
             <div className="sys-row">
+              <span>Renderer</span>
+              <span>{rendererMode}</span>
+            </div>
+            <div className="sys-row">
               <span>Delegate</span>
               <span>{settings.delegate}</span>
             </div>
             <div className="sys-row">
               <span>Resolution</span>
-              <span>640×480</span>
+              <span>{vtuber.videoResolution}</span>
             </div>
             <div className="sys-row">
               <span>Overlays</span>

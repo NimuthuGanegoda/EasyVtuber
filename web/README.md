@@ -55,9 +55,10 @@ Overlays and the debug HUD are always drawn on the 2D canvas on top.
 ### Character assets
 
 Put a `.vrm` at `web/public/models/character.vrm` (Vite serves `public/` at the
-site root). If it is missing or fails to load, the app logs once and falls back —
-no configuration needed. The camera frames the model from its own bounding box,
-so chibi/VRM0 exports are not cropped.
+site root), or load any local `.vrm` file at runtime from the **Settings → 3D
+Avatar (.vrm)** picker. If none is present or it fails to load, the app logs
+once and falls back — no configuration needed. The camera frames the model from
+its own bounding box, so chibi/VRM0 exports are not cropped.
 
 ## Pose extraction
 
@@ -102,3 +103,5 @@ for the inline style attribute the app writes.
 - Backgrounds are CSS gradients (`gradient` / `none` / `blur`); an arbitrary
   image background is not wired up.
 - `blur` is a translucent dark panel, not a real backdrop blur of the avatar.
+- Overlays support emoji, custom text labels, and local uploaded images with X/Y
+  positioning, opacity, and scale controls.

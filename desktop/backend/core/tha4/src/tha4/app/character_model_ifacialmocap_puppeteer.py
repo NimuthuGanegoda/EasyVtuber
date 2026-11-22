@@ -68,9 +68,10 @@ class MainFrame(wx.Frame):
         self.update_source_image_bitmap()
         self.update_result_image_bitmap()
 
-    def create_receiving_socket(self):
+    def create_receiving_socket(self, bind_host: str = "127.0.0.1"):
+        self._bind_host = bind_host
         self.receiving_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.receiving_socket.bind(("", IFACIALMOCAP_PORT))
+        self.receiving_socket.bind((bind_host, IFACIALMOCAP_PORT))
         self.receiving_socket.setblocking(False)
 
     def create_timers(self):
@@ -97,7 +98,12 @@ class MainFrame(wx.Frame):
         try:
             address = (capture_device_ip_address, IFACIALMOCAP_PORT)
             out_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            out_socket.sendto(IFACIALMOCAP_START_STRING, address)
+            out_socket.connect(address)
+            local_host = out_socket.getsockname()[0]
+            if local_host and local_host != "0.0.0.0" and local_host != getattr(self, "_bind_host", "127.0.0.1"):
+                self.receiving_socket.close()
+                self.create_receiving_socket(local_host)
+            out_socket.send(IFACIALMOCAP_START_STRING)
         except Exception as e:
             message_dialog = wx.MessageDialog(self, str(e), "Error!", wx.OK)
             message_dialog.ShowModal()

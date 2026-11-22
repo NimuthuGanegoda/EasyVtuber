@@ -1,21 +1,24 @@
-import cv2
 import numpy as np
-from mediapipe.python.solutions.face_mesh_connections import FACEMESH_CONTOURS
-from mediapipe.python.solutions.face_mesh_connections import FACEMESH_FACE_OVAL
-from mediapipe.python.solutions.face_mesh_connections import FACEMESH_IRISES
-from mediapipe.python.solutions.face_mesh_connections import FACEMESH_LEFT_EYE
-from mediapipe.python.solutions.face_mesh_connections import FACEMESH_LEFT_EYEBROW
-from mediapipe.python.solutions.face_mesh_connections import FACEMESH_LEFT_IRIS
-from mediapipe.python.solutions.face_mesh_connections import FACEMESH_LIPS
-from mediapipe.python.solutions.face_mesh_connections import FACEMESH_RIGHT_EYE
-from mediapipe.python.solutions.face_mesh_connections import FACEMESH_RIGHT_EYEBROW
-from mediapipe.python.solutions.face_mesh_connections import FACEMESH_RIGHT_IRIS
-from mediapipe.python.solutions.face_mesh_connections import FACEMESH_TESSELATION
+
+try:
+    from mediapipe.python.solutions.face_mesh_connections import (
+        FACEMESH_LEFT_IRIS,
+        FACEMESH_RIGHT_IRIS,
+    )
+except ImportError:
+    # Allow headless unit testing without mediapipe installed; matches
+    # MediaPipe FaceMesh's 478-point iris ring indices.
+    FACEMESH_LEFT_IRIS = ((474, 475), (475, 476), (476, 477), (477, 474))
+    FACEMESH_RIGHT_IRIS = ((469, 470), (470, 471), (471, 472), (472, 469))
 
 from .facial_points import MOUTH_TOP, MOUTH_BOTTOM, MOUTH_LEFT1, MOUTH_LEFT2, MOUTH_RIGHT
 from .facial_points import IRIS_L_TOP, IRIS_L_BOTTOM, IRIS_L_LEFT, IRIS_L_RIGHT
 from .facial_points import IRIS_R_TOP, IRIS_R_BOTTOM, IRIS_R_LEFT, IRIS_R_RIGHT
 from .utils import get_distance
+
+_IRIS_LANDMARK_INDEX = 468
+_LEFT_EYE_CONTOUR = (IRIS_L_TOP, IRIS_L_BOTTOM, IRIS_L_LEFT, IRIS_L_RIGHT)
+_RIGHT_EYE_CONTOUR = (IRIS_R_TOP, IRIS_R_BOTTOM, IRIS_R_LEFT, IRIS_R_RIGHT)
 
 
 # pose vector index ------------------------------------------
@@ -53,6 +56,13 @@ class Landmark:
 # def set_pose(pose, pose_vector)
 
 
+def _safe_div(numerator, denominator, default=0.0):
+    if denominator == 0:
+        return default
+    value = numerator / denominator
+    return value if np.isfinite(value) else default
+
+
 def get_iris_center_point(landmarks, side=None):
     """
     calculate right or left side iris center 3d coordinate
@@ -64,23 +74,27 @@ def get_iris_center_point(landmarks, side=None):
         iris center 3d coordinate point (Landmark)
 
     Raises:
-        if you didn't specify side
+        ValueError: if you didn't specify side ('left'/'right')
 
     """
     if side is None:
-        raise 'please choose side `left` or `right`'
-    elif side.lower() == 'right' or side.lower() == 'r':
-        landmark_list = FACEMESH_RIGHT_IRIS
-    elif side.lower() == 'left' or side.lower() == 'l':
-        landmark_list = FACEMESH_LEFT_IRIS
+        raise ValueError("please choose side 'left' or 'right'")
+    side_norm = side.lower()
+    has_iris = len(landmarks) > _IRIS_LANDMARK_INDEX
+    if side_norm in ('right', 'r'):
+        indices = [edge[0] for edge in FACEMESH_RIGHT_IRIS] if has_iris else _RIGHT_EYE_CONTOUR
+    elif side_norm in ('left', 'l'):
+        indices = [edge[0] for edge in FACEMESH_LEFT_IRIS] if has_iris else _LEFT_EYE_CONTOUR
+    else:
+        raise ValueError(f"unsupported side {side!r}; choose 'left' or 'right'")
 
     temp = np.zeros(3)
-    for idx in list(map(lambda x: x[0], landmark_list)):
+    for idx in indices:
         pos_x, pos_y, pos_z = landmarks[idx].x, landmarks[idx].y, landmarks[idx].z
         temp[0] += pos_x
         temp[1] += pos_y
         temp[2] += pos_z
-    temp = temp / len(landmark_list)
+    temp = temp / len(indices)
     return Landmark(temp[0], temp[1], temp[2])
 
 
@@ -101,7 +115,7 @@ def get_pose(facial_landmarks, debug_image=None):
 
     mouth_h = facial_landmarks[MOUTH_TOP].y - facial_landmarks[MOUTH_BOTTOM].y
     mouth_w = facial_landmarks[MOUTH_RIGHT].x - (facial_landmarks[MOUTH_LEFT1].x + facial_landmarks[MOUTH_LEFT2].x) / 2
-    mouth_ratio = mouth_h / mouth_w
+    mouth_ratio = _safe_div(mouth_h, mouth_w)
 
     x_angle = np.arctan2(facial_landmarks[197].y - facial_landmarks[9].y, facial_landmarks[197].z - facial_landmarks[9].z)
     y_angle = np.arctan2(facial_landmarks[IRIS_L_TOP].z - facial_landmarks[IRIS_R_TOP].z, facial_landmarks[IRIS_L_TOP].x - facial_landmarks[IRIS_R_TOP].x)
@@ -121,15 +135,22 @@ def get_pose(facial_landmarks, debug_image=None):
     iris_rotation_r_w_temp = np.sqrt(
         (iris_r_center.x - facial_landmarks[IRIS_R_RIGHT].x) ** 2 + (iris_r_center.y - facial_landmarks[IRIS_R_RIGHT].y) ** 2)
 
-    eye_x_ratio = ((iris_rotation_l_w_temp / iris_rotation_l_w + iris_rotation_r_w_temp / iris_rotation_r_w) - 1) * 3
-    eye_y_ratio = ((iris_rotation_l_h_temp / iris_rotation_l_h + iris_rotation_r_h_temp / iris_rotation_r_h) - 1) * 3
+    eye_x_ratio = ((_safe_div(iris_rotation_l_w_temp, iris_rotation_l_w) + _safe_div(iris_rotation_r_w_temp, iris_rotation_r_w)) - 1) * 3
+    eye_y_ratio = ((_safe_div(iris_rotation_l_h_temp, iris_rotation_l_h) + _safe_div(iris_rotation_r_h_temp, iris_rotation_r_h)) - 1) * 3
 
-    eye_l_h_temp = 1 - 2 * (facial_landmarks[IRIS_R_BOTTOM].y - facial_landmarks[IRIS_R_TOP].y) / (
-                facial_landmarks[IRIS_R_LEFT].x - facial_landmarks[IRIS_R_RIGHT].x)
-    eye_r_h_temp = 1 - 2 * (facial_landmarks[IRIS_L_BOTTOM].y - facial_landmarks[IRIS_L_TOP].y) / (
-                facial_landmarks[IRIS_L_LEFT].x - facial_landmarks[IRIS_L_RIGHT].x)
+    eye_l_h_temp = 1 - 2 * _safe_div(
+        facial_landmarks[IRIS_R_BOTTOM].y - facial_landmarks[IRIS_R_TOP].y,
+        facial_landmarks[IRIS_R_LEFT].x - facial_landmarks[IRIS_R_RIGHT].x,
+        default=0.5,
+    )
+    eye_r_h_temp = 1 - 2 * _safe_div(
+        facial_landmarks[IRIS_L_BOTTOM].y - facial_landmarks[IRIS_L_TOP].y,
+        facial_landmarks[IRIS_L_LEFT].x - facial_landmarks[IRIS_L_RIGHT].x,
+        default=0.5,
+    )
 
     if debug_image is not None:
+        import cv2
         h, w, c = debug_image.shape
 
         # draw iris

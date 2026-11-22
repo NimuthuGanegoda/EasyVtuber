@@ -1,7 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { BLUSH_R, blushRadius, eyeOffsets, eyeOpenness, mouthOpening, toRgba } from './spec';
-import { smoothPose } from './canvas2d';
+import { drawOverlays, smoothPose } from './canvas2d';
 import type { PoseData } from '../utils/poseExtractor';
+import { MP_VERSION } from '../hooks/useVtuber';
+import pkg from '../../package.json';
 
 describe('toRgba', () => {
   it('converts 6-digit hex to normalized floats', () => {
@@ -97,5 +99,53 @@ describe('smoothPose', () => {
     expect(next.mouthRatio).toBeLessThan(1);
     expect(next.xAngle).toBeGreaterThan(0);
     expect(next.xAngle).toBeLessThan(next.mouthRatio);
+  });
+});
+
+describe('drawOverlays', () => {
+  it('renders emoji and text overlays while skipping blank or unsafe image URLs', () => {
+    const calls: string[] = [];
+    const ctx = {
+      save: vi.fn(),
+      restore: vi.fn(),
+      translate: vi.fn(),
+      rotate: vi.fn(),
+      fillText: vi.fn((text: string) => calls.push(`fill:${text}`)),
+      strokeText: vi.fn((text: string) => calls.push(`stroke:${text}`)),
+      drawImage: vi.fn(),
+      font: '',
+      globalAlpha: 1,
+      textAlign: 'left',
+      textBaseline: 'alphabetic',
+      lineWidth: 1,
+      strokeStyle: '',
+      fillStyle: '',
+    } as unknown as CanvasRenderingContext2D;
+
+    drawOverlays(ctx, [
+      { id: '1', type: 'emoji', content: '🌸', x: 0.5, y: 0.5, scale: 1, rotation: 0, opacity: 1 },
+      { id: '2', type: 'text', content: 'LIVE', x: 0.5, y: 0.9, scale: 1, rotation: 0, opacity: 1 },
+      { id: '3', type: 'text', content: '   ', x: 0.5, y: 0.5, scale: 1, rotation: 0, opacity: 1 },
+      {
+        id: '4',
+        type: 'image',
+        content: 'https://evil.example/a.png',
+        x: 0.2,
+        y: 0.2,
+        scale: 1,
+        rotation: 0,
+        opacity: 1,
+      },
+    ]);
+
+    expect(calls).toEqual(['fill:🌸', 'stroke:LIVE', 'fill:LIVE']);
+    expect(ctx.drawImage).not.toHaveBeenCalled();
+  });
+});
+
+describe('MP_VERSION sync', () => {
+  it('matches @mediapipe/tasks-vision version in package.json', () => {
+    const depRange = pkg.dependencies['@mediapipe/tasks-vision'];
+    expect(depRange).toContain(MP_VERSION);
   });
 });

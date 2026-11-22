@@ -6,7 +6,35 @@ preflight check and the VMC client now share one implementation, so validation
 and behaviour cannot disagree.
 """
 
+import socket
+
 DEFAULT_VMC_PORT = 39539
+DEFAULT_OSF_PORT = 11573
+DEFAULT_IFM_PORT = 49983
+
+
+def resolve_udp_bind_host(peer_host: str, port: int) -> str:
+    """Choose the local interface IP to receive UDP replies from *peer_host*.
+
+    Loopback peers bind loopback directly; remote LAN peers probe the routing
+    table with a connected UDP socket (no packet sent) instead of binding ''
+    on every network interface.
+    """
+    host = (peer_host or '').strip().lower()
+    if host in ('', 'localhost', '127.0.0.1'):
+        return '127.0.0.1'
+    if host == '::1':
+        return '::1'
+    family = socket.AF_INET6 if ':' in host else socket.AF_INET
+    try:
+        with socket.socket(family, socket.SOCK_DGRAM) as probe:
+            probe.connect((peer_host, port))
+            local_ip = probe.getsockname()[0]
+            if local_ip and local_ip not in ('0.0.0.0', '::'):
+                return local_ip
+    except OSError:
+        pass
+    return '::1' if family == socket.AF_INET6 else '127.0.0.1'
 
 
 def parse_host_port(value: str, default_port: int = DEFAULT_VMC_PORT) -> tuple:

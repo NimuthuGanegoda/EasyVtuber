@@ -8,6 +8,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { VRM, VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
 import { Face } from 'kalidokit';
+import type { ExpressionState } from '../types';
 import type { Landmark } from './poseExtractor';
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
@@ -90,6 +91,27 @@ export class VRMCharacterRenderer {
     return this.loading;
   }
 
+  unloadModel(): void {
+    if (this.vrm) {
+      this.scene.remove(this.vrm.scene);
+      VRMUtils.deepDispose(this.vrm.scene);
+      this.vrm = null;
+    }
+    this.ready = false;
+    this.smoothed = {
+      blinkL: 0,
+      blinkR: 0,
+      aa: 0,
+      ih: 0,
+      ou: 0,
+      ee: 0,
+      oh: 0,
+      headX: 0,
+      headY: 0,
+      headZ: 0,
+    };
+  }
+
   async loadModel(url: string): Promise<boolean> {
     if (!this.renderer) return false;
     this.loading = true;
@@ -100,6 +122,7 @@ export class VRMCharacterRenderer {
       const vrm = gltf.userData.vrm as VRM | undefined;
       if (!vrm) throw new Error('Loaded file has no VRM extension data');
 
+      this.unloadModel();
       VRMUtils.removeUnnecessaryVertices(gltf.scene);
       VRMUtils.removeUnnecessaryJoints(gltf.scene);
       // VRM 0.x models face +Z (away from a default-facing camera); rotate
@@ -115,7 +138,6 @@ export class VRMCharacterRenderer {
       return true;
     } catch (e) {
       console.warn('VRM: failed to load model:', e);
-      this.ready = false;
       return false;
     } finally {
       this.loading = false;
@@ -155,20 +177,22 @@ export class VRMCharacterRenderer {
   }
 
   /** Returns true if it drew a frame (mirrors WebGLCharacterRenderer's contract). */
-  render(landmarks: Landmark[] | null): boolean {
+  render(landmarks: Landmark[] | null, expression?: ExpressionState): boolean {
     if (!this.ready || !this.vrm || !this.renderer) return false;
     const delta = Math.min(this.clock.getDelta(), 0.1);
 
     if (landmarks && landmarks.length > 0) {
       try {
         const riggedFace = Face.solve(landmarks, { runtime: 'mediapipe', video: null });
-        if (riggedFace) this.applyFace(riggedFace);
+        if (riggedFace) this.applyFace(riggedFace, expression);
       } catch (err) {
         // Kalidokit throws on partial landmark sets. Never let that escape:
         // this is called from the single RAF loop that draws everything, so an
         // uncaught throw here would freeze the whole viewport.
         console.warn('VRM: could not solve face pose, holding last pose', err);
       }
+    } else if (expression) {
+      this.applyManualExpressions(expression);
     }
 
     this.vrm.update(delta);
@@ -176,7 +200,22 @@ export class VRMCharacterRenderer {
     return true;
   }
 
-  private applyFace(riggedFace: NonNullable<ReturnType<typeof Face.solve>>): void {
+  private applyManualExpressions(expression: ExpressionState): void {
+    const em = this.vrm?.expressionManager;
+    if (!em) return;
+    const smile = expression.eyeSmile > 0.5 ? 1 : clamp01(expression.cheekPuff * 0.45);
+    em.setValue('happy', smile);
+    em.setValue(
+      'surprised',
+      expression.eyeSmile > 0.5 ? 0 : clamp01(expression.eyebrowRaise * 0.7),
+    );
+    em.setValue('aa', Math.max(clamp01(this.smoothed.aa), clamp01(expression.mouthOpen)));
+  }
+
+  private applyFace(
+    riggedFace: NonNullable<ReturnType<typeof Face.solve>>,
+    expression?: ExpressionState,
+  ): void {
     const vrm = this.vrm;
     if (!vrm) return;
     const s = this.smoothed;
@@ -195,8 +234,9 @@ export class VRMCharacterRenderer {
       // blink expressions are the opposite (0=open, 1=fully closed).
       s.blinkL = lerp(s.blinkL, 1 - riggedFace.eye.l, SMOOTH_BLINK);
       s.blinkR = lerp(s.blinkR, 1 - riggedFace.eye.r, SMOOTH_BLINK);
-      em.setValue('blinkLeft', clamp01(s.blinkL));
-      em.setValue('blinkRight', clamp01(s.blinkR));
+      const smileActive = (expression?.eyeSmile ?? 0) > 0.5;
+      em.setValue('blinkLeft', smileActive ? 0 : clamp01(s.blinkL));
+      em.setValue('blinkRight', smileActive ? 0 : clamp01(s.blinkR));
 
       const m = riggedFace.mouth.shape;
       s.aa = lerp(s.aa, m.A, SMOOTH_MOUTH);
@@ -204,11 +244,15 @@ export class VRMCharacterRenderer {
       s.ou = lerp(s.ou, m.U, SMOOTH_MOUTH);
       s.ee = lerp(s.ee, m.E, SMOOTH_MOUTH);
       s.oh = lerp(s.oh, m.O, SMOOTH_MOUTH);
-      em.setValue('aa', clamp01(s.aa));
+      em.setValue('aa', Math.max(clamp01(s.aa), clamp01(expression?.mouthOpen ?? 0)));
       em.setValue('ih', clamp01(s.ih));
       em.setValue('ou', clamp01(s.ou));
       em.setValue('ee', clamp01(s.ee));
       em.setValue('oh', clamp01(s.oh));
+
+      if (expression) {
+        this.applyManualExpressions(expression);
+      }
     }
   }
 

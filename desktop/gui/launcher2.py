@@ -131,13 +131,15 @@ hasTRTSupport = is_nvidia_gpu()
 def refreshList():
     global characterList
     characterList = []
+    if not os.path.isdir(dirPath):
+        return
     for item in sorted(os.listdir(dirPath), key=lambda x: -os.path.getmtime(os.path.join(dirPath, x))):
-        if '.png' == item[-4:]:
+        if item.lower().endswith('.png'):
             characterList.append(item[:-4])
 
 
 def scanStudentModels():
-    """Scan custom_tha4_models directory for student models"""
+    """Scan custom_tha4_models directory for student models (TRT or ONNX)"""
     global studentModelList, studentModelCharacterMap
     studentModelList = []
     studentModelCharacterMap = {}
@@ -148,16 +150,16 @@ def scanStudentModels():
             for model_name in os.listdir(custom_models_path):
                 model_path = os.path.join(custom_models_path, model_name)
                 if os.path.isdir(model_path):
-                    # Check if it's a valid student model
                     face_trt = os.path.join(model_path, 'face_morpher.trt')
                     body_trt = os.path.join(model_path, 'body_morpher.trt')
-                    character_png = os.path.join(model_path,
-                                                 'character.png')
-                    has_trt = (os.path.exists(face_trt) and
-                               os.path.exists(body_trt))
+                    face_onnx = os.path.join(model_path, 'face_morpher.onnx')
+                    body_onnx = os.path.join(model_path, 'body_morpher.onnx')
+                    character_png = os.path.join(model_path, 'character.png')
+                    has_trt = os.path.exists(face_trt) and os.path.exists(body_trt)
+                    has_onnx = os.path.exists(face_onnx) and os.path.exists(body_onnx)
                     has_character = os.path.exists(character_png)
 
-                    if has_trt and has_character:
+                    if (has_trt or has_onnx) and has_character:
                         studentModelList.append(model_name)
                         studentModelCharacterMap[model_name] = model_name
         except Exception:
@@ -348,6 +350,8 @@ class OptionPanel(wx.Panel):
     def GetValue(self):
         if self.type == 0:
             ret = self.control.GetSelection()
+            if ret == wx.NOT_FOUND:
+                return self.mapping[0] if self.mapping else None
         elif self.type == 1:
             ret = self.control.GetValue()
         elif self.type == 2:
