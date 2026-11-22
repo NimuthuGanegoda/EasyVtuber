@@ -120,22 +120,18 @@ function writeCache(repo: string, contributors: Contributor[]): void {
 }
 
 export function useContributors(repo = 'NimuthuGanegoda/EasyVtuber'): UseContributorsResult {
-  const [contributors, setContributors] = useState<Contributor[]>(FALLBACK_CONTRIBUTORS);
-  const [loading, setLoading] = useState(true);
+  const [contributors, setContributors] = useState<Contributor[]>(
+    () => readCache(repo)?.contributors ?? FALLBACK_CONTRIBUTORS,
+  );
+  const [loading, setLoading] = useState(() => readCache(repo) === null);
   const [error, setError] = useState<string | null>(null);
-  const [fromCache, setFromCache] = useState(false);
+  const [fromCache, setFromCache] = useState(() => readCache(repo) !== null);
 
   useEffect(() => {
     let cancelled = false;
     const controller = new AbortController();
     const timeout = window.setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-
     const cached = readCache(repo);
-    if (cached) {
-      setContributors(cached.contributors);
-      setFromCache(true);
-      setLoading(false);
-    }
 
     async function fetchContributors() {
       try {

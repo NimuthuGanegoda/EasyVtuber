@@ -6,7 +6,7 @@ import onnxruntime as ort
 import onnx
 import numpy as np
 from typing import List
-from ezvtb_rt.ort_utils import createORTSession
+from ezvtb_rt.ort_utils import createORTSession, get_ort_device
 
 
 
@@ -42,13 +42,7 @@ class THA4ORTSessions:
             os.path.join(tha4_dir, merge_filename), device_id=0)
 
         # Dynamically determine device based on the active provider
-        active_provider = self.merged.get_providers()[0]
-        if active_provider == 'DmlExecutionProvider':
-            self.device = 'dml'
-        elif active_provider == 'OpenVINOExecutionProvider':
-            self.device = 'openvino' # Supports Intel NPU
-        else:
-            self.device = 'cpu'
+        self.device = get_ort_device(self.merged)
         
         print('Using THA4 ORT with device:', self.device)
         

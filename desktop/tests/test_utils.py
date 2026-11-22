@@ -6,7 +6,8 @@ import pytest
 
 from backend.utils import output_layout
 from backend.utils.mappers import beta_mapper, min_cutoff_mapper
-from backend.utils.net import parse_host_port
+from backend.utils.net import parse_host_port, resolve_udp_bind_host
+from backend.utils.pose import Landmark, get_iris_center_point, get_pose
 
 
 class TestParseHostPort:
@@ -116,3 +117,122 @@ class TestOutputLayoutAgreement:
         if bgr:
             assert opaque, 'BGR frames require a 3-channel buffer'
         assert output_layout.ret_channel_count(args) == (3 if opaque else 4)
+
+
+class TestResolveUdpBindHost:
+    @pytest.mark.parametrize('peer, expected', [
+        ('127.0.0.1', '127.0.0.1'),
+        ('localhost', '127.0.0.1'),
+        ('', '127.0.0.1'),
+        ('::1', '::1'),
+    ])
+    def test_loopback_peers_stay_on_loopback(self, peer, expected):
+        assert resolve_udp_bind_host(peer, 49983) == expected
+
+
+class TestPoseExtraction:
+    @staticmethod
+    def _make_landmarks(count: int, collapsed: bool = False):
+        if collapsed:
+            return [Landmark(0.5, 0.5, 0.0) for _ in range(count)]
+        points = []
+        for i in range(count):
+            col = i % 20
+            row = (i // 20) % 20
+            points.append(Landmark(0.25 + col * 0.025, 0.2 + row * 0.03, -0.01 + (i % 7) * 0.002))
+        return points
+
+    @pytest.mark.parametrize('count', [468, 478])
+    def test_get_pose_works_with_and_without_iris_landmarks(self, count):
+        pose = get_pose(self._make_landmarks(count))
+        assert len(pose) == 8
+        assert all(float('-inf') < float(v) < float('inf') for v in pose)
+
+    def test_get_pose_handles_collapsed_landmarks_without_zero_division(self):
+        pose = get_pose(self._make_landmarks(478, collapsed=True))
+        assert len(pose) == 8
+        assert all(float('-inf') < float(v) < float('inf') for v in pose)
+
+    def test_get_iris_center_point_rejects_missing_or_invalid_side(self):
+        landmarks = self._make_landmarks(468)
+        with pytest.raises(ValueError):
+            get_iris_center_point(landmarks, None)
+        with pytest.raises(ValueError):
+            get_iris_center_point(landmarks, 'center')
+
+
+class TestPreprocess:
+    @staticmethod
+    def _import_preprocess(monkeypatch):
+        """Import backend.utils.preprocess even in dev envs without Pillow."""
+        import importlib.util
+        import sys
+        import types
+
+        if importlib.util.find_spec('PIL') is not None:
+            from backend.utils import preprocess
+            return preprocess, False
+
+        fake_pil = types.ModuleType('PIL')
+        fake_image_mod = types.ModuleType('PIL.Image')
+        fake_image_mod.LANCZOS = 1
+        fake_image_mod.merge = lambda mode, channels: (mode, channels)
+        fake_pil.Image = fake_image_mod
+        monkeypatch.setitem(sys.modules, 'PIL', fake_pil)
+        monkeypatch.setitem(sys.modules, 'PIL.Image', fake_image_mod)
+        from backend.utils import preprocess
+        monkeypatch.setattr(preprocess.Image, 'merge', fake_image_mod.merge)
+        return preprocess, True
+
+    def test_apply_color_curves_applies_all_matching_channels(self, monkeypatch):
+        preprocess, stubbed = self._import_preprocess(monkeypatch)
+        if not stubbed:
+            from PIL import Image
+            img = Image.new('RGBA', (2, 2), (100, 100, 100, 128))
+            out = preprocess.apply_color_curves(
+                img, {'rgb': [(0, 0), (255, 255)], 'a': [(0, 0), (128, 255), (255, 255)]}
+            )
+            assert out.getpixel((0, 0))[3] == 255
+            return
+
+        class _FakeChannel:
+            def __init__(self, value):
+                self.value = value
+
+            def point(self, lut):
+                return _FakeChannel(lut[self.value])
+
+        class _FakeImage:
+            mode = 'RGBA'
+
+            def __init__(self, values):
+                self._channels = [_FakeChannel(v) for v in values]
+
+            def split(self):
+                return list(self._channels)
+
+        out_mode, out_channels = preprocess.apply_color_curves(
+            _FakeImage([100, 100, 100, 128]),
+            {'rgb': [(0, 0), (255, 255)], 'a': [(0, 0), (128, 255), (255, 255)]},
+        )
+        assert out_mode == 'RGBA'
+        assert [c.value for c in out_channels] == [100, 100, 100, 255]
+
+    def test_apply_color_curves_returns_image_when_empty(self, monkeypatch):
+        preprocess, stubbed = self._import_preprocess(monkeypatch)
+        if not stubbed:
+            from PIL import Image
+            img = Image.new('RGBA', (2, 2), (10, 20, 30, 40))
+            out = preprocess.apply_color_curves(img, {})
+            assert out.getpixel((0, 0)) == (10, 20, 30, 40)
+            return
+
+        class _FakeImage:
+            mode = 'RGBA'
+
+            def split(self):
+                return [10, 20, 30, 40]
+
+        out_mode, out_channels = preprocess.apply_color_curves(_FakeImage(), {})
+        assert out_mode == 'RGBA'
+        assert out_channels == [10, 20, 30, 40]

@@ -428,17 +428,54 @@ export function drawCharacter(
   ctx.restore();
 }
 
+const overlayImageCache = new Map<string, HTMLImageElement>();
+
+function getOverlayImage(src: string): HTMLImageElement | null {
+  if (!src || !/^(?:data:image\/|blob:)/i.test(src) || typeof Image === 'undefined') {
+    return null;
+  }
+  let img = overlayImageCache.get(src);
+  if (!img) {
+    img = new Image();
+    img.src = src;
+    overlayImageCache.set(src, img);
+  }
+  return img.complete && img.naturalWidth > 0 ? img : null;
+}
+
 export function drawOverlays(ctx: CanvasRenderingContext2D, overlays: OverlayItem[]) {
   for (const item of overlays) {
-    if (item.type !== 'emoji') continue;
+    if (!item.content.trim()) continue;
     ctx.save();
-    ctx.font = `${32 * item.scale}px serif`;
-    ctx.globalAlpha = item.opacity;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
+    ctx.globalAlpha = Math.max(0, Math.min(1, item.opacity));
     ctx.translate(item.x * CANVAS_SIZE, item.y * CANVAS_SIZE);
     ctx.rotate((item.rotation * Math.PI) / 180);
-    ctx.fillText(item.content, 0, 0);
+
+    if (item.type === 'emoji') {
+      ctx.font = `${32 * item.scale}px serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(item.content, 0, 0);
+    } else if (item.type === 'text') {
+      ctx.font = `700 ${20 * item.scale}px Inter, system-ui, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.lineWidth = Math.max(2, 3 * item.scale);
+      ctx.strokeStyle = 'rgba(10, 10, 12, 0.85)';
+      ctx.strokeText(item.content, 0, 0);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText(item.content, 0, 0);
+    } else if (item.type === 'image') {
+      const img = getOverlayImage(item.content);
+      if (img) {
+        const baseSize = 72 * item.scale;
+        const aspect = img.naturalWidth / img.naturalHeight;
+        const w = aspect >= 1 ? baseSize : baseSize * aspect;
+        const h = aspect >= 1 ? baseSize / aspect : baseSize;
+        ctx.drawImage(img, -w / 2, -h / 2, w, h);
+      }
+    }
+
     ctx.restore();
   }
 }

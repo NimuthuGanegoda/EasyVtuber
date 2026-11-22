@@ -3,6 +3,7 @@ from .args import args
 import socket
 import struct
 import numpy as np
+from ..utils.net import DEFAULT_OSF_PORT, parse_host_port
 from ..utils.shared_mem_guard import SharedMemoryGuard
 from ..utils.fps import FPS
 from ..utils.filter import OneEuroFilterNumpy
@@ -13,8 +14,7 @@ class OSFClientProcess(Process):
     def __init__(self, pose_position_shm: shared_memory.SharedMemory):
         super().__init__()
         self.pose_position_shm = pose_position_shm
-        self.address = args.osf_input.split(':')[0]
-        self.port = int(args.osf_input.split(':')[1])
+        self.address, self.port = parse_host_port(args.osf_input, default_port=DEFAULT_OSF_PORT)
         self.fps = Value('f', 0.0)
 
     def run(self):
@@ -22,8 +22,9 @@ class OSFClientProcess(Process):
         np_pose_shm = np.ndarray((45,), dtype=np.float32, buffer=self.pose_position_shm.buf[:45 * 4])
         np_position_shm = np.ndarray((4,), dtype=np.float32, buffer=self.pose_position_shm.buf[45 * 4:45 * 4 + 4 * 4])
         
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.socket.bind(("", self.port))
+        family = socket.AF_INET6 if ':' in self.address else socket.AF_INET
+        self.socket = socket.socket(family, socket.SOCK_DGRAM)
+        self.socket.bind((self.address, self.port))
         self.socket.settimeout(None) # wait indefinitely
 
         print("Warming up OpenSeeFace connection...")

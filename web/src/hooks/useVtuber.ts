@@ -13,7 +13,7 @@ import type {
 export type PoseData = PoseExtractData;
 export type { BackgroundType, ExpressionState, HotkeyAction, InferenceDelegate, OverlayItem };
 
-const MP_VERSION = '0.10.18';
+export const MP_VERSION = '1.2.3';
 const WASM_BASE = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MP_VERSION}/wasm`;
 const FACE_MODEL_URL =
   'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task';
@@ -46,6 +46,7 @@ export interface VtuberState {
   maxFps: number;
   delegate: InferenceDelegate;
   cameras: MediaDeviceInfo[];
+  videoResolution: string;
 }
 
 export interface LoadModelOptions {
@@ -62,8 +63,7 @@ const DEFAULT_EXPRESSION: ExpressionState = {
 };
 
 const DEFAULT_OVERLAYS: OverlayItem[] = [
-  { id: '1', type: 'emoji', content: '🌸', x: 0.8, y: 0.1, scale: 1, rotation: 0, opacity: 0.8 },
-  { id: '2', type: 'image', content: '', x: 0.1, y: 0.1, scale: 1, rotation: 0, opacity: 1 },
+  { id: '1', type: 'emoji', content: '🌸', x: 0.85, y: 0.12, scale: 1, rotation: 0, opacity: 0.85 },
 ];
 
 const DEFAULT_HOTKEYS: HotkeyAction[] = [
@@ -179,13 +179,16 @@ export function useVtuber() {
     maxFps: 30,
     delegate: 'GPU',
     cameras: [],
+    videoResolution: '640×480',
   });
 
   // Keep refs in sync with the latest render so the stable loops below read
   // current values without being re-created.
-  hotkeysRef.current = state.hotkeys;
-  maxFpsRef.current = state.maxFps;
-  backgroundRef.current = state.background;
+  useEffect(() => {
+    hotkeysRef.current = state.hotkeys;
+    maxFpsRef.current = state.maxFps;
+    backgroundRef.current = state.background;
+  }, [state.hotkeys, state.maxFps, state.background]);
 
   const faceLandmarkerRef = useRef<FaceLandmarker | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -208,7 +211,9 @@ export function useVtuber() {
   const lastWorkerIdRef = useRef(0);
 
   const useWorkerRef = useRef(state.useWorker);
-  useWorkerRef.current = state.useWorker;
+  useEffect(() => {
+    useWorkerRef.current = state.useWorker;
+  }, [state.useWorker]);
 
   const updateState = useCallback((partial: Partial<VtuberState>) => {
     setState((prev) => ({ ...prev, ...partial }));
@@ -320,7 +325,7 @@ export function useVtuber() {
             },
           });
         } catch (camErr: unknown) {
-          throw new Error(describeCameraError(camErr, options.deviceId));
+          throw new Error(describeCameraError(camErr, options.deviceId), { cause: camErr });
         }
         if (generation !== generationRef.current) {
           stream.getTracks().forEach((track) => track.stop());
@@ -335,7 +340,16 @@ export function useVtuber() {
         lastStateSyncRef.current = 0;
         lastDetectRef.current = 0;
         fpsFrames.current = [];
-        updateState({ status: 'Core Systems Online', progress: 100, isLoaded: true });
+        const videoResolution =
+          videoElement.videoWidth > 0 && videoElement.videoHeight > 0
+            ? `${videoElement.videoWidth}×${videoElement.videoHeight}`
+            : '640×480';
+        updateState({
+          status: 'Core Systems Online',
+          progress: 100,
+          isLoaded: true,
+          videoResolution,
+        });
         // Labels are only exposed after permission is granted, so this is the
         // first moment the source picker can show real camera names.
         void refreshCameras();
@@ -358,7 +372,14 @@ export function useVtuber() {
   const runFrame = useCallback(() => {
     const video = videoRef.current;
     const faceLandmarker = faceLandmarkerRef.current;
-    if (!video || !faceLandmarker) return;
+    if (
+      !video ||
+      !faceLandmarker ||
+      video.paused ||
+      video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA
+    ) {
+      return;
+    }
 
     const now = performance.now();
     const minInterval = maxFpsRef.current > 0 ? 1000 / maxFpsRef.current : 0;
@@ -488,7 +509,10 @@ export function useVtuber() {
       workerRef.current = worker;
     } catch (err) {
       console.warn('Pose worker init failed, using main-thread extraction:', err);
-      setState((prev) => ({ ...prev, useWorker: false }));
+      useWorkerRef.current = false;
+      queueMicrotask(() => {
+        setState((prev) => ({ ...prev, useWorker: false }));
+      });
     }
 
     return () => {

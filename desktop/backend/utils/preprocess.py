@@ -28,6 +28,22 @@ def resize_to_512_center(img, fill_color=(0, 0, 0, 0)):
 
     return canvas
 
+def _build_channel_lut(points):
+    """Build a 256-entry uint8 lookup table from (x, y) control points."""
+    sorted_points = sorted(points, key=lambda pt: pt[0])
+    xs, ys = zip(*sorted_points)
+    interpolation_kind = 'quadratic' if len(sorted_points) >= 3 else 'linear'
+    interpolator = interp1d(
+        xs,
+        ys,
+        kind=interpolation_kind,
+        bounds_error=False,
+        fill_value=(ys[0], ys[-1]),
+    )
+    y_new = np.clip(interpolator(np.arange(256)), 0, 255).astype(np.uint8)
+    return y_new.tolist()
+
+
 def apply_color_curves(img, curves):
     """
     对图像应用颜色曲线调整
@@ -44,14 +60,13 @@ def apply_color_curves(img, curves):
     if img.mode == 'P':
         img = img.convert('RGB')
 
-    # 分离通道
     channels = list(img.split())
 
-    # 处理每个颜色通道
-    for ch_idx, ch_name in enumerate(['r', 'g', 'b','a']):
-        # 合并全局和通道特定曲线
+    for ch_idx, ch_name in enumerate(['r', 'g', 'b', 'a']):
+        if ch_idx >= len(channels):
+            continue
         combined_points = []
-        if 'rgb' in curves and not ch_name=='a':
+        if 'rgb' in curves and ch_name != 'a':
             combined_points.extend(curves['rgb'])
         if ch_name in curves:
             combined_points.extend(curves[ch_name])
@@ -59,33 +74,10 @@ def apply_color_curves(img, curves):
         if not combined_points:
             continue
 
-        # 生成LUT
-        points = sorted(combined_points, key=lambda x: x[0])
-        xs, ys = zip(*points)
-
-        # 自动选择插值方式
-        interpolation_kind = 'quadratic' if len(points) >= 3 else 'linear'
-        interpolator = interp1d(
-            xs, ys,
-            kind=interpolation_kind,
-            bounds_error=False,
-            fill_value=(ys[0], ys[-1])
-        )
-
-        # 创建查找表
-        x_range = np.arange(256)
-        y_new = interpolator(x_range)
-        y_new = np.clip(y_new, 0, 255).astype(np.uint8)
-        lut = y_new.tolist()
-
-        # 应用LUT
+        lut = _build_channel_lut(combined_points)
         channels[ch_idx] = channels[ch_idx].point(lut)
 
-        # 合并通道并保存
-        merged_channels = channels
-        img_out = Image.merge(img.mode, merged_channels)
-
-        return img_out
+    return Image.merge(img.mode, channels)
 
 
         # 使用示例

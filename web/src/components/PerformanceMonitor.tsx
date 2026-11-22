@@ -51,9 +51,11 @@ export function PerformanceMonitor({
   const fpsRef = useRef(fps);
   const inferRef = useRef(inferenceTime);
   const trackingRef = useRef(isTracking);
-  fpsRef.current = fps;
-  inferRef.current = inferenceTime;
-  trackingRef.current = isTracking;
+  useEffect(() => {
+    fpsRef.current = fps;
+    inferRef.current = inferenceTime;
+    trackingRef.current = isTracking;
+  }, [fps, inferenceTime, isTracking]);
 
   // Only sample while the panel is open.
   useEffect(() => {
