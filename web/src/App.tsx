@@ -1,4 +1,13 @@
-import { type DragEvent, type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
+import {
+  type DragEvent,
+  type PointerEvent,
+  type ReactNode,
+  type WheelEvent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import {
   useVtuber,
   BackgroundType,
@@ -8,15 +17,39 @@ import {
 } from './hooks/useVtuber';
 import { useContributors, FALLBACK_COUNT } from './hooks/useContributors';
 import { useSettings, isMaxFps, MAX_FPS_CHOICES } from './hooks/useSettings';
+import { useAudioLipSync } from './hooks/useAudioLipSync';
+import { useStageRecorder } from './hooks/useStageRecorder';
+import {
+  DEFAULT_STAGE_CAMERA,
+  LIGHTING_PRESETS,
+  parseProfileJson,
+  useProfiles,
+} from './hooks/useProfiles';
+import type {
+  StageCameraConfig,
+  StageLightingConfig,
+  StudioProfileData,
+  TrackingTuning,
+} from './types';
 import { WebGLCharacterRenderer } from './utils/webglRenderer';
 import { VRMCharacterRenderer } from './utils/vrmRenderer';
+import {
+  DEFAULT_TRACKING_TUNING,
+  applyTrackingPipeline,
+  captureCalibration,
+  smoothPoseWithFactor,
+  type AutoBlinkState,
+  type PoseCalibration,
+} from './utils/trackingFilters';
 import { PerformanceMonitor } from './components/PerformanceMonitor';
+import { WebcamPreview } from './components/WebcamPreview';
 import {
   AlertTriangleIcon,
   CameraIcon,
   CheckIcon,
   ChevronDownIcon,
   CubeIcon,
+  DownloadIcon,
   EyeIcon,
   EyeOffIcon,
   FlipHorizontalIcon,
@@ -24,24 +57,30 @@ import {
   KeyboardIcon,
   LayersIcon,
   MaximizeIcon,
+  MicIcon,
+  MicOffIcon,
   MinimizeIcon,
   PaletteIcon,
   PanelLeftIcon,
   PanelRightIcon,
   PauseIcon,
   PlayIcon,
+  RecordIcon,
   RefreshIcon,
   RotateCcwIcon,
+  SaveIcon,
   SlidersIcon,
   SmileIcon,
+  StopSquareIcon,
+  SunIcon,
+  TargetIcon,
   TrashIcon,
   UploadIcon,
+  VideoIcon,
 } from './components/Icons';
-import { drawCharacter, drawHUD, drawOverlays, smoothPose } from './character/canvas2d';
+import { drawCharacter, drawHUD, drawOverlays } from './character/canvas2d';
 import { CANVAS_SIZE } from './character/spec';
 
-// Progressive enhancement: loads ./models/character.vrm if present, otherwise
-// falls back to procedural WebGL / Canvas2D.
 const VRM_MODEL_URL = './models/character.vrm';
 
 type TabId = 'expressions' | 'backgrounds' | 'overlays' | 'hotkeys' | 'settings';
@@ -50,22 +89,97 @@ const TABS: { id: TabId; label: string; icon: ReactNode }[] = [
   { id: 'expressions', label: 'Face', icon: <SmileIcon size={16} /> },
   { id: 'backgrounds', label: 'Stage', icon: <PaletteIcon size={16} /> },
   { id: 'overlays', label: 'Layers', icon: <LayersIcon size={16} /> },
-  { id: 'hotkeys', label: 'Keys', icon: <KeyboardIcon size={16} /> },
+  { id: 'hotkeys', label: 'Scenes', icon: <KeyboardIcon size={16} /> },
   { id: 'settings', label: 'Setup', icon: <SlidersIcon size={16} /> },
 ];
 
-const EXPRESSION_CONTROLS: { key: keyof ExpressionState; label: string; hotkey: string }[] = [
+const EXPRESSION_CONTROLS: {
+  key: keyof ExpressionState;
+  label: string;
+  hotkey?: string;
+}[] = [
   { key: 'mouthOpen', label: 'Mouth Open', hotkey: '1' },
   { key: 'eyebrowRaise', label: 'Eyebrow Raise', hotkey: '2' },
   { key: 'eyeSmile', label: 'Eye Smile', hotkey: '3' },
   { key: 'cheekPuff', label: 'Cheek Blush', hotkey: '4' },
+  { key: 'angry', label: 'Angry' },
+  { key: 'sad', label: 'Sad' },
+  { key: 'relaxed', label: 'Relaxed' },
 ];
 
 const EXPRESSION_PRESETS: { name: string; values: ExpressionState }[] = [
-  { name: 'Neutral', values: { mouthOpen: 0, eyebrowRaise: 0, eyeSmile: 0, cheekPuff: 0 } },
-  { name: 'Happy', values: { mouthOpen: 0.45, eyebrowRaise: 0.25, eyeSmile: 1, cheekPuff: 0.6 } },
-  { name: 'Surprised', values: { mouthOpen: 0.9, eyebrowRaise: 1, eyeSmile: 0, cheekPuff: 0.2 } },
-  { name: 'Shy', values: { mouthOpen: 0.15, eyebrowRaise: 0.3, eyeSmile: 0.8, cheekPuff: 1 } },
+  {
+    name: 'Neutral',
+    values: {
+      mouthOpen: 0,
+      eyebrowRaise: 0,
+      eyeSmile: 0,
+      cheekPuff: 0,
+      angry: 0,
+      sad: 0,
+      relaxed: 0,
+    },
+  },
+  {
+    name: 'Happy',
+    values: {
+      mouthOpen: 0.45,
+      eyebrowRaise: 0.25,
+      eyeSmile: 1,
+      cheekPuff: 0.6,
+      angry: 0,
+      sad: 0,
+      relaxed: 0,
+    },
+  },
+  {
+    name: 'Surprised',
+    values: {
+      mouthOpen: 0.9,
+      eyebrowRaise: 1,
+      eyeSmile: 0,
+      cheekPuff: 0.2,
+      angry: 0,
+      sad: 0,
+      relaxed: 0,
+    },
+  },
+  {
+    name: 'Shy',
+    values: {
+      mouthOpen: 0.1,
+      eyebrowRaise: 0.2,
+      eyeSmile: 0.75,
+      cheekPuff: 1,
+      angry: 0,
+      sad: 0,
+      relaxed: 0.25,
+    },
+  },
+  {
+    name: 'Angry',
+    values: {
+      mouthOpen: 0.2,
+      eyebrowRaise: 0,
+      eyeSmile: 0,
+      cheekPuff: 0.15,
+      angry: 1,
+      sad: 0,
+      relaxed: 0,
+    },
+  },
+  {
+    name: 'Sad',
+    values: {
+      mouthOpen: 0,
+      eyebrowRaise: 0,
+      eyeSmile: 0,
+      cheekPuff: 0.2,
+      angry: 0,
+      sad: 1,
+      relaxed: 0.3,
+    },
+  },
 ];
 
 interface BackgroundPreset {
@@ -154,11 +268,19 @@ const BACKGROUND_PRESETS: BackgroundPreset[] = [
 const QUICK_EMOJIS = ['🌸', '✨', '⭐', '💖', '🎀', '💫', '🔥', '🎵'];
 
 const STUDIO_SHORTCUTS = [
+  { key: 'C', label: 'Calibrate Center Pose' },
   { key: 'M', label: 'Mirror Stage' },
+  { key: 'V', label: 'Webcam Face Mesh PiP' },
   { key: 'Z', label: 'OBS Clean Mode' },
   { key: '`', label: 'Performance Telemetry' },
   { key: 'Esc', label: 'Exit Clean Mode' },
 ];
+
+function formatDuration(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
 
 function ContributorsSection() {
   const { contributors, loading, error, fromCache } = useContributors();
@@ -222,39 +344,81 @@ function App() {
   const stageContainerRef = useRef<HTMLDivElement>(null);
   const vrmObjectUrlRef = useRef<string | null>(null);
   const vrmInputRef = useRef<HTMLInputElement>(null);
+  const bgImageInputRef = useRef<HTMLInputElement>(null);
   const overlayImageInputRef = useRef<HTMLInputElement>(null);
+  const profileImportRef = useRef<HTMLInputElement>(null);
   const initStarted = useRef(false);
   const animFrameRef = useRef(0);
   const smoothedPoseRef = useRef<PoseData | null>(null);
+  const calibrationRef = useRef<PoseCalibration | null>(null);
+  const blinkStateRef = useRef<AutoBlinkState>({ nextBlinkAtMs: 0, blinkStartMs: null });
+  const dragPanRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    origX: number;
+    origY: number;
+  } | null>(null);
 
   const [activeTab, setActiveTab] = useState<TabId>('expressions');
   const [rendererMode, setRendererMode] = useState<'VRM 3D' | 'WebGL' | 'Canvas 2D'>('Canvas 2D');
   const [vrmModelName, setVrmModelName] = useState<string | null>(null);
   const [vrmError, setVrmError] = useState<string | null>(null);
   const [newOverlayText, setNewOverlayText] = useState('');
+  const [newProfileName, setNewProfileName] = useState('');
+  const [profileNotice, setProfileNotice] = useState<string | null>(null);
   const [customColor, setCustomColor] = useState('#141828');
   const [leftOpen, setLeftOpen] = useState(true);
   const [rightOpen, setRightOpen] = useState(true);
   const [cleanMode, setCleanMode] = useState(false);
   const [mirrored, setMirrored] = useState(false);
   const [showChecker, setShowChecker] = useState(true);
+  const [showWebcamPip, setShowWebcamPip] = useState(false);
+  const [previewNoCamera, setPreviewNoCamera] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isDraggingVrm, setIsDraggingVrm] = useState(false);
   const [snapshotSaved, setSnapshotSaved] = useState(false);
+  const [calibratedFlash, setCalibratedFlash] = useState(false);
+  const [hasCalibration, setHasCalibration] = useState(false);
   const [creditsOpen, setCreditsOpen] = useState(false);
 
+  const [cameraConfig, setCameraConfig] = useState<StageCameraConfig>(DEFAULT_STAGE_CAMERA);
+  const [lightingConfig, setLightingConfig] = useState<StageLightingConfig>(
+    LIGHTING_PRESETS.studio,
+  );
+  const [trackingTuning, setTrackingTuning] = useState<TrackingTuning>(DEFAULT_TRACKING_TUNING);
+
   const vtuber = useVtuber();
-  const { loadModels, setMaxFps } = vtuber;
+  const { loadModels, setMaxFps, poseRef, setExpression, setBackground, setOverlays } = vtuber;
   const { settings, updateSettings } = useSettings();
+  const audioLipSync = useAudioLipSync();
+  const stageRecorder = useStageRecorder();
+  const { profiles, saveProfile, deleteProfile } = useProfiles();
 
   const showDebugRef = useRef(settings.showDebug);
   useEffect(() => {
     showDebugRef.current = settings.showDebug;
   }, [settings.showDebug]);
 
+  const cameraConfigRef = useRef(cameraConfig);
+  useEffect(() => {
+    cameraConfigRef.current = cameraConfig;
+    vrmRendererRef.current?.setCameraConfig(cameraConfig);
+  }, [cameraConfig]);
+
+  useEffect(() => {
+    vrmRendererRef.current?.setLighting(lightingConfig);
+  }, [lightingConfig]);
+
+  const trackingTuningRef = useRef(trackingTuning);
+  useEffect(() => {
+    trackingTuningRef.current = trackingTuning;
+  }, [trackingTuning]);
+
   const startTracking = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
+    setPreviewNoCamera(false);
     void loadModels(video, {
       delegate: settings.delegate,
       deviceId: settings.deviceId ?? undefined,
@@ -284,7 +448,7 @@ function App() {
     [settings.delegate, settings.deviceId, updateSettings, vtuber.isLoaded, loadModels],
   );
 
-  // Initialize WebGL renderer on hidden GL canvas
+  // Initialize WebGL renderer
   useEffect(() => {
     const glCanvas = glCanvasRef.current;
     if (!glCanvas) return;
@@ -306,7 +470,7 @@ function App() {
     };
   }, []);
 
-  // Initialize VRM renderer on its own hidden canvas
+  // Initialize VRM 3D renderer
   useEffect(() => {
     const vrmCanvas = vrmCanvasRef.current;
     if (!vrmCanvas) return;
@@ -316,6 +480,7 @@ function App() {
     try {
       const renderer = new VRMCharacterRenderer(vrmCanvas);
       vrmRendererRef.current = renderer;
+      renderer.setLighting(LIGHTING_PRESETS.studio);
       void renderer.loadModel(VRM_MODEL_URL).then((ok) => {
         if (cancelled) return;
         if (ok) {
@@ -359,8 +524,10 @@ function App() {
         URL.revokeObjectURL(vrmObjectUrlRef.current);
       }
       vrmObjectUrlRef.current = nextUrl;
+      renderer.setCameraConfig(cameraConfigRef.current);
       setVrmModelName(file.name);
       setRendererMode('VRM 3D');
+      setPreviewNoCamera(true);
     } else {
       URL.revokeObjectURL(nextUrl);
       setVrmError(`Could not load "${file.name}". Ensure it is a valid VRM 0.x/1.0 model.`);
@@ -376,6 +543,23 @@ function App() {
     setVrmModelName(null);
     setVrmError(null);
     setRendererMode(webglRendererRef.current?.isReady() ? 'WebGL' : 'Canvas 2D');
+  }, []);
+
+  const handleCalibrate = useCallback(() => {
+    const raw = poseRef.current;
+    if (raw) {
+      calibrationRef.current = captureCalibration(raw);
+    }
+    vrmRendererRef.current?.calibrateHead();
+    setHasCalibration(true);
+    setCalibratedFlash(true);
+    window.setTimeout(() => setCalibratedFlash(false), 1500);
+  }, [poseRef]);
+
+  const handleResetCalibration = useCallback(() => {
+    calibrationRef.current = null;
+    vrmRendererRef.current?.resetCalibration();
+    setHasCalibration(false);
   }, []);
 
   const handleSnapshot = useCallback(() => {
@@ -415,16 +599,22 @@ function App() {
     return () => document.removeEventListener('fullscreenchange', onFsChange);
   }, []);
 
-  // Studio-level keyboard shortcuts (M: mirror, Z: OBS clean mode, Esc: exit clean mode)
+  // Studio-level keyboard shortcuts
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
       if (target && /^(INPUT|SELECT|TEXTAREA)$/.test(target.tagName)) return;
       if (e.ctrlKey || e.metaKey || e.altKey) return;
       const key = e.key.toLowerCase();
-      if (key === 'm') {
+      if (key === 'c') {
+        e.preventDefault();
+        handleCalibrate();
+      } else if (key === 'm') {
         e.preventDefault();
         setMirrored((v) => !v);
+      } else if (key === 'v') {
+        e.preventDefault();
+        setShowWebcamPip((v) => !v);
       } else if (key === 'z') {
         e.preventDefault();
         setCleanMode((v) => !v);
@@ -434,6 +624,49 @@ function App() {
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
+  }, [handleCalibrate]);
+
+  // Direct stage zoom (wheel) & drag pan
+  const handleStageWheel = useCallback((e: WheelEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const delta = e.deltaY < 0 ? 0.1 : -0.1;
+    setCameraConfig((prev) => ({
+      ...prev,
+      zoom: Number(Math.max(0.5, Math.min(2.5, prev.zoom + delta)).toFixed(2)),
+    }));
+  }, []);
+
+  const handleStagePointerDown = useCallback((e: PointerEvent<HTMLDivElement>) => {
+    if (e.button !== 0) return;
+    const target = e.target as HTMLElement | null;
+    if (target?.closest('button, input, .perf-monitor, .webcam-pip')) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    dragPanRef.current = {
+      pointerId: e.pointerId,
+      startX: e.clientX,
+      startY: e.clientY,
+      origX: cameraConfigRef.current.offsetX,
+      origY: cameraConfigRef.current.offsetY,
+    };
+  }, []);
+
+  const handleStagePointerMove = useCallback((e: PointerEvent<HTMLDivElement>) => {
+    const pan = dragPanRef.current;
+    if (!pan || pan.pointerId !== e.pointerId) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const dx = (e.clientX - pan.startX) / Math.max(rect.width, 1);
+    const dy = (e.clientY - pan.startY) / Math.max(rect.height, 1);
+    setCameraConfig((prev) => ({
+      ...prev,
+      offsetX: Number(Math.max(-0.4, Math.min(0.4, pan.origX + dx)).toFixed(3)),
+      offsetY: Number(Math.max(-0.4, Math.min(0.4, pan.origY + dy)).toFixed(3)),
+    }));
+  }, []);
+
+  const handleStagePointerUp = useCallback((e: PointerEvent<HTMLDivElement>) => {
+    if (dragPanRef.current?.pointerId === e.pointerId) {
+      dragPanRef.current = null;
+    }
   }, []);
 
   const handleStageDragOver = useCallback((e: DragEvent<HTMLDivElement>) => {
@@ -473,33 +706,70 @@ function App() {
       if (!running) return;
       ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
 
-      const rawPose = vtuber.poseRef.current;
-      smoothedPoseRef.current = smoothPose(rawPose, smoothedPoseRef.current);
+      const nowMs = performance.now();
+      const tuning = trackingTuningRef.current;
+      const audioMouth = audioLipSync.levelRef.current;
+      const rawPose = vtuber.trackingRef.current ? vtuber.poseRef.current : null;
+      const calibratedPose = applyTrackingPipeline(
+        rawPose,
+        calibrationRef.current,
+        tuning,
+        audioMouth,
+        nowMs,
+        blinkStateRef.current,
+      );
+      smoothedPoseRef.current = smoothPoseWithFactor(
+        calibratedPose,
+        smoothedPoseRef.current,
+        tuning.smoothing,
+      );
       const currentPose = smoothedPoseRef.current;
       const currentOverlays = vtuber.overlaysRef.current;
       const isTracking = vtuber.trackingRef.current;
       const expression = vtuber.expressionRef.current;
+      const cam = cameraConfigRef.current;
 
       const vrmRenderer = vrmRendererRef.current;
       const vrmDrawn = vrmRenderer?.isReady()
-        ? vrmRenderer.render(vtuber.landmarksRef.current, expression)
+        ? vrmRenderer.render(
+            isTracking ? vtuber.landmarksRef.current : null,
+            expression,
+            tuning,
+            audioMouth,
+          )
         : false;
-
-      const gl = webglRendererRef.current;
-      const webglDrawn = !vrmDrawn && gl ? gl.render(currentPose, expression) : false;
 
       if (vrmDrawn && vrmCanvasRef.current) {
         ctx.drawImage(vrmCanvasRef.current, 0, 0);
-      } else if (webglDrawn && glCanvasRef.current) {
-        ctx.drawImage(glCanvasRef.current, 0, 0);
       } else {
-        drawCharacter(ctx, currentPose, expression);
+        const gl = webglRendererRef.current;
+        // Prefer Canvas 2D when extended emotions (angry/sad/relaxed) are active so
+        // procedural brows/mouth reflect them accurately.
+        const useExtended2d =
+          (expression.angry ?? 0) > 0.05 ||
+          (expression.sad ?? 0) > 0.05 ||
+          (expression.relaxed ?? 0) > 0.05;
+        const webglDrawn = !useExtended2d && gl ? gl.render(currentPose, expression) : false;
+
+        ctx.save();
+        ctx.translate(
+          CANVAS_SIZE / 2 + cam.offsetX * CANVAS_SIZE,
+          CANVAS_SIZE / 2 + cam.offsetY * CANVAS_SIZE,
+        );
+        ctx.scale(cam.zoom, cam.zoom);
+        ctx.translate(-CANVAS_SIZE / 2, -CANVAS_SIZE / 2);
+        if (webglDrawn && glCanvasRef.current) {
+          ctx.drawImage(glCanvasRef.current, 0, 0);
+        } else {
+          drawCharacter(ctx, currentPose, expression);
+        }
+        ctx.restore();
       }
 
       drawOverlays(ctx, currentOverlays);
       if (showDebugRef.current) {
         drawHUD(ctx, currentPose, isTracking);
-      } else if (!isTracking) {
+      } else if (!isTracking && vtuber.isLoaded) {
         drawHUD(ctx, null, false);
       }
 
@@ -511,7 +781,7 @@ function App() {
       running = false;
       cancelAnimationFrame(animFrameRef.current);
     };
-    // vtuber refs are stable — no deps needed, this effect runs once
+    // refs are stable — single persistent loop
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -531,19 +801,81 @@ function App() {
     setNewOverlayText('');
   }, [newOverlayText, vtuber]);
 
-  const backgroundStyle = vtuber.background === 'none' ? 'transparent' : vtuber.backgroundValue;
+  const applyStudioProfile = useCallback(
+    (data: StudioProfileData) => {
+      setExpression(data.expression);
+      setBackground(data.background, data.backgroundValue);
+      setOverlays(data.overlays);
+      setCameraConfig(data.camera);
+      setLightingConfig(data.lighting);
+      setTrackingTuning(data.tuning);
+      setMirrored(data.mirrored);
+    },
+    [setExpression, setBackground, setOverlays],
+  );
+
+  const handleSaveProfile = useCallback(() => {
+    const name = newProfileName.trim() || `Scene ${profiles.length + 1}`;
+    saveProfile(name, {
+      expression: vtuber.expression,
+      background: vtuber.background,
+      backgroundValue: vtuber.backgroundValue,
+      overlays: vtuber.overlays,
+      camera: cameraConfig,
+      lighting: lightingConfig,
+      tuning: trackingTuning,
+      mirrored,
+    });
+    setNewProfileName('');
+    setProfileNotice(`Saved "${name}"`);
+    window.setTimeout(() => setProfileNotice(null), 2200);
+  }, [
+    newProfileName,
+    profiles.length,
+    saveProfile,
+    vtuber.expression,
+    vtuber.background,
+    vtuber.backgroundValue,
+    vtuber.overlays,
+    cameraConfig,
+    lightingConfig,
+    trackingTuning,
+    mirrored,
+  ]);
+
+  const handleExportProfile = useCallback((name: string, data: unknown) => {
+    const blob = new Blob([JSON.stringify({ name, data }, null, 2)], {
+      type: 'application/json',
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${name.toLowerCase().replace(/[^a-z0-9_-]+/g, '-') || 'profile'}.easyvtuber.json`;
+    a.click();
+    window.setTimeout(() => URL.revokeObjectURL(url), 4000);
+  }, []);
+
+  const stageActive = vtuber.isLoaded || previewNoCamera || audioLipSync.enabled;
+  const isImageBg = vtuber.background === 'image' && /^data:image\//i.test(vtuber.backgroundValue);
+  const backgroundStyle =
+    vtuber.background === 'none' || isImageBg ? 'transparent' : vtuber.backgroundValue;
   const showTransparentGrid = vtuber.background === 'none' && showChecker && !cleanMode;
+
   const statusTone = vtuber.error
-    ? 'error'
+    ? stageActive
+      ? 'paused'
+      : 'error'
     : vtuber.isLoaded
       ? vtuber.isTracking
         ? 'online'
         : 'paused'
-      : 'offline';
+      : stageActive
+        ? 'online'
+        : 'offline';
 
   return (
     <div className={`app ${cleanMode ? 'clean-mode' : ''}`}>
-      {/* Hidden VRM input shared across Settings & Inspector */}
+      {/* Hidden File Inputs */}
       <input
         ref={vrmInputRef}
         type="file"
@@ -553,6 +885,46 @@ function App() {
           const file = e.target.files?.[0];
           e.target.value = '';
           void handleVrmUpload(file);
+        }}
+      />
+      <input
+        ref={bgImageInputRef}
+        type="file"
+        accept="image/*"
+        className="sr-only-input"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          e.target.value = '';
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = () => {
+            if (typeof reader.result === 'string' && /^data:image\//i.test(reader.result)) {
+              vtuber.setBackground('image', reader.result);
+            }
+          };
+          reader.readAsDataURL(file);
+        }}
+      />
+      <input
+        ref={profileImportRef}
+        type="file"
+        accept="application/json,.json"
+        className="sr-only-input"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          e.target.value = '';
+          if (!file) return;
+          void file.text().then((text) => {
+            try {
+              const imported = parseProfileJson(text);
+              saveProfile(imported.name, imported.data);
+              applyStudioProfile(imported.data);
+              setProfileNotice(`Imported "${imported.name}"`);
+              window.setTimeout(() => setProfileNotice(null), 2500);
+            } catch (err) {
+              setProfileNotice(err instanceof Error ? err.message : 'Invalid profile JSON');
+            }
+          });
         }}
       />
 
@@ -590,7 +962,11 @@ function App() {
                   ? vtuber.isTracking
                     ? 'Tracking Live'
                     : 'Tracking Paused'
-                  : vtuber.status}
+                  : audioLipSync.enabled
+                    ? 'Mic Lip-Sync Live'
+                    : previewNoCamera
+                      ? 'Stage Preview'
+                      : vtuber.status}
               </span>
             </div>
             {vtuber.isLoaded ? (
@@ -605,7 +981,18 @@ function App() {
             ) : (
               <button type="button" className="header-action-btn primary" onClick={startTracking}>
                 <PlayIcon size={13} />
-                <span>{vtuber.error ? 'Retry' : 'Start'}</span>
+                <span>{vtuber.error ? 'Retry Camera' : 'Start Camera'}</span>
+              </button>
+            )}
+            {stageRecorder.isRecording && (
+              <button
+                type="button"
+                className="rec-pill"
+                onClick={stageRecorder.stopRecording}
+                title="Stop recording and save WebM clip"
+              >
+                <span className="rec-dot" />
+                <span>REC {formatDuration(stageRecorder.durationSec)}</span>
               </button>
             )}
           </div>
@@ -667,12 +1054,91 @@ function App() {
             </div>
 
             <div className="tab-content">
-              {/* Expressions Tab */}
+              {/* TAB 1: Face Expressions & Voice Lip-Sync */}
               {activeTab === 'expressions' && (
                 <div className="panel">
                   <div className="panel-section">
                     <div className="section-header">
-                      <h3 className="panel-title">Quick Presets</h3>
+                      <h3 className="panel-title">Voice Lip-Sync (Mic)</h3>
+                      <button
+                        type="button"
+                        className={`mini-toggle ${audioLipSync.enabled ? 'on' : ''}`}
+                        onClick={audioLipSync.toggle}
+                      >
+                        {audioLipSync.enabled ? 'LIVE' : 'OFF'}
+                      </button>
+                    </div>
+                    <div className="mic-card">
+                      <div className="mic-meter-row">
+                        <button
+                          type="button"
+                          className={`icon-btn ${audioLipSync.enabled ? 'active' : ''}`}
+                          onClick={audioLipSync.toggle}
+                          aria-label={
+                            audioLipSync.enabled ? 'Disable mic lip-sync' : 'Enable mic lip-sync'
+                          }
+                        >
+                          {audioLipSync.enabled ? <MicIcon size={15} /> : <MicOffIcon size={15} />}
+                        </button>
+                        <div className="vu-track" aria-label="Microphone level">
+                          <div
+                            className="vu-fill"
+                            style={{ width: `${Math.round(audioLipSync.level * 100)}%` }}
+                          />
+                        </div>
+                        <span className="expr-pct">{Math.round(audioLipSync.level * 100)}%</span>
+                      </div>
+                      <div className="overlay-controls-grid">
+                        <label className="slider-field">
+                          <span className="slider-head">
+                            <span>Gain</span>
+                            <span>{audioLipSync.sensitivity.toFixed(1)}×</span>
+                          </span>
+                          <input
+                            type="range"
+                            className="studio-range"
+                            min="0.5"
+                            max="6"
+                            step="0.1"
+                            value={audioLipSync.sensitivity}
+                            style={
+                              {
+                                '--range-pct': `${((audioLipSync.sensitivity - 0.5) / 5.5) * 100}%`,
+                              } as React.CSSProperties
+                            }
+                            onChange={(e) =>
+                              audioLipSync.setSensitivity(parseFloat(e.target.value))
+                            }
+                          />
+                        </label>
+                        <label className="slider-field">
+                          <span className="slider-head">
+                            <span>Gate</span>
+                            <span>{Math.round(audioLipSync.noiseGate * 100)}%</span>
+                          </span>
+                          <input
+                            type="range"
+                            className="studio-range"
+                            min="0"
+                            max="0.15"
+                            step="0.005"
+                            value={audioLipSync.noiseGate}
+                            style={
+                              {
+                                '--range-pct': `${(audioLipSync.noiseGate / 0.15) * 100}%`,
+                              } as React.CSSProperties
+                            }
+                            onChange={(e) => audioLipSync.setNoiseGate(parseFloat(e.target.value))}
+                          />
+                        </label>
+                      </div>
+                      {audioLipSync.error && <p className="vrm-error-text">{audioLipSync.error}</p>}
+                    </div>
+                  </div>
+
+                  <div className="panel-section">
+                    <div className="section-header">
+                      <h3 className="panel-title">Emotion Presets</h3>
                       <button
                         type="button"
                         className="link-action"
@@ -682,10 +1148,13 @@ function App() {
                         Reset
                       </button>
                     </div>
-                    <div className="preset-grid">
+                    <div className="preset-grid cols-3">
                       {EXPRESSION_PRESETS.map((preset) => {
                         const isMatch = EXPRESSION_CONTROLS.every(
-                          (c) => Math.abs(vtuber.expression[c.key] - preset.values[c.key]) < 0.05,
+                          (c) =>
+                            Math.abs(
+                              (vtuber.expression[c.key] ?? 0) - (preset.values[c.key] ?? 0),
+                            ) < 0.05,
                         );
                         return (
                           <button
@@ -708,13 +1177,13 @@ function App() {
                     </div>
                     <div className="expression-list">
                       {EXPRESSION_CONTROLS.map((expr) => {
-                        const val = vtuber.expression[expr.key];
+                        const val = vtuber.expression[expr.key] ?? 0;
                         const isActive = val > 0.05;
                         return (
                           <div key={expr.key} className={`expr-card ${isActive ? 'active' : ''}`}>
                             <div className="expr-card-top">
                               <div className="expr-meta">
-                                <kbd className="mini-kbd">{expr.hotkey}</kbd>
+                                {expr.hotkey && <kbd className="mini-kbd">{expr.hotkey}</kbd>}
                                 <span className="expr-label">{expr.label}</span>
                               </div>
                               <div className="expr-actions">
@@ -748,41 +1217,208 @@ function App() {
                       })}
                     </div>
                   </div>
-
-                  <div className="panel-section">
-                    <h3 className="panel-title">Session Controls</h3>
-                    <div className="tracking-controls">
-                      {vtuber.isLoaded ? (
-                        <button
-                          type="button"
-                          className={`ctrl-btn ${vtuber.isTracking ? 'primary' : 'paused'}`}
-                          onClick={vtuber.toggleTracking}
-                        >
-                          {vtuber.isTracking ? <PauseIcon size={15} /> : <PlayIcon size={15} />}
-                          <span>{vtuber.isTracking ? 'Pause Tracking' : 'Resume Tracking'}</span>
-                        </button>
-                      ) : (
-                        <button type="button" className="ctrl-btn primary" onClick={startTracking}>
-                          <PlayIcon size={15} />
-                          <span>{vtuber.error ? 'Retry Tracking' : 'Start Camera Tracking'}</span>
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        className={`ctrl-btn ${mirrored ? 'active' : ''}`}
-                        onClick={() => setMirrored((v) => !v)}
-                      >
-                        <FlipHorizontalIcon size={15} />
-                        <span>{mirrored ? 'Mirrored Output' : 'Mirror Output'}</span>
-                      </button>
-                    </div>
-                  </div>
                 </div>
               )}
 
-              {/* Backgrounds / Stage Tab */}
+              {/* TAB 2: Stage Camera, Lighting & Backdrops */}
               {activeTab === 'backgrounds' && (
                 <div className="panel">
+                  <div className="panel-section">
+                    <div className="section-header">
+                      <h3 className="panel-title">Camera Framing</h3>
+                      <button
+                        type="button"
+                        className="link-action"
+                        onClick={() => setCameraConfig(DEFAULT_STAGE_CAMERA)}
+                      >
+                        <RotateCcwIcon size={12} />
+                        Center
+                      </button>
+                    </div>
+                    <div className="card-box">
+                      <div className="overlay-controls-grid">
+                        <label className="slider-field">
+                          <span className="slider-head">
+                            <span>Zoom</span>
+                            <span>{cameraConfig.zoom.toFixed(2)}×</span>
+                          </span>
+                          <input
+                            type="range"
+                            className="studio-range"
+                            min="0.5"
+                            max="2.5"
+                            step="0.05"
+                            value={cameraConfig.zoom}
+                            style={
+                              {
+                                '--range-pct': `${((cameraConfig.zoom - 0.5) / 2) * 100}%`,
+                              } as React.CSSProperties
+                            }
+                            onChange={(e) =>
+                              setCameraConfig((prev) => ({
+                                ...prev,
+                                zoom: parseFloat(e.target.value),
+                              }))
+                            }
+                          />
+                        </label>
+                        <label className="slider-field">
+                          <span className="slider-head">
+                            <span>3D Orbit</span>
+                            <span>{cameraConfig.orbitYaw}°</span>
+                          </span>
+                          <input
+                            type="range"
+                            className="studio-range"
+                            min="-45"
+                            max="45"
+                            step="1"
+                            value={cameraConfig.orbitYaw}
+                            style={
+                              {
+                                '--range-pct': `${((cameraConfig.orbitYaw + 45) / 90) * 100}%`,
+                              } as React.CSSProperties
+                            }
+                            onChange={(e) =>
+                              setCameraConfig((prev) => ({
+                                ...prev,
+                                orbitYaw: parseFloat(e.target.value),
+                              }))
+                            }
+                          />
+                        </label>
+                        <label className="slider-field">
+                          <span className="slider-head">
+                            <span>Pan X</span>
+                            <span>{Math.round(cameraConfig.offsetX * 100)}%</span>
+                          </span>
+                          <input
+                            type="range"
+                            className="studio-range"
+                            min="-0.4"
+                            max="0.4"
+                            step="0.02"
+                            value={cameraConfig.offsetX}
+                            style={
+                              {
+                                '--range-pct': `${((cameraConfig.offsetX + 0.4) / 0.8) * 100}%`,
+                              } as React.CSSProperties
+                            }
+                            onChange={(e) =>
+                              setCameraConfig((prev) => ({
+                                ...prev,
+                                offsetX: parseFloat(e.target.value),
+                              }))
+                            }
+                          />
+                        </label>
+                        <label className="slider-field">
+                          <span className="slider-head">
+                            <span>Pan Y</span>
+                            <span>{Math.round(cameraConfig.offsetY * 100)}%</span>
+                          </span>
+                          <input
+                            type="range"
+                            className="studio-range"
+                            min="-0.4"
+                            max="0.4"
+                            step="0.02"
+                            value={cameraConfig.offsetY}
+                            style={
+                              {
+                                '--range-pct': `${((cameraConfig.offsetY + 0.4) / 0.8) * 100}%`,
+                              } as React.CSSProperties
+                            }
+                            onChange={(e) =>
+                              setCameraConfig((prev) => ({
+                                ...prev,
+                                offsetY: parseFloat(e.target.value),
+                              }))
+                            }
+                          />
+                        </label>
+                      </div>
+                      <p className="panel-hint">
+                        Scroll on the stage to zoom, drag to pan, double-click to recenter.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="panel-section">
+                    <div className="section-header">
+                      <h3 className="panel-title">
+                        <SunIcon size={12} style={{ verticalAlign: -1, marginRight: 4 }} />
+                        3D Studio Lighting
+                      </h3>
+                    </div>
+                    <div className="preset-grid">
+                      {(['studio', 'neon', 'sunset', 'moonlight'] as const).map((presetKey) => (
+                        <button
+                          key={presetKey}
+                          type="button"
+                          className={`preset-chip ${lightingConfig.preset === presetKey ? 'active' : ''}`}
+                          onClick={() => setLightingConfig(LIGHTING_PRESETS[presetKey])}
+                        >
+                          {presetKey[0]!.toUpperCase() + presetKey.slice(1)}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="card-box">
+                      <div className="overlay-controls-grid">
+                        <label className="slider-field">
+                          <span className="slider-head">
+                            <span>Key Light</span>
+                            <span>{lightingConfig.keyIntensity.toFixed(1)}</span>
+                          </span>
+                          <input
+                            type="range"
+                            className="studio-range"
+                            min="0"
+                            max="2.5"
+                            step="0.1"
+                            value={lightingConfig.keyIntensity}
+                            style={
+                              {
+                                '--range-pct': `${(lightingConfig.keyIntensity / 2.5) * 100}%`,
+                              } as React.CSSProperties
+                            }
+                            onChange={(e) =>
+                              setLightingConfig((prev) => ({
+                                ...prev,
+                                keyIntensity: parseFloat(e.target.value),
+                              }))
+                            }
+                          />
+                        </label>
+                        <label className="slider-field">
+                          <span className="slider-head">
+                            <span>Rim Light</span>
+                            <span>{lightingConfig.rimIntensity.toFixed(1)}</span>
+                          </span>
+                          <input
+                            type="range"
+                            className="studio-range"
+                            min="0"
+                            max="2.5"
+                            step="0.1"
+                            value={lightingConfig.rimIntensity}
+                            style={
+                              {
+                                '--range-pct': `${(lightingConfig.rimIntensity / 2.5) * 100}%`,
+                              } as React.CSSProperties
+                            }
+                            onChange={(e) =>
+                              setLightingConfig((prev) => ({
+                                ...prev,
+                                rimIntensity: parseFloat(e.target.value),
+                              }))
+                            }
+                          />
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="panel-section">
                     <h3 className="panel-title">Broadcast & Keying</h3>
                     <div className="background-grid">
@@ -829,7 +1465,7 @@ function App() {
                   </div>
 
                   <div className="panel-section">
-                    <h3 className="panel-title">Custom Solid Backdrop</h3>
+                    <h3 className="panel-title">Custom Color or Image</h3>
                     <div className="color-picker-row">
                       <label className="color-swatch-label">
                         <input
@@ -851,11 +1487,34 @@ function App() {
                         Apply
                       </button>
                     </div>
+                    <div className="vrm-card-actions">
+                      <button
+                        type="button"
+                        className="btn-secondary icon-label-btn"
+                        onClick={() => bgImageInputRef.current?.click()}
+                      >
+                        <ImageIcon size={14} />
+                        <span>
+                          {isImageBg ? 'Replace Background Image' : 'Upload Background Image'}
+                        </span>
+                      </button>
+                      {isImageBg && (
+                        <button
+                          type="button"
+                          className="btn-ghost"
+                          onClick={() =>
+                            vtuber.setBackground('gradient', BACKGROUND_PRESETS[4]!.value)
+                          }
+                        >
+                          Clear
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}
 
-              {/* Overlays Tab */}
+              {/* TAB 3: Overlays */}
               {activeTab === 'overlays' && (
                 <div className="panel">
                   <div className="panel-section">
@@ -1134,9 +1793,90 @@ function App() {
                 </div>
               )}
 
-              {/* Hotkeys Tab */}
+              {/* TAB 4: Saved Scene Profiles & Keyboard Shortcuts */}
               {activeTab === 'hotkeys' && (
                 <div className="panel">
+                  <div className="panel-section">
+                    <div className="section-header">
+                      <h3 className="panel-title">Scene Profiles</h3>
+                      <button
+                        type="button"
+                        className="link-action"
+                        onClick={() => profileImportRef.current?.click()}
+                      >
+                        <UploadIcon size={12} />
+                        Import JSON
+                      </button>
+                    </div>
+                    <div className="overlay-text-form">
+                      <input
+                        type="text"
+                        className="overlay-text-input"
+                        placeholder="Profile name (e.g. Just Chatting)"
+                        maxLength={48}
+                        value={newProfileName}
+                        onChange={(e) => setNewProfileName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleSaveProfile();
+                        }}
+                      />
+                      <button
+                        type="button"
+                        className="btn-secondary overlay-add-btn icon-label-btn"
+                        onClick={handleSaveProfile}
+                      >
+                        <SaveIcon size={13} />
+                        Save
+                      </button>
+                    </div>
+                    {profileNotice && <p className="profile-notice">{profileNotice}</p>}
+                    {profiles.length === 0 ? (
+                      <div className="empty-card">
+                        Save your backdrop, lighting, camera framing, expressions, and tuning as
+                        reusable scenes.
+                      </div>
+                    ) : (
+                      <div className="profile-list">
+                        {profiles.map((prof) => (
+                          <div key={prof.id} className="profile-row">
+                            <button
+                              type="button"
+                              className="profile-load-btn"
+                              onClick={() => {
+                                applyStudioProfile(prof.data);
+                                setProfileNotice(`Loaded "${prof.name}"`);
+                                window.setTimeout(() => setProfileNotice(null), 1800);
+                              }}
+                            >
+                              <span className="profile-name">{prof.name}</span>
+                              <span className="profile-meta">
+                                {prof.data.camera.zoom.toFixed(1)}× · {prof.data.lighting.preset}
+                              </span>
+                            </button>
+                            <button
+                              type="button"
+                              className="btn-icon"
+                              title="Export profile JSON"
+                              aria-label={`Export ${prof.name}`}
+                              onClick={() => handleExportProfile(prof.name, prof.data)}
+                            >
+                              <DownloadIcon size={13} />
+                            </button>
+                            <button
+                              type="button"
+                              className="btn-icon danger"
+                              title="Delete profile"
+                              aria-label={`Delete ${prof.name}`}
+                              onClick={() => deleteProfile(prof.id)}
+                            >
+                              <TrashIcon size={13} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
                   <div className="panel-section">
                     <h3 className="panel-title">Avatar Shortcuts</h3>
                     <div className="hotkey-list">
@@ -1159,14 +1899,11 @@ function App() {
                         </div>
                       ))}
                     </div>
-                    <p className="panel-hint">
-                      Shortcuts are automatically suspended while typing inside input fields.
-                    </p>
                   </div>
                 </div>
               )}
 
-              {/* Settings Tab */}
+              {/* TAB 5: Setup, Tracking Calibration & Tuning */}
               {activeTab === 'settings' && (
                 <div className="panel">
                   <div className="panel-section">
@@ -1198,6 +1935,125 @@ function App() {
                         )}
                       </div>
                       {vrmError && <p className="vrm-error-text">{vrmError}</p>}
+                    </div>
+                  </div>
+
+                  <div className="panel-section">
+                    <div className="section-header">
+                      <h3 className="panel-title">Tracking Calibration & Motion</h3>
+                      {hasCalibration && (
+                        <button
+                          type="button"
+                          className="link-action"
+                          onClick={handleResetCalibration}
+                        >
+                          Clear Zero
+                        </button>
+                      )}
+                    </div>
+                    <div className="card-box">
+                      <button
+                        type="button"
+                        className={`ctrl-btn ${calibratedFlash ? 'active' : ''}`}
+                        onClick={handleCalibrate}
+                      >
+                        <TargetIcon size={14} />
+                        <span>
+                          {calibratedFlash
+                            ? 'Neutral Pose Calibrated!'
+                            : hasCalibration
+                              ? 'Re-Calibrate Center (C)'
+                              : 'Calibrate Neutral Pose (C)'}
+                        </span>
+                      </button>
+
+                      <div className="overlay-controls-grid" style={{ marginTop: 10 }}>
+                        <label className="slider-field">
+                          <span className="slider-head">
+                            <span>Sensitivity</span>
+                            <span>{trackingTuning.headSensitivity.toFixed(2)}×</span>
+                          </span>
+                          <input
+                            type="range"
+                            className="studio-range"
+                            min="0.3"
+                            max="2.0"
+                            step="0.05"
+                            value={trackingTuning.headSensitivity}
+                            style={
+                              {
+                                '--range-pct': `${((trackingTuning.headSensitivity - 0.3) / 1.7) * 100}%`,
+                              } as React.CSSProperties
+                            }
+                            onChange={(e) =>
+                              setTrackingTuning((prev) => ({
+                                ...prev,
+                                headSensitivity: parseFloat(e.target.value),
+                              }))
+                            }
+                          />
+                        </label>
+                        <label className="slider-field">
+                          <span className="slider-head">
+                            <span>Smoothing</span>
+                            <span>{Math.round(trackingTuning.smoothing * 100)}%</span>
+                          </span>
+                          <input
+                            type="range"
+                            className="studio-range"
+                            min="0"
+                            max="0.9"
+                            step="0.05"
+                            value={trackingTuning.smoothing}
+                            style={
+                              {
+                                '--range-pct': `${(trackingTuning.smoothing / 0.9) * 100}%`,
+                              } as React.CSSProperties
+                            }
+                            onChange={(e) =>
+                              setTrackingTuning((prev) => ({
+                                ...prev,
+                                smoothing: parseFloat(e.target.value),
+                              }))
+                            }
+                          />
+                        </label>
+                      </div>
+                    </div>
+
+                    <div className="setting-group">
+                      <div className="setting-row">
+                        <span>Auto-Blink</span>
+                        <label className="toggle">
+                          <input
+                            type="checkbox"
+                            checked={trackingTuning.autoBlink}
+                            onChange={(e) =>
+                              setTrackingTuning((prev) => ({
+                                ...prev,
+                                autoBlink: e.target.checked,
+                              }))
+                            }
+                          />
+                          <span className="toggle-slider" />
+                        </label>
+                      </div>
+                      <div className="setting-row">
+                        <span>Idle Breathing</span>
+                        <label className="toggle">
+                          <input
+                            type="checkbox"
+                            checked={trackingTuning.idleBreathing}
+                            onChange={(e) =>
+                              setTrackingTuning((prev) => ({
+                                ...prev,
+                                idleBreathing: e.target.checked,
+                              }))
+                            }
+                          />
+                          <span className="toggle-slider" />
+                        </label>
+                      </div>
                     </div>
                   </div>
 
@@ -1358,14 +2214,28 @@ function App() {
                 isDraggingVrm ? 'dragging' : ''
               }`}
               style={showTransparentGrid ? undefined : { background: backgroundStyle }}
+              onWheel={handleStageWheel}
+              onPointerDown={handleStagePointerDown}
+              onPointerMove={handleStagePointerMove}
+              onPointerUp={handleStagePointerUp}
+              onPointerCancel={handleStagePointerUp}
+              onDoubleClick={() => setCameraConfig(DEFAULT_STAGE_CAMERA)}
             >
+              {isImageBg && (
+                <img
+                  className="stage-bg-image"
+                  src={vtuber.backgroundValue}
+                  alt="Custom stage backdrop"
+                />
+              )}
+
               <video ref={videoRef} className="input-video" playsInline muted />
               <canvas ref={glCanvasRef} className="gl-canvas" />
               <canvas ref={vrmCanvasRef} className="gl-canvas" />
 
               <canvas
                 ref={overlayCanvasRef}
-                className={`overlay-canvas ${vtuber.isLoaded ? '' : 'canvas-hidden'} ${
+                className={`overlay-canvas ${stageActive ? '' : 'canvas-hidden'} ${
                   mirrored ? 'mirrored' : ''
                 }`}
               />
@@ -1378,19 +2248,28 @@ function App() {
                 </div>
               )}
 
-              {/* Loading / Error State */}
-              {!vtuber.isLoaded && (
+              {/* Loading / Error State (with No-Camera Preview option!) */}
+              {!stageActive && (
                 <div className="viewport-placeholder">
                   {vtuber.error ? (
                     <div className="error-state">
                       <div className="error-icon-wrap">
                         <AlertTriangleIcon size={26} />
                       </div>
-                      <h2 className="state-heading">Camera Initialization Failed</h2>
+                      <h2 className="state-heading">Camera Unavailable</h2>
                       <p className="error-text">{vtuber.error}</p>
-                      <button type="button" className="btn-primary" onClick={startTracking}>
-                        Retry Tracking
-                      </button>
+                      <div className="placeholder-actions">
+                        <button type="button" className="btn-primary" onClick={startTracking}>
+                          Retry Camera
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-secondary"
+                          onClick={() => setPreviewNoCamera(true)}
+                        >
+                          Use Without Camera (Mic / VRM)
+                        </button>
+                      </div>
                     </div>
                   ) : (
                     <div className="loading-state">
@@ -1400,29 +2279,64 @@ function App() {
                         <div className="progress-fill" style={{ width: `${vtuber.progress}%` }} />
                       </div>
                       {!settings.autoStart && vtuber.progress === 0 && (
-                        <button type="button" className="btn-primary" onClick={startTracking}>
-                          Start Camera Tracking
-                        </button>
+                        <div className="placeholder-actions">
+                          <button type="button" className="btn-primary" onClick={startTracking}>
+                            Start Camera Tracking
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-secondary"
+                            onClick={() => setPreviewNoCamera(true)}
+                          >
+                            Preview Without Camera
+                          </button>
+                        </div>
                       )}
                     </div>
                   )}
                 </div>
               )}
 
-              {/* Non-fatal tracking warning */}
-              {vtuber.isLoaded && vtuber.trackingError && (
+              {/* Non-fatal tracking or recording error */}
+              {stageActive && (vtuber.trackingError || stageRecorder.error) && (
                 <div className="tracking-warning" role="status">
                   <AlertTriangleIcon size={13} />
-                  <span>{vtuber.trackingError}</span>
+                  <span>{stageRecorder.error ?? vtuber.trackingError}</span>
                 </div>
               )}
 
-              {/* Subtle stage HUD (hidden in OBS Clean Mode) */}
-              {!cleanMode && vtuber.isLoaded && (
+              {/* Subtle Stage HUD */}
+              {!cleanMode && stageActive && (
                 <div className="viewport-hud">
-                  <div className="hud-pill">
-                    <span className={`hud-dot ${vtuber.isTracking ? 'active' : ''}`} />
-                    <span>{vtuber.isTracking ? 'LIVE' : 'PAUSED'}</span>
+                  <div className="hud-left-group">
+                    <div className="hud-pill">
+                      <span
+                        className={`hud-dot ${
+                          vtuber.isLoaded
+                            ? vtuber.isTracking
+                              ? 'active'
+                              : ''
+                            : audioLipSync.enabled
+                              ? 'active'
+                              : ''
+                        }`}
+                      />
+                      <span>
+                        {vtuber.isLoaded
+                          ? vtuber.isTracking
+                            ? 'LIVE'
+                            : 'PAUSED'
+                          : audioLipSync.enabled
+                            ? 'MIC MODE'
+                            : 'PREVIEW'}
+                      </span>
+                    </div>
+                    {stageRecorder.isRecording && (
+                      <div className="hud-pill rec">
+                        <span className="rec-dot" />
+                        <span>REC {formatDuration(stageRecorder.durationSec)}</span>
+                      </div>
+                    )}
                   </div>
                   {vtuber.pose && (
                     <div className="hud-pill mono">
@@ -1432,7 +2346,16 @@ function App() {
                 </div>
               )}
 
-              {/* Performance Telemetry Drawer (hidden in OBS Clean Mode) */}
+              {/* Live Webcam + FaceMesh Landmark PiP */}
+              {!cleanMode && showWebcamPip && (
+                <WebcamPreview
+                  videoRef={videoRef}
+                  landmarksRef={vtuber.landmarksRef}
+                  onClose={() => setShowWebcamPip(false)}
+                />
+              )}
+
+              {/* Performance Telemetry Drawer */}
               {!cleanMode && (
                 <PerformanceMonitor
                   fps={vtuber.fps}
@@ -1442,22 +2365,57 @@ function App() {
               )}
             </div>
 
-            {/* Compact Stage Action Dock */}
+            {/* Compact Pro Stage Action Dock */}
             {!cleanMode && (
               <div className="stage-toolbar" role="toolbar" aria-label="Stage actions">
                 <button
                   type="button"
                   className={`dock-btn ${vtuber.isLoaded && !vtuber.isTracking ? 'warn' : ''}`}
                   onClick={vtuber.isLoaded ? vtuber.toggleTracking : startTracking}
-                  title="Start / Pause Tracking (Space)"
+                  title="Start / Pause Camera Tracking (Space)"
                 >
                   {vtuber.isLoaded && vtuber.isTracking ? (
                     <PauseIcon size={14} />
                   ) : (
                     <PlayIcon size={14} />
                   )}
-                  <span>{!vtuber.isLoaded ? 'Start' : vtuber.isTracking ? 'Pause' : 'Resume'}</span>
+                  <span>
+                    {!vtuber.isLoaded ? 'Camera' : vtuber.isTracking ? 'Pause' : 'Resume'}
+                  </span>
                 </button>
+
+                <button
+                  type="button"
+                  className={`dock-btn ${audioLipSync.enabled ? 'active' : ''}`}
+                  onClick={audioLipSync.toggle}
+                  title="Toggle Microphone Lip-Sync"
+                >
+                  {audioLipSync.enabled ? <MicIcon size={14} /> : <MicOffIcon size={14} />}
+                  <span>Mic</span>
+                </button>
+
+                <button
+                  type="button"
+                  className={`dock-btn ${calibratedFlash ? 'success' : hasCalibration ? 'active' : ''}`}
+                  onClick={handleCalibrate}
+                  disabled={!vtuber.isLoaded}
+                  title="Calibrate neutral center pose (C)"
+                >
+                  <TargetIcon size={14} />
+                  <span>{calibratedFlash ? 'Centered' : 'Calibrate'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  className={`dock-btn ${showWebcamPip ? 'active' : ''}`}
+                  onClick={() => setShowWebcamPip((v) => !v)}
+                  title="Show Webcam & Face Mesh Overlay (V)"
+                >
+                  <VideoIcon size={14} />
+                  <span>Mesh</span>
+                </button>
+
+                <span className="dock-sep" aria-hidden="true" />
 
                 <button
                   type="button"
@@ -1473,12 +2431,38 @@ function App() {
                   type="button"
                   className={`dock-btn ${snapshotSaved ? 'success' : ''}`}
                   onClick={handleSnapshot}
-                  disabled={!vtuber.isLoaded}
+                  disabled={!stageActive}
                   title="Save PNG snapshot"
                 >
                   {snapshotSaved ? <CheckIcon size={14} /> : <CameraIcon size={14} />}
-                  <span>{snapshotSaved ? 'Saved' : 'Snapshot'}</span>
+                  <span>{snapshotSaved ? 'Saved' : 'Snap'}</span>
                 </button>
+
+                {stageRecorder.supported && (
+                  <button
+                    type="button"
+                    className={`dock-btn ${stageRecorder.isRecording ? 'danger' : ''}`}
+                    onClick={() => {
+                      if (stageRecorder.isRecording) {
+                        stageRecorder.stopRecording();
+                      } else {
+                        stageRecorder.startRecording(
+                          overlayCanvasRef.current,
+                          audioLipSync.streamRef.current,
+                        );
+                      }
+                    }}
+                    disabled={!stageActive}
+                    title="Record stage video clip (.webm)"
+                  >
+                    {stageRecorder.isRecording ? (
+                      <StopSquareIcon size={14} />
+                    ) : (
+                      <RecordIcon size={14} />
+                    )}
+                    <span>{stageRecorder.isRecording ? 'Stop' : 'Rec'}</span>
+                  </button>
+                )}
 
                 <span className="dock-sep" aria-hidden="true" />
 
@@ -1499,7 +2483,6 @@ function App() {
                   title="Toggle Fullscreen"
                 >
                   {isFullscreen ? <MinimizeIcon size={14} /> : <MaximizeIcon size={14} />}
-                  <span>{isFullscreen ? 'Exit' : 'Expand'}</span>
                 </button>
               </div>
             )}
@@ -1509,7 +2492,6 @@ function App() {
         {/* Right Inspector */}
         {!cleanMode && rightOpen && (
           <aside className="right-panel" aria-label="Live Inspector">
-            {/* Active Avatar Stage Card */}
             <div className="avatar-card">
               <div className="avatar-card-icon">
                 <CubeIcon size={20} />
@@ -1529,13 +2511,14 @@ function App() {
               </button>
             </div>
 
-            {/* Live Tracking Metrics */}
             <div className="inspector-section">
               <h3 className="panel-title">Tracking Telemetry</h3>
               <div className="stats-grid">
                 <div className="stat-card">
                   <div className="stat-value">
-                    {vtuber.pose ? `${(vtuber.pose.mouthRatio * 100).toFixed(0)}%` : '—'}
+                    {vtuber.pose || audioLipSync.enabled
+                      ? `${Math.round(Math.max(vtuber.pose?.mouthRatio ?? 0, audioLipSync.level) * 100)}%`
+                      : '—'}
                   </div>
                   <div className="stat-label">Mouth Open</div>
                 </div>
@@ -1558,54 +2541,57 @@ function App() {
               </div>
             </div>
 
-            {/* Live Pose Meters */}
             <div className="inspector-section">
-              <h3 className="panel-title">Face Signals</h3>
+              <h3 className="panel-title">Face & Voice Signals</h3>
               <div className="pose-bars">
-                {vtuber.pose ? (
+                {vtuber.pose || audioLipSync.enabled ? (
                   <>
-                    <PoseBar label="Left Eye" value={vtuber.pose.eyeLHTemp} />
-                    <PoseBar label="Right Eye" value={vtuber.pose.eyeRHTemp} />
-                    <PoseBar label="Mouth" value={Math.min(vtuber.pose.mouthRatio, 1)} />
-                    <PoseBar label="Gaze X" value={Math.abs(vtuber.pose.eyeXRatio) / 5} />
-                    <PoseBar label="Gaze Y" value={Math.abs(vtuber.pose.eyeYRatio) / 5} />
+                    <PoseBar label="Left Eye" value={vtuber.pose?.eyeLHTemp ?? 0} />
+                    <PoseBar label="Right Eye" value={vtuber.pose?.eyeRHTemp ?? 0} />
+                    <PoseBar
+                      label="Mouth"
+                      value={Math.min(
+                        Math.max(vtuber.pose?.mouthRatio ?? 0, audioLipSync.level),
+                        1,
+                      )}
+                    />
+                    <PoseBar label="Mic Input" value={audioLipSync.level} />
+                    <PoseBar label="Gaze X" value={Math.abs(vtuber.pose?.eyeXRatio ?? 0) / 5} />
                   </>
                 ) : (
-                  <p className="empty-inline">Waiting for face landmarks…</p>
+                  <p className="empty-inline">Waiting for camera or microphone…</p>
                 )}
               </div>
             </div>
 
-            {/* System Diagnostics */}
             <div className="inspector-section">
               <h3 className="panel-title">Runtime Diagnostics</h3>
               <div className="sys-info">
                 <div className="sys-row">
                   <span>Status</span>
-                  <span className={`sys-status ${vtuber.isLoaded ? 'ok' : 'busy'}`}>
-                    {vtuber.isLoaded ? 'Online' : 'Standby'}
+                  <span className={`sys-status ${stageActive ? 'ok' : 'busy'}`}>
+                    {vtuber.isLoaded ? 'Camera Live' : stageActive ? 'Stage Live' : 'Standby'}
                   </span>
                 </div>
                 <div className="sys-row">
-                  <span>Tracker</span>
-                  <span>MediaPipe WASM</span>
+                  <span>Calibration</span>
+                  <span>{hasCalibration ? 'Centered' : 'Default'}</span>
+                </div>
+                <div className="sys-row">
+                  <span>Mic Lip-Sync</span>
+                  <span>{audioLipSync.enabled ? 'Active' : 'Off'}</span>
                 </div>
                 <div className="sys-row">
                   <span>Delegate</span>
                   <span>{settings.delegate}</span>
                 </div>
                 <div className="sys-row">
-                  <span>Worker</span>
-                  <span>{vtuber.useWorker ? 'Off-Thread' : 'Main Thread'}</span>
-                </div>
-                <div className="sys-row">
-                  <span>Layers</span>
-                  <span>{vtuber.overlays.length} active</span>
+                  <span>Stage Zoom</span>
+                  <span>{cameraConfig.zoom.toFixed(2)}×</span>
                 </div>
               </div>
             </div>
 
-            {/* Collapsible Contributors Drawer */}
             <div className="inspector-section">
               <button
                 type="button"

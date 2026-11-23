@@ -261,3 +261,86 @@ export function RefreshIcon(props: IconProps) {
     </Svg>
   );
 }
+
+export function MicIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <rect x="9" y="2.5" width="6" height="11" rx="3" />
+      <path d="M5 10.5a7 7 0 0 0 14 0" />
+      <path d="M12 17.5V21M8.5 21h7" />
+    </Svg>
+  );
+}
+
+export function MicOffIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M9 5.5a3 3 0 0 1 6 0v5" />
+      <path d="M5 10.5a7 7 0 0 0 11.4 5.4" />
+      <path d="M12 17.5V21M8.5 21h7M3 3l18 18" />
+    </Svg>
+  );
+}
+
+export function RecordIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <circle cx="12" cy="12" r="8" />
+      <circle cx="12" cy="12" r="4" fill="currentColor" stroke="none" />
+    </Svg>
+  );
+}
+
+export function StopSquareIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor" stroke="none" />
+    </Svg>
+  );
+}
+
+export function TargetIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <circle cx="12" cy="12" r="8.5" />
+      <circle cx="12" cy="12" r="3" />
+      <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+    </Svg>
+  );
+}
+
+export function SunIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 2.5v2M12 19.5v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2.5 12h2M19.5 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+    </Svg>
+  );
+}
+
+export function SaveIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z" />
+      <path d="M17 21v-8H7v8M7 3v5h8" />
+    </Svg>
+  );
+}
+
+export function DownloadIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <path d="m7 10 5 5 5-5M12 15V3" />
+    </Svg>
+  );
+}
+
+export function VideoIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <rect x="2.5" y="6" width="13.5" height="12" rx="2" />
+      <path d="m16 10 5.5-3v10L16 14Z" />
+    </Svg>
+  );
+}
