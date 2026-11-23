@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import { sanitizeAppearance } from '../character/avatarAppearance';
 import type {
   BackgroundType,
   OverlayItem,
@@ -163,6 +164,7 @@ export function sanitizeProfileData(raw: unknown): StudioProfileData | null {
     },
     tuning,
     mirrored: bool(obj.mirrored, false),
+    ...(obj.appearance ? { appearance: sanitizeAppearance(obj.appearance) } : {}),
   };
 }
 

@@ -1,187 +1,125 @@
-# 🌸 EasyVtuber: Pure Web & Elite Edition
+# 🌸 EasyVtuber Studio — Pure Web & Desktop Edition
 
-[![Web App](https://img.shields.io/badge/Web-Live_App_🌐-ff69b4)](https://NimuthuGanegoda.github.io/EasyVtuber/)
+[![Web App](https://img.shields.io/badge/Live_Studio-Launch_Now_🌐-ff69b4)](https://NimuthuGanegoda.github.io/EasyVtuber/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Platform](https://img.shields.io/badge/Platform-Browser%20%7C%20Windows%20%7C%20Linux-green)](https://github.com/NimuthuGanegoda/EasyVtuber)
 
-**100% Browser-Based VTubing is here!** 🌸💎
+**Zero-install, privacy-first VTuber Studio in your browser — plus an offline-first Desktop AI edition.**
 
-EasyVtuber has been upgraded to run entirely in your web browser. No Python, no heavy local backends, and no complex setup. Just open the link, give camera permission, and start your VTubing journey!
+Open the live link, pick or drop your avatar (`.vrm` 3D model, transparent `.png` PNGTuber art, or the built-in customizable Studio Avatar), and start streaming to OBS, Twitch, YouTube, or Discord in seconds. Everything runs **100% locally on your device** — nothing is ever uploaded.
 
 ---
 
-## 🌐 Live Web App
+## 🌐 Live Public Web Studio
 
 👉 **[https://NimuthuGanegoda.github.io/EasyVtuber/](https://NimuthuGanegoda.github.io/EasyVtuber/)**
 
-### 🛠️ Fix: "Loading..." Problem
-If the page stays on a loading state, it is usually because the AI models are quite large (~20MB).
-1. **Wait:** Give it 30-60 seconds on the first load.
-2. **WebGPU/WebGL:** Ensure your browser has **Hardware Acceleration** enabled in settings.
-3. **Camera:** If the viewport shows a camera error, check that nothing else is using the webcam and that the site has camera permission — the app now names the exact cause instead of spinning forever.
+### ✨ Key Studio Features
+
+- **3 Ready-to-Use Avatar Engines**
+  - **Studio 2D Avatar (Built-In):** 5 instant presets (*Sakura, Kitsune, Neko, Cyber, Midnight*), custom hair/eye/skin/outfit color pickers, reactive hair physics, and accessories (*Fox Ears, Cat Ears, Halo, Glasses, Horns*).
+  - **PNGTuber 2D Mode:** Drop any transparent `.png`/`.webp` artwork (single image or **Idle + Talking + Blinking** multi-sprite sets) for instant 2.5D head parallax and voice-reactive talk bounce.
+  - **VRM 3D Mode (`.vrm` 0.x & 1.0):** Drag-and-drop any VRoid Studio / VRM character for Kalidokit head/neck/spine/eye `lookAt` tracking, 3-point studio lighting (*Studio, Neon, Sunset, Moonlight*), and 7 facial expressions.
+  - **Local Browser Persistence:** Uploaded `.vrm` models and PNGTuber sprites are saved locally in IndexedDB so they reload automatically next visit without ever leaving your machine.
+- **Resilient Face Tracking & Voice Lip-Sync**
+  - MediaPipe FaceLandmarker in WebAssembly with **automatic GPU → CPU delegate fallback**, redundant WASM CDN fallback, one-click **Pose Calibration (`C`)**, head sensitivity & smoothing sliders, organic auto-blink, and idle breathing.
+  - Real-time **Microphone Lip-Sync** (Web Audio API with live VU meter, Gain, and Noise Gate) — works standalone even without a webcam.
+  - Real **Privacy Camera Off** button that shuts down webcam hardware tracks immediately.
+- **Broadcast-Ready OBS, Discord & Clip Export**
+  - **Pop-Out OBS Stage Window (`Pop-Out`):** Opens a clean, zero-UI `1024×1024` HD stage window for OBS Window Capture while you control expressions, lighting, and scenes in the main tab.
+  - **OBS Browser Source URL Parameters:** Supports `?clean=1&bg=transparent|green|blue|obsidian&mirror=1&cam=0&avatar=kitsune` plus an in-app **OBS Guide** modal with one-click URL copy.
+  - **HD Media Export:** Crisp `1024×1024` PNG Snapshots (`Snap`) and live **WebM Video Clip Recording (`Rec`)** composited with your selected stage backdrop and optional live microphone audio.
+  - **Named Scene Profiles & Rebindable Hotkeys:** Save/switch/export/import JSON scene profiles and click any hotkey to rebind it.
 
 ---
 
-## 🎧 Connect to Discord / Streaming
+## 🎧 Connect to OBS Studio & Discord
 
-To use your "Elite" avatar in Discord, Zoom, or OBS:
+### Method 1: Web Studio (Instant — No Install)
+1. Open **[EasyVtuber Studio](https://NimuthuGanegoda.github.io/EasyVtuber/)** (works on desktop & mobile browsers).
+2. Choose **Chroma Green** or **Chroma Blue** in the **Stage** tab and click **Pop-Out** in the bottom dock (or click **OBS Guide** in the header to copy a direct Browser Source URL).
+3. In **OBS Studio**, add a **Window Capture** source targeting `EasyVtuber — OBS Stage` (with an optional Chroma Key filter).
+4. For **Discord / Zoom / Meet**, click **Start Virtual Camera** in OBS and select **OBS Virtual Camera** in Discord's Voice & Video settings.
 
-### Method 1: Desktop (Highest Quality)
-1. Use the version in the `/desktop` folder.
-2. Select **"OBS VirtualCam"** or **"Spout2"** as the Output in the launcher.
-3. In Discord settings, select **"OBS Virtual Camera"** as your webcam.
-
-### Method 2: Web (Pure Browser)
-1. Open the [Live Web App](https://NimuthuGanegoda.github.io/EasyVtuber/).
-2. Use **OBS Studio** to capture your browser window ("Window Capture").
-3. Click **"Start Virtual Camera"** in OBS.
-4. In Discord, select **"OBS Virtual Camera"**.
-
-### ✨ Web Features
-- **Zero Install**: Runs 100% on your device — MediaPipe face tracking in WebAssembly, no server round-trip.
-- **Three renderers, graceful fallback**: a real VRM model if you supply one, otherwise GPU-accelerated procedural WebGL, otherwise Canvas 2D.
-- **Privacy First**: All processing happens locally in your browser; nothing is uploaded.
-- **Settings that persist**: camera source, GPU/CPU delegate, FPS cap and debug overlay are saved in `localStorage`.
+### Method 2: Desktop AI Edition (Talking Head Anime 3 / 4)
+1. Use the offline Python suite in `/desktop` for neural portrait animation, RIFE frame interpolation, and native Spout2 / OBS VirtualCam output.
+2. See [`desktop/README.md`](desktop/README.md) for setup and model weights.
 
 ---
 
-## 🚀 Elite V2 (TypeScript + React + Wasm)
-
-The "Elite Edition" has been rewritten for maximum performance on modern browsers using **React** and **MediaPipe Wasm**.
-
-### 🛠️ How to run V2
-```bash
-cd web
-npm install
-npm run dev      # http://localhost:5173
-```
-
-### 🎭 Character model (VRM)
-
-By default the web app draws a simple procedural cartoon avatar (Canvas2D/WebGL
-shapes) — no external assets needed, works out of the box. For a real,
-professionally-rigged 3D character instead:
-
-1. Design/export a character as a `.vrm` file. We recommend
-   [VRoid Studio](https://vroid.com/en/studio) (free, from Pixiv) — build a
-   character visually and export as VRM; since you're the creator, you own
-   full rights to redistribute it.
-2. Place the file at `web/public/models/character.vrm` and commit it.
-3. That's it — the app detects the model automatically at startup and drives
-   its head rotation, blink, and mouth shape from your webcam via
-   [Kalidokit](https://github.com/yeemachine/kalidokit) (MediaPipe → VRM
-   solving). The camera frames the model from its own bounding box, so chibi
-   and non-standard proportions stay in shot. No model present, or it fails to
-   load? The app falls back to the procedural avatar automatically — nothing
-   breaks either way.
-
-We deliberately did **not** build this against Live2D: its SDK license
-explicitly requires a paid license for "VTuber tracking tools" like this one,
-regardless of company size, which isn't something a public open-source repo
-can quietly assume its way around. VRM + `@pixiv/three-vrm` + Kalidokit is
-MIT-family licensed end to end.
-
----
-
-## 🛡️ Security & Integrity
-
-- **Strict Content Security Policy (CSP)**: `web/index.html` whitelists exactly the origins the app needs (MediaPipe CDN, GitHub API, avatar hosts). No wildcard script sources.
-- **Automated Vulnerability Scanning**: CodeQL (`security.yml`) and Dependabot monitoring — both now run on `main` and on pull requests.
-- **Local-only inference**: tracking, solving and rendering all happen on your machine.
-- **Desktop web output is loopback-only** by default: the MJPEG server binds `127.0.0.1` and has no authentication, so LAN exposure is opt-in.
-
----
-
-## 📂 Project Structure
-
-| Path | What it is |
-| --- | --- |
-| `/web` | **Source** for the web app — React + TypeScript + Vite + MediaPipe |
-| `/docs` | **Build output** of `/web`, committed and deployed by GitHub Pages (`deploy-pages.yml`). Regenerate with `npm --prefix web run build`; CI fails if it is stale. |
-| `/` (`index.html`) | Forwards to `docs/` so the repository root URL works |
-| `/desktop` | **Desktop suite** — Python + ONNX Runtime/TensorRT (THA3/THA4 via `ezvtuber-rt`) |
-| `/legacy` | Archived JS bundles and older implementations (kept for reference, not built) |
-
----
-
-## 🛠️ Contributor Excellence
-
-Before submitting a PR:
+## 🚀 Local Development (Web Studio)
 
 ```bash
 cd web
 npm ci
-npm run typecheck     # strict TypeScript, no emits
-npm run lint          # ESLint (react-hooks, typescript-eslint)
-npm run format:check  # Prettier
-npm test              # Vitest
-npm run build         # must leave docs/ unchanged (see below)
+npm run dev      # http://localhost:5173
 ```
 
-And for the Python side:
+### Verification Before PR
+```bash
+cd web
+npm run typecheck     # strict TypeScript
+npm run lint          # ESLint (React Compiler & TypeScript rules)
+npm run format:check  # Prettier
+npm test              # Vitest unit suite
+npm run build         # builds into ../docs/ (must be committed in sync)
+```
 
+For the Python desktop suite:
 ```bash
 python -m pip install -r desktop/requirements/requirements-dev.txt
 python -m pytest desktop/tests -q
 ```
 
-All of the above are enforced by CI (`web-ci.yml`, `python-package.yml`,
-`windows-smoke.yml`). If you change anything under `web/src`, run
-`npm --prefix web run build` and commit the regenerated `docs/` in the same PR.
+---
+
+## 🧪 Desktop Quick Start
+
+### Windows
+```bat
+cd desktop
+install_reqs.bat
+start_launcher.bat
+```
+
+### Linux / macOS
+```bash
+cd desktop
+chmod +x install_reqs.sh start_launcher.sh
+./install_reqs.sh
+./start_launcher.sh
+```
+
+> **Note on Desktop Model Weights:** The desktop edition is offline-by-design and does not bundle multi-GB neural weights. See [`desktop/README.md`](desktop/README.md) ("Model weights") for the exact layout and download link.
 
 ---
 
-## 🧪 Desktop Usage (For Power Users)
+## 📂 Project Structure
 
-If you need even higher quality, frame interpolation (RIFE), or native OBS transparency, use the desktop version:
-
-1. Navigate to the `desktop` folder.
-2. Run `install_reqs.sh` or `install_reqs.bat`.
-3. Launch the GUI with `python gui/launcher2.py` (or directly: `python main.py --character <name>`).
-
-**Model weights are not bundled.** A fresh checkout ships empty placeholder
-files, so the first launch will tell you what's missing. Download them once and
-drop them under `desktop/data/models/` — see **`desktop/README.md` → "Model
-weights"** for the exact layout and sources.
-
-*See `desktop/README.md` for full desktop instructions.*
-
-### 🪟 Windows Quick Start (Primary desktop target)
-
-1. Open `desktop\` in terminal.
-2. Run `install_reqs.bat`.
-3. Launch with `python gui\launcher2.py`.
-4. Keep TensorRT optional; ONNX Runtime (DirectML/OpenVINO/CPU) is the default fallback path. If TensorRT is selected but unavailable, the console now says exactly why before falling back.
-
-Functional minimum on Windows:
-- Launcher opens
-- Webcam or VMC input works
-- One model loads from local files
-- VirtualCam or Debug output works
-- Start/Stop relaunch is stable
+| Path | Description |
+| --- | --- |
+| `/web` | **Web Studio source** — React 19, TypeScript, Vite, Three.js (`@pixiv/three-vrm`), Kalidokit, MediaPipe WASM |
+| `/docs` | **Production bundle** deployed automatically to GitHub Pages (`deploy-pages.yml`) |
+| `/desktop` | **Offline Desktop Suite** — Python, wxPython Studio Launcher, ONNX Runtime / TensorRT-RTX (`ezvtuber-rt`), VMC/OSC |
+| `/legacy` | Archived legacy bundles (kept for reference only) |
 
 ---
 
-## 🚀 Hardware Optimization
+## 🛡️ Security & Privacy
 
-- **Web Version**: Automatically uses your browser's WebGL/WebGPU for acceleration.
-- **Desktop Version**: Optimized for **Intel NPU**, **Apple Silicon**, and **High-end GPUs**. See `desktop/docs/NPU_OPTIMIZATION_GUIDE.md` and `desktop/docs/PerformanceTest.md`.
-
-### Recommended desktop hardware tiers (Windows)
-
-- **Tier 1 (best stability/performance):** NVIDIA GPU + optional TensorRT
-- **Tier 2 (broad compatibility):** AMD/Intel GPU via DirectML
-- **Tier 3 (fallback):** CPU/OpenVINO path when no GPU acceleration is available
+- **Strict Content Security Policy (CSP)** in `web/index.html` whitelisting only required WASM/model/font/avatar origins.
+- **100% Local Processing:** Face tracking, audio lip-sync, VRM/PNG rendering, and IndexedDB avatar caching all stay strictly on your device.
+- **Automated Security & CI:** CodeQL (`security.yml`), Dependabot, `web-ci.yml`, `python-package.yml`, and `windows-smoke.yml` run on every PR and push.
 
 ---
 
 ## 🧑‍🎤 Credits & Acknowledgments
-*   **Original Engine**: [Talking Head Anime 4](http://pkhungurn.github.io/talking-head-anime-4/) by **Pramook Khungurn**.
-*   **Tracking**: [MediaPipe](https://google.github.io/mediapipe/) by Google.
-*   **Desktop Runtime**: [ezvtuber-rt](https://github.com/zpeng11/ezvtuber-rt) by **zpeng11** (THA3/THA4 ONNX + TensorRT).
-*   **Desktop Re-Engineering**: Enhanced and modularized by **Nimuthu**.
 
----
+- **Original Engine**: [Talking Head Anime 4](http://pkhungurn.github.io/talking-head-anime-4/) by **Pramook Khungurn**.
+- **Tracking & VRM**: [MediaPipe](https://google.github.io/mediapipe/), [`@pixiv/three-vrm`](https://github.com/pixiv/three-vrm), and [Kalidokit](https://github.com/yeemachine/kalidokit) (MIT-family licensed end to end).
+- **Desktop Runtime**: [ezvtuber-rt](https://github.com/zpeng11/ezvtuber-rt) by **zpeng11**.
+- **Re-Engineering & Studio Edition**: Enhanced and maintained by **Nimuthu**.
 
 ## 📜 License
+
 MIT © GunwooHan & Pramook Khungurn. Re-Engineered by Nimuthu.

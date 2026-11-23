@@ -344,3 +344,59 @@ export function VideoIcon(props: IconProps) {
     </Svg>
   );
 }
+
+export function ExternalLinkIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M14 4h6v6" />
+      <path d="M10 14 20 4" />
+      <path d="M18 13v5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h5" />
+    </Svg>
+  );
+}
+
+export function HelpCircleIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <circle cx="12" cy="12" r="9.5" />
+      <path d="M9.4 9.3a2.7 2.7 0 0 1 5.2.9c0 1.8-2.6 2.2-2.6 3.8" />
+      <circle cx="12" cy="17.2" r="0.6" fill="currentColor" stroke="none" />
+    </Svg>
+  );
+}
+
+export function CopyIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <rect x="9" y="9" width="11" height="11" rx="2" />
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+    </Svg>
+  );
+}
+
+export function SparklesIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="m12 3 1.7 5.3L19 10l-5.3 1.7L12 17l-1.7-5.3L5 10l5.3-1.7Z" />
+      <path d="M19 3v3M20.5 4.5h-3M5 17v3M6.5 18.5h-3" />
+    </Svg>
+  );
+}
+
+export function PowerIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M12 2.5v9" />
+      <path d="M17.6 5.6a8.5 8.5 0 1 1-11.2 0" />
+    </Svg>
+  );
+}
+
+export function UserIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4.5 20a7.5 7.5 0 0 1 15 0" />
+    </Svg>
+  );
+}

@@ -1,3 +1,4 @@
+import math
 import mediapipe as mp
 from multiprocessing import Process, shared_memory, Value
 import cv2
@@ -58,11 +59,12 @@ class FaceMeshClientProcess(Process):
             if results.multi_face_landmarks is None:
                 continue
 
-            # 计算呼吸效果（使用 sin 函数，在 breath_cycle 时间内从 0 到 1 再到 0）
-            breath_elapsed = (time.perf_counter() - breath_start_time) % args.breath_cycle
-            # 使用 sin 函数，让值在一个周期内从 0 -> 1 -> 0
-            # sin 在 0 到 π 之间从 0 到 1 到 0
-            breath_value = np.sin(breath_elapsed / args.breath_cycle * np.pi)
+            # Guard breath_cycle against inf or <= 0 to avoid ZeroDivisionError/NaN
+            if math.isfinite(args.breath_cycle) and args.breath_cycle > 0:
+                breath_elapsed = (time.perf_counter() - breath_start_time) % args.breath_cycle
+                breath_value = float(np.sin(breath_elapsed / args.breath_cycle * np.pi))
+            else:
+                breath_value = 0.0
 
             facial_landmarks = results.multi_face_landmarks[0].landmark
             pose = get_pose(facial_landmarks)

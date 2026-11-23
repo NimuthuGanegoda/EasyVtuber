@@ -8,17 +8,12 @@ import {
   useRef,
   useState,
 } from 'react';
-import {
-  useVtuber,
-  BackgroundType,
-  ExpressionState,
-  PoseData,
-  type InferenceDelegate,
-} from './hooks/useVtuber';
+import { useVtuber, ExpressionState, PoseData, type InferenceDelegate } from './hooks/useVtuber';
 import { useContributors, FALLBACK_COUNT } from './hooks/useContributors';
 import { useSettings, isMaxFps, MAX_FPS_CHOICES } from './hooks/useSettings';
 import { useAudioLipSync } from './hooks/useAudioLipSync';
 import { useStageRecorder } from './hooks/useStageRecorder';
+import { usePopoutStage } from './hooks/usePopoutStage';
 import {
   DEFAULT_STAGE_CAMERA,
   LIGHTING_PRESETS,
@@ -26,12 +21,15 @@ import {
   useProfiles,
 } from './hooks/useProfiles';
 import type {
+  AvatarAppearance,
+  AvatarMode,
+  BackgroundType,
+  PngAvatarConfig,
   StageCameraConfig,
   StageLightingConfig,
   StudioProfileData,
   TrackingTuning,
 } from './types';
-import { WebGLCharacterRenderer } from './utils/webglRenderer';
 import { VRMCharacterRenderer } from './utils/vrmRenderer';
 import {
   DEFAULT_TRACKING_TUNING,
@@ -41,8 +39,29 @@ import {
   type AutoBlinkState,
   type PoseCalibration,
 } from './utils/trackingFilters';
+import { AVATAR_PRESETS, readAppearance, writeAppearance } from './character/avatarAppearance';
+import {
+  DEFAULT_PNG_AVATAR_CONFIG,
+  drawPngAvatar,
+  type PngAvatarSprites,
+  type PngRenderState,
+} from './character/pngAvatar';
+import { drawStageBackdrop } from './utils/stageComposite';
+import {
+  MAX_PNG_BYTES,
+  MAX_VRM_BYTES,
+  clearPngAsset,
+  clearVrmAsset,
+  loadPngAsset,
+  loadVrmAsset,
+  savePngAsset,
+  saveVrmAsset,
+} from './utils/avatarStorage';
+import { parseStudioUrlParams } from './utils/urlParams';
 import { PerformanceMonitor } from './components/PerformanceMonitor';
 import { WebcamPreview } from './components/WebcamPreview';
+import { AvatarPanel } from './components/AvatarPanel';
+import { StreamGuideModal } from './components/StreamGuideModal';
 import {
   AlertTriangleIcon,
   CameraIcon,
@@ -50,9 +69,11 @@ import {
   ChevronDownIcon,
   CubeIcon,
   DownloadIcon,
+  ExternalLinkIcon,
   EyeIcon,
   EyeOffIcon,
   FlipHorizontalIcon,
+  HelpCircleIcon,
   ImageIcon,
   KeyboardIcon,
   LayersIcon,
@@ -65,32 +86,38 @@ import {
   PanelRightIcon,
   PauseIcon,
   PlayIcon,
+  PowerIcon,
   RecordIcon,
   RefreshIcon,
   RotateCcwIcon,
   SaveIcon,
   SlidersIcon,
   SmileIcon,
+  SparklesIcon,
   StopSquareIcon,
   SunIcon,
   TargetIcon,
   TrashIcon,
   UploadIcon,
   VideoIcon,
+  XIcon,
 } from './components/Icons';
 import { drawCharacter, drawHUD, drawOverlays } from './character/canvas2d';
 import { CANVAS_SIZE } from './character/spec';
 
 const VRM_MODEL_URL = './models/character.vrm';
+/** Crisp 2× HD internal render backing resolution (logical coordinates stay 512×512). */
+const STAGE_RENDER_SIZE = CANVAS_SIZE * 2;
 
-type TabId = 'expressions' | 'backgrounds' | 'overlays' | 'hotkeys' | 'settings';
+type TabId = 'avatar' | 'expressions' | 'backgrounds' | 'overlays' | 'hotkeys' | 'settings';
 
 const TABS: { id: TabId; label: string; icon: ReactNode }[] = [
-  { id: 'expressions', label: 'Face', icon: <SmileIcon size={16} /> },
-  { id: 'backgrounds', label: 'Stage', icon: <PaletteIcon size={16} /> },
-  { id: 'overlays', label: 'Layers', icon: <LayersIcon size={16} /> },
-  { id: 'hotkeys', label: 'Scenes', icon: <KeyboardIcon size={16} /> },
-  { id: 'settings', label: 'Setup', icon: <SlidersIcon size={16} /> },
+  { id: 'avatar', label: 'Avatar', icon: <SparklesIcon size={15} /> },
+  { id: 'expressions', label: 'Face', icon: <SmileIcon size={15} /> },
+  { id: 'backgrounds', label: 'Stage', icon: <PaletteIcon size={15} /> },
+  { id: 'overlays', label: 'Layers', icon: <LayersIcon size={15} /> },
+  { id: 'hotkeys', label: 'Scenes', icon: <KeyboardIcon size={15} /> },
+  { id: 'settings', label: 'Setup', icon: <SlidersIcon size={15} /> },
 ];
 
 const EXPRESSION_CONTROLS: {
@@ -269,7 +296,7 @@ const QUICK_EMOJIS = ['🌸', '✨', '⭐', '💖', '🎀', '💫', '🔥', '�
 
 const STUDIO_SHORTCUTS = [
   { key: 'C', label: 'Calibrate Center Pose' },
-  { key: 'M', label: 'Mirror Stage' },
+  { key: 'M', label: 'Mirror Avatar' },
   { key: 'V', label: 'Webcam Face Mesh PiP' },
   { key: 'Z', label: 'OBS Clean Mode' },
   { key: '`', label: 'Performance Telemetry' },
@@ -280,6 +307,15 @@ function formatDuration(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+function loadImageElement(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error('Could not decode image file.'));
+    img.src = src;
+  });
 }
 
 function ContributorsSection() {
@@ -335,23 +371,47 @@ function ContributorsSection() {
 }
 
 function App() {
+  const [urlConfig] = useState(() =>
+    parseStudioUrlParams(typeof window !== 'undefined' ? window.location.search : ''),
+  );
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
-  const glCanvasRef = useRef<HTMLCanvasElement>(null);
-  const webglRendererRef = useRef<WebGLCharacterRenderer | null>(null);
+  const compositeCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const vrmCanvasRef = useRef<HTMLCanvasElement>(null);
   const vrmRendererRef = useRef<VRMCharacterRenderer | null>(null);
   const stageContainerRef = useRef<HTMLDivElement>(null);
+  const bgImageElRef = useRef<HTMLImageElement | null>(null);
+
   const vrmObjectUrlRef = useRef<string | null>(null);
+  const pngBlobsRef = useRef<{
+    name: string;
+    idle: Blob | null;
+    talking: Blob | null;
+    blinking: Blob | null;
+  }>({ name: '', idle: null, talking: null, blinking: null });
+  const pngUrlsRef = useRef<{
+    idle: string | null;
+    talking: string | null;
+    blinking: string | null;
+  }>({ idle: null, talking: null, blinking: null });
+  const pngSpritesRef = useRef<PngAvatarSprites>({ idle: null, talking: null, blinking: null });
+  const pngRenderStateRef = useRef<PngRenderState>({ bounce: 0, talkPhase: 0 });
+  const pngTargetSlotRef = useRef<'idle' | 'talking' | 'blinking'>('idle');
+
   const vrmInputRef = useRef<HTMLInputElement>(null);
+  const pngInputRef = useRef<HTMLInputElement>(null);
   const bgImageInputRef = useRef<HTMLInputElement>(null);
   const overlayImageInputRef = useRef<HTMLInputElement>(null);
   const profileImportRef = useRef<HTMLInputElement>(null);
+
   const initStarted = useRef(false);
   const animFrameRef = useRef(0);
   const smoothedPoseRef = useRef<PoseData | null>(null);
   const calibrationRef = useRef<PoseCalibration | null>(null);
   const blinkStateRef = useRef<AutoBlinkState>({ nextBlinkAtMs: 0, blinkStartMs: null });
+  const prevHeadYawRef = useRef(0);
+  const hairSwayRef = useRef(0);
   const dragPanRef = useRef<{
     pointerId: number;
     startX: number;
@@ -360,27 +420,40 @@ function App() {
     origY: number;
   } | null>(null);
 
-  const [activeTab, setActiveTab] = useState<TabId>('expressions');
-  const [rendererMode, setRendererMode] = useState<'VRM 3D' | 'WebGL' | 'Canvas 2D'>('Canvas 2D');
+  const [activeTab, setActiveTab] = useState<TabId>('avatar');
+  const [avatarMode, setAvatarMode] = useState<AvatarMode>('studio');
+  const [appearance, setAppearance] = useState<AvatarAppearance>(() =>
+    urlConfig.avatarPreset ? AVATAR_PRESETS[urlConfig.avatarPreset] : readAppearance(),
+  );
   const [vrmModelName, setVrmModelName] = useState<string | null>(null);
   const [vrmError, setVrmError] = useState<string | null>(null);
+  const [vrmPersisted, setVrmPersisted] = useState(false);
+
+  const [pngConfig, setPngConfig] = useState<PngAvatarConfig>(DEFAULT_PNG_AVATAR_CONFIG);
+  const [pngHasIdle, setPngHasIdle] = useState(false);
+  const [pngHasTalking, setPngHasTalking] = useState(false);
+  const [pngHasBlinking, setPngHasBlinking] = useState(false);
+  const [pngError, setPngError] = useState<string | null>(null);
+
   const [newOverlayText, setNewOverlayText] = useState('');
   const [newProfileName, setNewProfileName] = useState('');
   const [profileNotice, setProfileNotice] = useState<string | null>(null);
   const [customColor, setCustomColor] = useState('#141828');
   const [leftOpen, setLeftOpen] = useState(true);
   const [rightOpen, setRightOpen] = useState(true);
-  const [cleanMode, setCleanMode] = useState(false);
-  const [mirrored, setMirrored] = useState(false);
+  const [cleanMode, setCleanMode] = useState(urlConfig.cleanMode);
+  const [mirrored, setMirrored] = useState(urlConfig.mirrored ?? false);
   const [showChecker, setShowChecker] = useState(true);
   const [showWebcamPip, setShowWebcamPip] = useState(false);
-  const [previewNoCamera, setPreviewNoCamera] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [isDraggingVrm, setIsDraggingVrm] = useState(false);
+  const [isDraggingAsset, setIsDraggingAsset] = useState(false);
   const [snapshotSaved, setSnapshotSaved] = useState(false);
   const [calibratedFlash, setCalibratedFlash] = useState(false);
   const [hasCalibration, setHasCalibration] = useState(false);
   const [creditsOpen, setCreditsOpen] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
+  const [dismissedError, setDismissedError] = useState<string | null>(null);
+  const [rebindingAction, setRebindingAction] = useState<string | null>(null);
 
   const [cameraConfig, setCameraConfig] = useState<StageCameraConfig>(DEFAULT_STAGE_CAMERA);
   const [lightingConfig, setLightingConfig] = useState<StageLightingConfig>(
@@ -389,16 +462,49 @@ function App() {
   const [trackingTuning, setTrackingTuning] = useState<TrackingTuning>(DEFAULT_TRACKING_TUNING);
 
   const vtuber = useVtuber();
-  const { loadModels, setMaxFps, poseRef, setExpression, setBackground, setOverlays } = vtuber;
+  const {
+    loadModels,
+    stopCamera,
+    setMaxFps,
+    poseRef,
+    setExpression,
+    setBackground,
+    setOverlays,
+    updateHotkey,
+  } = vtuber;
   const { settings, updateSettings } = useSettings();
   const audioLipSync = useAudioLipSync();
   const stageRecorder = useStageRecorder();
+  const popout = usePopoutStage(STAGE_RENDER_SIZE);
+  const { pushFrame: popoutPushFrame } = popout;
   const { profiles, saveProfile, deleteProfile } = useProfiles();
 
+  // Mirror state refs for the single persistent 60fps RAF loop
   const showDebugRef = useRef(settings.showDebug);
   useEffect(() => {
     showDebugRef.current = settings.showDebug;
   }, [settings.showDebug]);
+
+  const avatarModeRef = useRef(avatarMode);
+  useEffect(() => {
+    avatarModeRef.current = avatarMode;
+  }, [avatarMode]);
+
+  const appearanceRef = useRef(appearance);
+  useEffect(() => {
+    appearanceRef.current = appearance;
+    writeAppearance(appearance);
+  }, [appearance]);
+
+  const pngConfigRef = useRef(pngConfig);
+  useEffect(() => {
+    pngConfigRef.current = pngConfig;
+  }, [pngConfig]);
+
+  const mirroredRef = useRef(mirrored);
+  useEffect(() => {
+    mirroredRef.current = mirrored;
+  }, [mirrored]);
 
   const cameraConfigRef = useRef(cameraConfig);
   useEffect(() => {
@@ -415,10 +521,48 @@ function App() {
     trackingTuningRef.current = trackingTuning;
   }, [trackingTuning]);
 
+  const backgroundRef = useRef(vtuber.background);
+  const backgroundValueRef = useRef(vtuber.backgroundValue);
+  useEffect(() => {
+    backgroundRef.current = vtuber.background;
+    backgroundValueRef.current = vtuber.backgroundValue;
+    if (vtuber.background === 'image' && /^data:image\//i.test(vtuber.backgroundValue)) {
+      const img = new Image();
+      img.onload = () => {
+        bgImageElRef.current = img;
+      };
+      img.src = vtuber.backgroundValue;
+    } else {
+      bgImageElRef.current = null;
+    }
+  }, [vtuber.background, vtuber.backgroundValue]);
+
+  const recordingRef = useRef(stageRecorder.isRecording);
+  useEffect(() => {
+    recordingRef.current = stageRecorder.isRecording;
+  }, [stageRecorder.isRecording]);
+
+  const popoutOpenRef = useRef(popout.isOpen);
+  useEffect(() => {
+    popoutOpenRef.current = popout.isOpen;
+  }, [popout.isOpen]);
+
+  const isLoadedRef = useRef(vtuber.isLoaded);
+  useEffect(() => {
+    isLoadedRef.current = vtuber.isLoaded;
+  }, [vtuber.isLoaded]);
+
+  // Apply URL background shortcut on first mount if provided
+  useEffect(() => {
+    if (urlConfig.background) {
+      setBackground(urlConfig.background.type, urlConfig.background.value);
+    }
+  }, [urlConfig.background, setBackground]);
+
   const startTracking = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
-    setPreviewNoCamera(false);
+    setDismissedError(null);
     void loadModels(video, {
       delegate: settings.delegate,
       deviceId: settings.deviceId ?? undefined,
@@ -426,10 +570,10 @@ function App() {
   }, [settings.delegate, settings.deviceId, loadModels]);
 
   useEffect(() => {
-    if (!settings.autoStart || initStarted.current) return;
+    if (!settings.autoStart || urlConfig.disableAutoCam || initStarted.current) return;
     initStarted.current = true;
     startTracking();
-  }, [settings.autoStart, startTracking]);
+  }, [settings.autoStart, urlConfig.disableAutoCam, startTracking]);
 
   useEffect(() => {
     setMaxFps(settings.maxFps);
@@ -448,51 +592,85 @@ function App() {
     [settings.delegate, settings.deviceId, updateSettings, vtuber.isLoaded, loadModels],
   );
 
-  // Initialize WebGL renderer
-  useEffect(() => {
-    const glCanvas = glCanvasRef.current;
-    if (!glCanvas) return;
-    glCanvas.width = CANVAS_SIZE;
-    glCanvas.height = CANVAS_SIZE;
-    try {
-      const renderer = new WebGLCharacterRenderer(glCanvas);
-      webglRendererRef.current = renderer;
-      if (renderer.isReady()) {
-        queueMicrotask(() => setRendererMode((prev) => (prev === 'VRM 3D' ? prev : 'WebGL')));
+  // Helper to apply PNG blobs into runtime image elements
+  const loadPngSpriteBlob = useCallback(
+    async (slot: 'idle' | 'talking' | 'blinking', blob: Blob): Promise<boolean> => {
+      const nextUrl = URL.createObjectURL(blob);
+      try {
+        const img = await loadImageElement(nextUrl);
+        const prevUrl = pngUrlsRef.current[slot];
+        if (prevUrl) URL.revokeObjectURL(prevUrl);
+        pngUrlsRef.current[slot] = nextUrl;
+        pngSpritesRef.current[slot] = img;
+        pngBlobsRef.current[slot] = blob;
+        if (slot === 'idle') setPngHasIdle(true);
+        if (slot === 'talking') setPngHasTalking(true);
+        if (slot === 'blinking') setPngHasBlinking(true);
+        return true;
+      } catch {
+        URL.revokeObjectURL(nextUrl);
+        return false;
       }
-    } catch {
-      console.warn('WebGL renderer init failed, falling back to Canvas 2D');
-    }
+    },
+    [],
+  );
 
-    return () => {
-      webglRendererRef.current?.destroy();
-      webglRendererRef.current = null;
-    };
-  }, []);
-
-  // Initialize VRM 3D renderer
+  // Initialize VRM 3D renderer at crisp 1024×1024 HD + restore local IndexedDB assets
   useEffect(() => {
     const vrmCanvas = vrmCanvasRef.current;
     if (!vrmCanvas) return;
-    vrmCanvas.width = CANVAS_SIZE;
-    vrmCanvas.height = CANVAS_SIZE;
+    vrmCanvas.width = STAGE_RENDER_SIZE;
+    vrmCanvas.height = STAGE_RENDER_SIZE;
+    const pngUrlBucket = pngUrlsRef.current;
     let cancelled = false;
-    try {
-      const renderer = new VRMCharacterRenderer(vrmCanvas);
-      vrmRendererRef.current = renderer;
-      renderer.setLighting(LIGHTING_PRESETS.studio);
-      void renderer.loadModel(VRM_MODEL_URL).then((ok) => {
-        if (cancelled) return;
-        if (ok) {
-          setRendererMode('VRM 3D');
-          setVrmModelName('character.vrm');
-        } else {
-          console.info('No VRM character model loaded — using procedural fallback renderer.');
+
+    const renderer = new VRMCharacterRenderer(vrmCanvas);
+    vrmRendererRef.current = renderer;
+    renderer.setLighting(LIGHTING_PRESETS.studio);
+
+    void (async () => {
+      // 1. Restore any saved PNGTuber sprites from IndexedDB
+      const savedPng = await loadPngAsset();
+      if (!cancelled && savedPng) {
+        const idleOk = await loadPngSpriteBlob('idle', savedPng.idle);
+        if (idleOk && !cancelled) {
+          pngBlobsRef.current.name = savedPng.name;
+          setPngConfig((prev) => ({ ...prev, name: savedPng.name }));
+          if (savedPng.talking) await loadPngSpriteBlob('talking', savedPng.talking);
+          if (savedPng.blinking) await loadPngSpriteBlob('blinking', savedPng.blinking);
         }
-      });
-    } catch (e) {
-      console.warn('VRM renderer init failed, falling back:', e);
-    }
+      }
+
+      // 2. Restore saved user .vrm from IndexedDB, else probe bundled ./models/character.vrm
+      const savedVrm = await loadVrmAsset();
+      if (!cancelled && savedVrm) {
+        const blobUrl = URL.createObjectURL(savedVrm.blob);
+        const ok = await renderer.loadModel(blobUrl);
+        if (cancelled) {
+          URL.revokeObjectURL(blobUrl);
+          return;
+        }
+        if (ok) {
+          vrmObjectUrlRef.current = blobUrl;
+          renderer.setCameraConfig(cameraConfigRef.current);
+          setVrmModelName(savedVrm.name);
+          setVrmPersisted(true);
+          setAvatarMode('vrm');
+          return;
+        }
+        URL.revokeObjectURL(blobUrl);
+      }
+
+      if (!cancelled) {
+        const ok = await renderer.loadModel(VRM_MODEL_URL);
+        if (!cancelled && ok) {
+          setVrmModelName('character.vrm');
+          setAvatarMode('vrm');
+        } else if (!cancelled && savedPng && pngSpritesRef.current.idle) {
+          setAvatarMode('png');
+        }
+      }
+    })();
 
     return () => {
       cancelled = true;
@@ -500,10 +678,13 @@ function App() {
         URL.revokeObjectURL(vrmObjectUrlRef.current);
         vrmObjectUrlRef.current = null;
       }
+      if (pngUrlBucket.idle) URL.revokeObjectURL(pngUrlBucket.idle);
+      if (pngUrlBucket.talking) URL.revokeObjectURL(pngUrlBucket.talking);
+      if (pngUrlBucket.blinking) URL.revokeObjectURL(pngUrlBucket.blinking);
       vrmRendererRef.current?.destroy();
       vrmRendererRef.current = null;
     };
-  }, []);
+  }, [loadPngSpriteBlob]);
 
   const handleVrmUpload = useCallback(async (file: File | undefined) => {
     if (!file) return;
@@ -511,9 +692,13 @@ function App() {
       setVrmError('Please select a .vrm avatar file.');
       return;
     }
+    if (file.size > MAX_VRM_BYTES) {
+      setVrmError('VRM file exceeds 150 MB browser storage limit.');
+      return;
+    }
     const renderer = vrmRendererRef.current;
     if (!renderer) {
-      setVrmError('VRM WebGL renderer is unavailable in this browser.');
+      setVrmError('VRM WebGL 3D renderer is unavailable in this browser.');
       return;
     }
     setVrmError(null);
@@ -526,11 +711,15 @@ function App() {
       vrmObjectUrlRef.current = nextUrl;
       renderer.setCameraConfig(cameraConfigRef.current);
       setVrmModelName(file.name);
-      setRendererMode('VRM 3D');
-      setPreviewNoCamera(true);
+      setAvatarMode('vrm');
+      const persisted = await saveVrmAsset(file.name, file);
+      setVrmPersisted(persisted);
     } else {
       URL.revokeObjectURL(nextUrl);
-      setVrmError(`Could not load "${file.name}". Ensure it is a valid VRM 0.x/1.0 model.`);
+      const detail = renderer.getLastError();
+      setVrmError(
+        `Could not load "${file.name}"${detail ? `: ${detail}` : '. Ensure it is a valid VRM 0.x/1.0 model.'}`,
+      );
     }
   }, []);
 
@@ -542,7 +731,81 @@ function App() {
     vrmRendererRef.current?.unloadModel();
     setVrmModelName(null);
     setVrmError(null);
-    setRendererMode(webglRendererRef.current?.isReady() ? 'WebGL' : 'Canvas 2D');
+    setVrmPersisted(false);
+    void clearVrmAsset();
+    setAvatarMode(pngSpritesRef.current.idle ? 'png' : 'studio');
+  }, []);
+
+  const handlePngUpload = useCallback(
+    async (slot: 'idle' | 'talking' | 'blinking', file: File | undefined) => {
+      if (!file) return;
+      if (!file.type.startsWith('image/')) {
+        setPngError('Please select a PNG, WebP, or JPG image file.');
+        return;
+      }
+      if (file.size > MAX_PNG_BYTES) {
+        setPngError('Image exceeds 15 MB limit.');
+        return;
+      }
+      setPngError(null);
+      const ok = await loadPngSpriteBlob(slot, file);
+      if (!ok) {
+        setPngError(`Could not decode "${file.name}".`);
+        return;
+      }
+      if (slot === 'idle') {
+        const cleanName = file.name.replace(/\.[^.]+$/, '');
+        pngBlobsRef.current.name = cleanName;
+        setPngConfig((prev) => ({ ...prev, name: cleanName }));
+        setAvatarMode('png');
+      }
+      const blobs = pngBlobsRef.current;
+      if (blobs.idle) {
+        void savePngAsset({
+          name: blobs.name || 'Custom PNG',
+          idle: blobs.idle,
+          talking: blobs.talking,
+          blinking: blobs.blinking,
+        });
+      }
+    },
+    [loadPngSpriteBlob],
+  );
+
+  const handleClearPngSlot = useCallback((slot: 'idle' | 'talking' | 'blinking') => {
+    if (slot === 'idle') {
+      for (const key of ['idle', 'talking', 'blinking'] as const) {
+        const url = pngUrlsRef.current[key];
+        if (url) URL.revokeObjectURL(url);
+        pngUrlsRef.current[key] = null;
+        pngSpritesRef.current[key] = null;
+        pngBlobsRef.current[key] = null;
+      }
+      pngBlobsRef.current.name = '';
+      setPngHasIdle(false);
+      setPngHasTalking(false);
+      setPngHasBlinking(false);
+      setPngConfig((prev) => ({ ...prev, name: '' }));
+      void clearPngAsset();
+      setAvatarMode(vrmRendererRef.current?.isReady() ? 'vrm' : 'studio');
+      return;
+    }
+    const url = pngUrlsRef.current[slot];
+    if (url) URL.revokeObjectURL(url);
+    pngUrlsRef.current[slot] = null;
+    pngSpritesRef.current[slot] = null;
+    pngBlobsRef.current[slot] = null;
+    if (slot === 'talking') setPngHasTalking(false);
+    if (slot === 'blinking') setPngHasBlinking(false);
+    const blobs = pngBlobsRef.current;
+    if (blobs.idle) {
+      void savePngAsset({
+        name: blobs.name || 'Custom PNG',
+        idle: blobs.idle,
+        talking: blobs.talking,
+        blinking: blobs.blinking,
+      });
+    }
   }, []);
 
   const handleCalibrate = useCallback(() => {
@@ -562,26 +825,50 @@ function App() {
     setHasCalibration(false);
   }, []);
 
-  const handleSnapshot = useCallback(() => {
-    const source = overlayCanvasRef.current;
-    if (!source) return;
-    const out = document.createElement('canvas');
-    out.width = CANVAS_SIZE;
-    out.height = CANVAS_SIZE;
-    const ctx = out.getContext('2d');
-    if (!ctx) return;
-    if (mirrored) {
-      ctx.translate(CANVAS_SIZE, 0);
-      ctx.scale(-1, 1);
+  // Ensure offscreen 1024×1024 composite canvas exists and draws backdrop + live stage
+  const renderCompositeFrame = useCallback((): HTMLCanvasElement | null => {
+    const stage = overlayCanvasRef.current;
+    if (!stage) return null;
+    let comp = compositeCanvasRef.current;
+    if (!comp) {
+      comp = document.createElement('canvas');
+      comp.width = STAGE_RENDER_SIZE;
+      comp.height = STAGE_RENDER_SIZE;
+      compositeCanvasRef.current = comp;
     }
-    ctx.drawImage(source, 0, 0);
+    const ctx = comp.getContext('2d');
+    if (!ctx) return null;
+    drawStageBackdrop(
+      ctx,
+      STAGE_RENDER_SIZE,
+      STAGE_RENDER_SIZE,
+      backgroundRef.current,
+      backgroundValueRef.current,
+      bgImageElRef.current,
+    );
+    ctx.drawImage(stage, 0, 0, STAGE_RENDER_SIZE, STAGE_RENDER_SIZE);
+    return comp;
+  }, []);
+
+  const handleSnapshot = useCallback(() => {
+    const comp = renderCompositeFrame();
+    if (!comp) return;
     const link = document.createElement('a');
     link.download = `easyvtuber-${Date.now()}.png`;
-    link.href = out.toDataURL('image/png');
+    link.href = comp.toDataURL('image/png');
     link.click();
     setSnapshotSaved(true);
     window.setTimeout(() => setSnapshotSaved(false), 1800);
-  }, [mirrored]);
+  }, [renderCompositeFrame]);
+
+  const handleToggleRecording = useCallback(() => {
+    if (stageRecorder.isRecording) {
+      stageRecorder.stopRecording();
+      return;
+    }
+    const comp = renderCompositeFrame();
+    stageRecorder.startRecording(comp, audioLipSync.streamRef.current);
+  }, [stageRecorder, renderCompositeFrame, audioLipSync.streamRef]);
 
   const toggleFullscreen = useCallback(() => {
     const el = stageContainerRef.current;
@@ -599,9 +886,28 @@ function App() {
     return () => document.removeEventListener('fullscreenchange', onFsChange);
   }, []);
 
+  // Interactive hotkey rebinding listener
+  useEffect(() => {
+    if (!rebindingAction) return;
+    const onCapture = (e: KeyboardEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.key === 'Escape') {
+        setRebindingAction(null);
+        return;
+      }
+      if (['Shift', 'Control', 'Alt', 'Meta'].includes(e.key)) return;
+      updateHotkey(rebindingAction, e.key);
+      setRebindingAction(null);
+    };
+    window.addEventListener('keydown', onCapture, true);
+    return () => window.removeEventListener('keydown', onCapture, true);
+  }, [rebindingAction, updateHotkey]);
+
   // Studio-level keyboard shortcuts
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
+      if (rebindingAction || guideOpen) return;
       const target = e.target as HTMLElement | null;
       if (target && /^(INPUT|SELECT|TEXTAREA)$/.test(target.tagName)) return;
       if (e.ctrlKey || e.metaKey || e.altKey) return;
@@ -624,7 +930,7 @@ function App() {
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [handleCalibrate]);
+  }, [handleCalibrate, rebindingAction, guideOpen]);
 
   // Direct stage zoom (wheel) & drag pan
   const handleStageWheel = useCallback((e: WheelEvent<HTMLDivElement>) => {
@@ -639,7 +945,7 @@ function App() {
   const handleStagePointerDown = useCallback((e: PointerEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
     const target = e.target as HTMLElement | null;
-    if (target?.closest('button, input, .perf-monitor, .webcam-pip')) return;
+    if (target?.closest('button, input, .perf-monitor, .webcam-pip, .stage-toast')) return;
     e.currentTarget.setPointerCapture(e.pointerId);
     dragPanRef.current = {
       pointerId: e.pointerId,
@@ -671,40 +977,48 @@ function App() {
 
   const handleStageDragOver = useCallback((e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    setIsDraggingVrm(true);
+    setIsDraggingAsset(true);
   }, []);
 
   const handleStageDragLeave = useCallback((e: DragEvent<HTMLDivElement>) => {
     if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
-    setIsDraggingVrm(false);
+    setIsDraggingAsset(false);
   }, []);
 
   const handleStageDrop = useCallback(
     (e: DragEvent<HTMLDivElement>) => {
       e.preventDefault();
-      setIsDraggingVrm(false);
+      setIsDraggingAsset(false);
       const file = e.dataTransfer.files?.[0];
-      if (file) {
+      if (!file) return;
+      if (file.name.toLowerCase().endsWith('.vrm')) {
         void handleVrmUpload(file);
+      } else if (file.type.startsWith('image/')) {
+        void handlePngUpload('idle', file);
+      } else {
+        setVrmError('Drop a .vrm 3D model or a .png / .webp 2D avatar image.');
       }
     },
-    [handleVrmUpload],
+    [handleVrmUpload, handlePngUpload],
   );
 
-  // Persistent RAF render loop
+  // Persistent crisp 1024×1024 HD RAF render loop
   useEffect(() => {
     const canvas = overlayCanvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    canvas.width = CANVAS_SIZE;
-    canvas.height = CANVAS_SIZE;
+    canvas.width = STAGE_RENDER_SIZE;
+    canvas.height = STAGE_RENDER_SIZE;
+    const scaleFactor = STAGE_RENDER_SIZE / CANVAS_SIZE;
 
     let running = true;
     const render = () => {
       if (!running) return;
-      ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, STAGE_RENDER_SIZE, STAGE_RENDER_SIZE);
+      ctx.setTransform(scaleFactor, 0, 0, scaleFactor, 0, 0);
 
       const nowMs = performance.now();
       const tuning = trackingTuningRef.current;
@@ -729,28 +1043,35 @@ function App() {
       const expression = vtuber.expressionRef.current;
       const cam = cameraConfigRef.current;
 
+      // Smooth spring-damped hair physics sway from head yaw velocity + roll
+      const yawNow = currentPose?.yAngle ?? 0;
+      const yawVel = yawNow - prevHeadYawRef.current;
+      prevHeadYawRef.current = yawNow;
+      const targetSway = Math.max(-1, Math.min(1, -yawVel * 9 - (currentPose?.zAngle ?? 0) * 0.65));
+      hairSwayRef.current = hairSwayRef.current * 0.84 + targetSway * 0.16;
+
+      // Draw ONLY the avatar layer mirrored when Mirror is enabled so text overlays stay readable
+      ctx.save();
+      if (mirroredRef.current) {
+        ctx.translate(CANVAS_SIZE, 0);
+        ctx.scale(-1, 1);
+      }
+
+      const mode = avatarModeRef.current;
       const vrmRenderer = vrmRendererRef.current;
-      const vrmDrawn = vrmRenderer?.isReady()
-        ? vrmRenderer.render(
-            isTracking ? vtuber.landmarksRef.current : null,
-            expression,
-            tuning,
-            audioMouth,
-          )
-        : false;
+      const vrmDrawn =
+        mode === 'vrm' && vrmRenderer?.isReady()
+          ? vrmRenderer.render(
+              isTracking ? vtuber.landmarksRef.current : null,
+              expression,
+              tuning,
+              audioMouth,
+            )
+          : false;
 
       if (vrmDrawn && vrmCanvasRef.current) {
-        ctx.drawImage(vrmCanvasRef.current, 0, 0);
+        ctx.drawImage(vrmCanvasRef.current, 0, 0, CANVAS_SIZE, CANVAS_SIZE);
       } else {
-        const gl = webglRendererRef.current;
-        // Prefer Canvas 2D when extended emotions (angry/sad/relaxed) are active so
-        // procedural brows/mouth reflect them accurately.
-        const useExtended2d =
-          (expression.angry ?? 0) > 0.05 ||
-          (expression.sad ?? 0) > 0.05 ||
-          (expression.relaxed ?? 0) > 0.05;
-        const webglDrawn = !useExtended2d && gl ? gl.render(currentPose, expression) : false;
-
         ctx.save();
         ctx.translate(
           CANVAS_SIZE / 2 + cam.offsetX * CANVAS_SIZE,
@@ -758,19 +1079,46 @@ function App() {
         );
         ctx.scale(cam.zoom, cam.zoom);
         ctx.translate(-CANVAS_SIZE / 2, -CANVAS_SIZE / 2);
-        if (webglDrawn && glCanvasRef.current) {
-          ctx.drawImage(glCanvasRef.current, 0, 0);
-        } else {
-          drawCharacter(ctx, currentPose, expression);
+
+        const pngDrawn =
+          mode === 'png'
+            ? drawPngAvatar(
+                ctx,
+                pngSpritesRef.current,
+                currentPose,
+                expression,
+                audioMouth,
+                pngConfigRef.current,
+                pngRenderStateRef.current,
+                nowMs,
+              )
+            : false;
+
+        if (!pngDrawn) {
+          drawCharacter(ctx, currentPose, expression, appearanceRef.current, hairSwayRef.current);
         }
         ctx.restore();
       }
+      ctx.restore();
 
+      // Overlays & Debug HUD always render crisp and un-mirrored
       drawOverlays(ctx, currentOverlays);
-      if (showDebugRef.current) {
+      if (showDebugRef.current && isLoadedRef.current) {
         drawHUD(ctx, currentPose, isTracking);
-      } else if (!isTracking && vtuber.isLoaded) {
+      } else if (!isTracking && isLoadedRef.current) {
         drawHUD(ctx, null, false);
+      }
+
+      // Composite backdrop + stage when recording WebM clips or streaming to OBS Pop-Out Window
+      if (recordingRef.current || popoutOpenRef.current) {
+        const comp = renderCompositeFrame();
+        if (comp && popoutOpenRef.current) {
+          const bgCss =
+            backgroundRef.current === 'none' || backgroundRef.current === 'image'
+              ? '#000000'
+              : backgroundValueRef.current;
+          popoutPushFrame(comp, bgCss);
+        }
       }
 
       animFrameRef.current = requestAnimationFrame(render);
@@ -781,9 +1129,9 @@ function App() {
       running = false;
       cancelAnimationFrame(animFrameRef.current);
     };
-    // refs are stable — single persistent loop
+    // refs & callbacks are stable — single persistent loop
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [renderCompositeFrame, popoutPushFrame]);
 
   const addTextOverlay = useCallback(() => {
     const text = newOverlayText.trim();
@@ -810,6 +1158,9 @@ function App() {
       setLightingConfig(data.lighting);
       setTrackingTuning(data.tuning);
       setMirrored(data.mirrored);
+      if (data.appearance) {
+        setAppearance(data.appearance);
+      }
     },
     [setExpression, setBackground, setOverlays],
   );
@@ -825,6 +1176,7 @@ function App() {
       lighting: lightingConfig,
       tuning: trackingTuning,
       mirrored,
+      appearance,
     });
     setNewProfileName('');
     setProfileNotice(`Saved "${name}"`);
@@ -841,6 +1193,7 @@ function App() {
     lightingConfig,
     trackingTuning,
     mirrored,
+    appearance,
   ]);
 
   const handleExportProfile = useCallback((name: string, data: unknown) => {
@@ -855,21 +1208,34 @@ function App() {
     window.setTimeout(() => URL.revokeObjectURL(url), 4000);
   }, []);
 
-  const stageActive = vtuber.isLoaded || previewNoCamera || audioLipSync.enabled;
   const isImageBg = vtuber.background === 'image' && /^data:image\//i.test(vtuber.backgroundValue);
   const backgroundStyle =
     vtuber.background === 'none' || isImageBg ? 'transparent' : vtuber.backgroundValue;
   const showTransparentGrid = vtuber.background === 'none' && showChecker && !cleanMode;
+  const cameraBooting = !vtuber.isLoaded && vtuber.progress > 0 && vtuber.progress < 100;
+  const visibleCameraError = vtuber.error && vtuber.error !== dismissedError ? vtuber.error : null;
 
-  const statusTone = vtuber.error
-    ? stageActive
-      ? 'paused'
-      : 'error'
+  const activeRendererLabel =
+    avatarMode === 'vrm' && vrmModelName
+      ? 'VRM 3D HD'
+      : avatarMode === 'png' && pngHasIdle
+        ? 'PNGTuber HD'
+        : 'Studio 2D HD';
+
+  const activeAvatarTitle =
+    avatarMode === 'vrm' && vrmModelName
+      ? vrmModelName
+      : avatarMode === 'png' && pngHasIdle
+        ? pngConfig.name || 'PNG Avatar'
+        : `${appearance.presetId[0]!.toUpperCase() + appearance.presetId.slice(1)} Rig`;
+
+  const statusTone = visibleCameraError
+    ? 'paused'
     : vtuber.isLoaded
       ? vtuber.isTracking
         ? 'online'
         : 'paused'
-      : stageActive
+      : audioLipSync.enabled
         ? 'online'
         : 'offline';
 
@@ -885,6 +1251,17 @@ function App() {
           const file = e.target.files?.[0];
           e.target.value = '';
           void handleVrmUpload(file);
+        }}
+      />
+      <input
+        ref={pngInputRef}
+        type="file"
+        accept="image/png,image/webp,image/jpeg,image/gif"
+        className="sr-only-input"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          e.target.value = '';
+          void handlePngUpload(pngTargetSlotRef.current, file);
         }}
       />
       <input
@@ -928,6 +1305,15 @@ function App() {
         }}
       />
 
+      {/* OBS & Discord Stream Setup Guide Modal */}
+      <StreamGuideModal
+        open={guideOpen}
+        mirrored={mirrored}
+        avatarPreset={appearance.presetId}
+        onClose={() => setGuideOpen(false)}
+        onOpenPopout={popout.openPopout}
+      />
+
       {/* Top Studio Bar */}
       {!cleanMode && (
         <header className="header">
@@ -950,7 +1336,7 @@ function App() {
             </div>
             <span className="renderer-chip" title="Active rendering backend">
               <CubeIcon size={12} />
-              {rendererMode}
+              {activeRendererLabel}
             </span>
           </div>
 
@@ -960,28 +1346,44 @@ function App() {
               <span className="status-text">
                 {vtuber.isLoaded
                   ? vtuber.isTracking
-                    ? 'Tracking Live'
+                    ? `Tracking Live (${vtuber.delegate})`
                     : 'Tracking Paused'
-                  : audioLipSync.enabled
-                    ? 'Mic Lip-Sync Live'
-                    : previewNoCamera
-                      ? 'Stage Preview'
-                      : vtuber.status}
+                  : cameraBooting
+                    ? vtuber.status
+                    : audioLipSync.enabled
+                      ? 'Mic Lip-Sync Live'
+                      : 'Stage Ready'}
               </span>
             </div>
             {vtuber.isLoaded ? (
+              <>
+                <button
+                  type="button"
+                  className={`header-action-btn ${vtuber.isTracking ? '' : 'paused'}`}
+                  onClick={vtuber.toggleTracking}
+                >
+                  {vtuber.isTracking ? <PauseIcon size={13} /> : <PlayIcon size={13} />}
+                  <span>{vtuber.isTracking ? 'Pause' : 'Resume'}</span>
+                </button>
+                <button
+                  type="button"
+                  className="icon-btn danger-hover"
+                  onClick={stopCamera}
+                  aria-label="Turn off camera"
+                  title="Turn off webcam hardware (Privacy Off)"
+                >
+                  <PowerIcon size={15} />
+                </button>
+              </>
+            ) : (
               <button
                 type="button"
-                className={`header-action-btn ${vtuber.isTracking ? '' : 'paused'}`}
-                onClick={vtuber.toggleTracking}
+                className="header-action-btn primary"
+                disabled={cameraBooting}
+                onClick={startTracking}
               >
-                {vtuber.isTracking ? <PauseIcon size={13} /> : <PlayIcon size={13} />}
-                <span>{vtuber.isTracking ? 'Pause' : 'Resume'}</span>
-              </button>
-            ) : (
-              <button type="button" className="header-action-btn primary" onClick={startTracking}>
                 <PlayIcon size={13} />
-                <span>{vtuber.error ? 'Retry Camera' : 'Start Camera'}</span>
+                <span>{cameraBooting ? 'Starting...' : 'Start Camera'}</span>
               </button>
             )}
             {stageRecorder.isRecording && (
@@ -1012,12 +1414,12 @@ function App() {
 
             <button
               type="button"
-              className="icon-btn"
-              onClick={() => setCleanMode(true)}
-              aria-label="Enter OBS Clean Mode"
-              title="OBS Clean Mode — hide chrome (Z)"
+              className="header-action-btn"
+              onClick={() => setGuideOpen(true)}
+              title="OBS Studio, Twitch, YouTube & Discord setup guide"
             >
-              <EyeOffIcon size={16} />
+              <HelpCircleIcon size={14} />
+              <span className="hide-sm">OBS Guide</span>
             </button>
 
             <button
@@ -1054,7 +1456,33 @@ function App() {
             </div>
 
             <div className="tab-content">
-              {/* TAB 1: Face Expressions & Voice Lip-Sync */}
+              {/* TAB 1: Avatar Studio (Built-in Customizer, PNGTuber 2D, VRM 3D) */}
+              {activeTab === 'avatar' && (
+                <AvatarPanel
+                  avatarMode={avatarMode}
+                  onSelectMode={setAvatarMode}
+                  appearance={appearance}
+                  onChangeAppearance={setAppearance}
+                  vrmModelName={vrmModelName}
+                  vrmError={vrmError}
+                  vrmPersisted={vrmPersisted}
+                  onBrowseVrm={() => vrmInputRef.current?.click()}
+                  onResetVrm={handleVrmReset}
+                  pngConfig={pngConfig}
+                  pngHasIdle={pngHasIdle}
+                  pngHasTalking={pngHasTalking}
+                  pngHasBlinking={pngHasBlinking}
+                  pngError={pngError}
+                  onBrowsePngSlot={(slot) => {
+                    pngTargetSlotRef.current = slot;
+                    pngInputRef.current?.click();
+                  }}
+                  onClearPngSlot={handleClearPngSlot}
+                  onChangePngConfig={(patch) => setPngConfig((prev) => ({ ...prev, ...patch }))}
+                />
+              )}
+
+              {/* TAB 2: Face Expressions & Voice Lip-Sync */}
               {activeTab === 'expressions' && (
                 <div className="panel">
                   <div className="panel-section">
@@ -1220,7 +1648,7 @@ function App() {
                 </div>
               )}
 
-              {/* TAB 2: Stage Camera, Lighting & Backdrops */}
+              {/* TAB 3: Stage Camera, Lighting & Backdrops */}
               {activeTab === 'backgrounds' && (
                 <div className="panel">
                   <div className="panel-section">
@@ -1339,7 +1767,7 @@ function App() {
                         </label>
                       </div>
                       <p className="panel-hint">
-                        Scroll on the stage to zoom, drag to pan, double-click to recenter.
+                        Scroll on stage to zoom, drag to pan, double-click to recenter.
                       </p>
                     </div>
                   </div>
@@ -1420,7 +1848,7 @@ function App() {
                   </div>
 
                   <div className="panel-section">
-                    <h3 className="panel-title">Broadcast & Keying</h3>
+                    <h3 className="panel-title">Broadcast &amp; Keying</h3>
                     <div className="background-grid">
                       {BACKGROUND_PRESETS.filter((b) => b.group === 'broadcast').map((bg) => (
                         <button
@@ -1514,7 +1942,7 @@ function App() {
                 </div>
               )}
 
-              {/* TAB 3: Overlays */}
+              {/* TAB 4: Overlays */}
               {activeTab === 'overlays' && (
                 <div className="panel">
                   <div className="panel-section">
@@ -1616,9 +2044,7 @@ function App() {
                         <button
                           type="button"
                           className="link-action danger"
-                          onClick={() =>
-                            vtuber.overlays.forEach((item) => vtuber.removeOverlay(item.id))
-                          }
+                          onClick={() => vtuber.setOverlays([])}
                         >
                           Clear All
                         </button>
@@ -1793,7 +2219,7 @@ function App() {
                 </div>
               )}
 
-              {/* TAB 4: Saved Scene Profiles & Keyboard Shortcuts */}
+              {/* TAB 5: Saved Scene Profiles & Editable Keyboard Shortcuts */}
               {activeTab === 'hotkeys' && (
                 <div className="panel">
                   <div className="panel-section">
@@ -1832,8 +2258,8 @@ function App() {
                     {profileNotice && <p className="profile-notice">{profileNotice}</p>}
                     {profiles.length === 0 ? (
                       <div className="empty-card">
-                        Save your backdrop, lighting, camera framing, expressions, and tuning as
-                        reusable scenes.
+                        Save your avatar style, backdrop, lighting, camera framing, expressions, and
+                        tuning as reusable scenes.
                       </div>
                     ) : (
                       <div className="profile-list">
@@ -1878,14 +2304,41 @@ function App() {
                   </div>
 
                   <div className="panel-section">
-                    <h3 className="panel-title">Avatar Shortcuts</h3>
+                    <div className="section-header">
+                      <h3 className="panel-title">Avatar Hotkeys (Click to Rebind)</h3>
+                      <button
+                        type="button"
+                        className="link-action"
+                        onClick={() => {
+                          setRebindingAction(null);
+                          vtuber.resetHotkeys();
+                        }}
+                      >
+                        <RotateCcwIcon size={12} />
+                        Defaults
+                      </button>
+                    </div>
                     <div className="hotkey-list">
-                      {vtuber.hotkeys.map((hk) => (
-                        <div key={hk.action} className="hotkey-row">
-                          <span className="hotkey-action">{hk.label}</span>
-                          <kbd>{hk.key === ' ' ? 'Space' : hk.key.toUpperCase()}</kbd>
-                        </div>
-                      ))}
+                      {vtuber.hotkeys.map((hk) => {
+                        const isListening = rebindingAction === hk.action;
+                        return (
+                          <div key={hk.action} className="hotkey-row">
+                            <span className="hotkey-action">{hk.label}</span>
+                            <button
+                              type="button"
+                              className={`hotkey-bind-btn ${isListening ? 'listening' : ''}`}
+                              onClick={() => setRebindingAction(isListening ? null : hk.action)}
+                              title="Click then press a key to rebind (Esc to cancel)"
+                            >
+                              {isListening
+                                ? 'Press key...'
+                                : hk.key === ' '
+                                  ? 'Space'
+                                  : hk.key.toUpperCase()}
+                            </button>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
 
@@ -1903,44 +2356,12 @@ function App() {
                 </div>
               )}
 
-              {/* TAB 5: Setup, Tracking Calibration & Tuning */}
+              {/* TAB 6: Setup, Tracking Calibration & Camera Hardware */}
               {activeTab === 'settings' && (
                 <div className="panel">
                   <div className="panel-section">
-                    <h3 className="panel-title">3D Avatar (.vrm)</h3>
-                    <div className="vrm-drop-card">
-                      <div className="vrm-card-meta">
-                        <span className="vrm-card-title">
-                          {vrmModelName ?? 'Procedural Avatar'}
-                        </span>
-                        <span className="vrm-card-sub">
-                          {vrmModelName
-                            ? 'VRM 3D model active — drop another .vrm to swap'
-                            : 'Drop a .vrm file onto the stage or browse below'}
-                        </span>
-                      </div>
-                      <div className="vrm-card-actions">
-                        <button
-                          type="button"
-                          className="btn-secondary icon-label-btn"
-                          onClick={() => vrmInputRef.current?.click()}
-                        >
-                          <UploadIcon size={14} />
-                          <span>{vrmModelName ? 'Replace .vrm' : 'Load .vrm Model'}</span>
-                        </button>
-                        {vrmModelName && (
-                          <button type="button" className="btn-ghost" onClick={handleVrmReset}>
-                            Revert
-                          </button>
-                        )}
-                      </div>
-                      {vrmError && <p className="vrm-error-text">{vrmError}</p>}
-                    </div>
-                  </div>
-
-                  <div className="panel-section">
                     <div className="section-header">
-                      <h3 className="panel-title">Tracking Calibration & Motion</h3>
+                      <h3 className="panel-title">Tracking Calibration &amp; Motion</h3>
                       {hasCalibration && (
                         <button
                           type="button"
@@ -2058,7 +2479,7 @@ function App() {
                   </div>
 
                   <div className="panel-section">
-                    <h3 className="panel-title">Camera & Inference</h3>
+                    <h3 className="panel-title">Camera &amp; Inference</h3>
                     <div className="setting-group">
                       <div className="setting-row stacked">
                         <div className="setting-label-row">
@@ -2211,7 +2632,7 @@ function App() {
           <div className="stage-column">
             <div
               className={`render-canvas-wrapper ${showTransparentGrid ? 'checker-surface' : ''} ${
-                isDraggingVrm ? 'dragging' : ''
+                isDraggingAsset ? 'dragging' : ''
               }`}
               style={showTransparentGrid ? undefined : { background: backgroundStyle }}
               onWheel={handleStageWheel}
@@ -2230,83 +2651,68 @@ function App() {
               )}
 
               <video ref={videoRef} className="input-video" playsInline muted />
-              <canvas ref={glCanvasRef} className="gl-canvas" />
               <canvas ref={vrmCanvasRef} className="gl-canvas" />
+              <canvas ref={overlayCanvasRef} className="overlay-canvas" />
 
-              <canvas
-                ref={overlayCanvasRef}
-                className={`overlay-canvas ${stageActive ? '' : 'canvas-hidden'} ${
-                  mirrored ? 'mirrored' : ''
-                }`}
-              />
-
-              {/* Drag-and-drop .vrm prompt */}
-              {isDraggingVrm && (
+              {/* Drag-and-drop prompt for .vrm or .png */}
+              {isDraggingAsset && (
                 <div className="drop-overlay">
                   <UploadIcon size={28} />
-                  <span>Drop .vrm avatar to load</span>
+                  <span>Drop a .vrm 3D model or .png avatar</span>
                 </div>
               )}
 
-              {/* Loading / Error State (with No-Camera Preview option!) */}
-              {!stageActive && (
-                <div className="viewport-placeholder">
-                  {vtuber.error ? (
-                    <div className="error-state">
-                      <div className="error-icon-wrap">
-                        <AlertTriangleIcon size={26} />
-                      </div>
-                      <h2 className="state-heading">Camera Unavailable</h2>
-                      <p className="error-text">{vtuber.error}</p>
-                      <div className="placeholder-actions">
-                        <button type="button" className="btn-primary" onClick={startTracking}>
-                          Retry Camera
+              {/* Non-blocking camera boot progress toast */}
+              {!cleanMode && cameraBooting && (
+                <div className="stage-toast" role="status" aria-live="polite">
+                  <div className="stage-toast-spinner" />
+                  <div className="stage-toast-body">
+                    <span className="stage-toast-text">{vtuber.status}</span>
+                    <div className="progress-bar compact">
+                      <div className="progress-fill" style={{ width: `${vtuber.progress}%` }} />
+                    </div>
+                  </div>
+                  <button type="button" className="mini-toggle" onClick={stopCamera}>
+                    Cancel
+                  </button>
+                </div>
+              )}
+
+              {/* Non-blocking camera/popout/recording warning toast */}
+              {!cleanMode &&
+                !cameraBooting &&
+                (visibleCameraError ||
+                  vtuber.trackingError ||
+                  stageRecorder.error ||
+                  popout.error) && (
+                  <div className="stage-toast error" role="status">
+                    <AlertTriangleIcon size={15} />
+                    <span className="stage-toast-text">
+                      {stageRecorder.error ??
+                        popout.error ??
+                        visibleCameraError ??
+                        vtuber.trackingError}
+                    </span>
+                    {visibleCameraError && (
+                      <>
+                        <button type="button" className="mini-toggle on" onClick={startTracking}>
+                          Retry
                         </button>
                         <button
                           type="button"
-                          className="btn-secondary"
-                          onClick={() => setPreviewNoCamera(true)}
+                          className="perf-close"
+                          aria-label="Dismiss message"
+                          onClick={() => setDismissedError(vtuber.error)}
                         >
-                          Use Without Camera (Mic / VRM)
+                          <XIcon size={12} />
                         </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="loading-state">
-                      <div className="loading-spinner" />
-                      <p className="loading-text">{vtuber.status}</p>
-                      <div className="progress-bar">
-                        <div className="progress-fill" style={{ width: `${vtuber.progress}%` }} />
-                      </div>
-                      {!settings.autoStart && vtuber.progress === 0 && (
-                        <div className="placeholder-actions">
-                          <button type="button" className="btn-primary" onClick={startTracking}>
-                            Start Camera Tracking
-                          </button>
-                          <button
-                            type="button"
-                            className="btn-secondary"
-                            onClick={() => setPreviewNoCamera(true)}
-                          >
-                            Preview Without Camera
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Non-fatal tracking or recording error */}
-              {stageActive && (vtuber.trackingError || stageRecorder.error) && (
-                <div className="tracking-warning" role="status">
-                  <AlertTriangleIcon size={13} />
-                  <span>{stageRecorder.error ?? vtuber.trackingError}</span>
-                </div>
-              )}
+                      </>
+                    )}
+                  </div>
+                )}
 
               {/* Subtle Stage HUD */}
-              {!cleanMode && stageActive && (
+              {!cleanMode && (
                 <div className="viewport-hud">
                   <div className="hud-left-group">
                     <div className="hud-pill">
@@ -2331,6 +2737,11 @@ function App() {
                             : 'PREVIEW'}
                       </span>
                     </div>
+                    {popout.isOpen && (
+                      <div className="hud-pill popout">
+                        <span>OBS POP-OUT</span>
+                      </div>
+                    )}
                     {stageRecorder.isRecording && (
                       <div className="hud-pill rec">
                         <span className="rec-dot" />
@@ -2372,6 +2783,7 @@ function App() {
                   type="button"
                   className={`dock-btn ${vtuber.isLoaded && !vtuber.isTracking ? 'warn' : ''}`}
                   onClick={vtuber.isLoaded ? vtuber.toggleTracking : startTracking}
+                  disabled={cameraBooting}
                   title="Start / Pause Camera Tracking (Space)"
                 >
                   {vtuber.isLoaded && vtuber.isTracking ? (
@@ -2421,7 +2833,7 @@ function App() {
                   type="button"
                   className={`dock-btn ${mirrored ? 'active' : ''}`}
                   onClick={() => setMirrored((v) => !v)}
-                  title="Mirror stage horizontally (M)"
+                  title="Mirror avatar horizontally (M)"
                 >
                   <FlipHorizontalIcon size={14} />
                   <span>Mirror</span>
@@ -2431,8 +2843,7 @@ function App() {
                   type="button"
                   className={`dock-btn ${snapshotSaved ? 'success' : ''}`}
                   onClick={handleSnapshot}
-                  disabled={!stageActive}
-                  title="Save PNG snapshot"
+                  title="Save crisp 1024×1024 PNG snapshot"
                 >
                   {snapshotSaved ? <CheckIcon size={14} /> : <CameraIcon size={14} />}
                   <span>{snapshotSaved ? 'Saved' : 'Snap'}</span>
@@ -2442,18 +2853,8 @@ function App() {
                   <button
                     type="button"
                     className={`dock-btn ${stageRecorder.isRecording ? 'danger' : ''}`}
-                    onClick={() => {
-                      if (stageRecorder.isRecording) {
-                        stageRecorder.stopRecording();
-                      } else {
-                        stageRecorder.startRecording(
-                          overlayCanvasRef.current,
-                          audioLipSync.streamRef.current,
-                        );
-                      }
-                    }}
-                    disabled={!stageActive}
-                    title="Record stage video clip (.webm)"
+                    onClick={handleToggleRecording}
+                    title="Record stage video clip with backdrop & mic (.webm)"
                   >
                     {stageRecorder.isRecording ? (
                       <StopSquareIcon size={14} />
@@ -2465,6 +2866,16 @@ function App() {
                 )}
 
                 <span className="dock-sep" aria-hidden="true" />
+
+                <button
+                  type="button"
+                  className={`dock-btn ${popout.isOpen ? 'active' : ''}`}
+                  onClick={popout.togglePopout}
+                  title="Open clean Pop-Out OBS Stage Window"
+                >
+                  <ExternalLinkIcon size={14} />
+                  <span>Pop-Out</span>
+                </button>
 
                 <button
                   type="button"
@@ -2497,14 +2908,14 @@ function App() {
                 <CubeIcon size={20} />
               </div>
               <div className="avatar-card-info">
-                <span className="avatar-card-name">{vrmModelName ?? 'Procedural Rig'}</span>
-                <span className="avatar-card-sub">{rendererMode} Renderer</span>
+                <span className="avatar-card-name">{activeAvatarTitle}</span>
+                <span className="avatar-card-sub">{activeRendererLabel}</span>
               </div>
               <button
                 type="button"
                 className="avatar-card-btn"
                 onClick={() => vrmInputRef.current?.click()}
-                title="Load a custom .vrm avatar"
+                title="Load a custom .vrm 3D avatar"
               >
                 <UploadIcon size={13} />
                 <span>.VRM</span>
@@ -2542,7 +2953,7 @@ function App() {
             </div>
 
             <div className="inspector-section">
-              <h3 className="panel-title">Face & Voice Signals</h3>
+              <h3 className="panel-title">Face &amp; Voice Signals</h3>
               <div className="pose-bars">
                 {vtuber.pose || audioLipSync.enabled ? (
                   <>
@@ -2559,7 +2970,7 @@ function App() {
                     <PoseBar label="Gaze X" value={Math.abs(vtuber.pose?.eyeXRatio ?? 0) / 5} />
                   </>
                 ) : (
-                  <p className="empty-inline">Waiting for camera or microphone…</p>
+                  <p className="empty-inline">Start Camera or Mic to inspect live signals.</p>
                 )}
               </div>
             </div>
@@ -2568,9 +2979,15 @@ function App() {
               <h3 className="panel-title">Runtime Diagnostics</h3>
               <div className="sys-info">
                 <div className="sys-row">
-                  <span>Status</span>
-                  <span className={`sys-status ${stageActive ? 'ok' : 'busy'}`}>
-                    {vtuber.isLoaded ? 'Camera Live' : stageActive ? 'Stage Live' : 'Standby'}
+                  <span>Camera</span>
+                  <span className={`sys-status ${vtuber.isLoaded ? 'ok' : 'busy'}`}>
+                    {vtuber.isLoaded ? 'Active' : cameraBooting ? 'Starting' : 'Standby'}
+                  </span>
+                </div>
+                <div className="sys-row">
+                  <span>Output HD</span>
+                  <span>
+                    {STAGE_RENDER_SIZE}×{STAGE_RENDER_SIZE}
                   </span>
                 </div>
                 <div className="sys-row">
@@ -2578,16 +2995,12 @@ function App() {
                   <span>{hasCalibration ? 'Centered' : 'Default'}</span>
                 </div>
                 <div className="sys-row">
-                  <span>Mic Lip-Sync</span>
-                  <span>{audioLipSync.enabled ? 'Active' : 'Off'}</span>
+                  <span>OBS Pop-Out</span>
+                  <span>{popout.isOpen ? 'Connected' : 'Closed'}</span>
                 </div>
                 <div className="sys-row">
                   <span>Delegate</span>
-                  <span>{settings.delegate}</span>
-                </div>
-                <div className="sys-row">
-                  <span>Stage Zoom</span>
-                  <span>{cameraConfig.zoom.toFixed(2)}×</span>
+                  <span>{vtuber.delegate}</span>
                 </div>
               </div>
             </div>
@@ -2599,7 +3012,7 @@ function App() {
                 aria-expanded={creditsOpen}
                 onClick={() => setCreditsOpen((v) => !v)}
               >
-                <span className="panel-title">Credits & Contributors</span>
+                <span className="panel-title">Credits &amp; Contributors</span>
                 <ChevronDownIcon
                   size={14}
                   className={`accordion-chevron ${creditsOpen ? 'open' : ''}`}

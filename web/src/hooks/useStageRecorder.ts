@@ -9,16 +9,18 @@ export interface StageRecorderState {
   stopRecording: () => void;
 }
 
-function pickSupportedMimeType(): string {
+function pickSupportedMimeType(hasAudio: boolean): string {
   if (typeof MediaRecorder === 'undefined' || typeof MediaRecorder.isTypeSupported !== 'function') {
     return '';
   }
-  const candidates = [
-    'video/webm;codecs=vp9,opus',
-    'video/webm;codecs=vp8,opus',
-    'video/webm;codecs=vp9',
-    'video/webm',
-  ];
+  const candidates = hasAudio
+    ? [
+        'video/webm;codecs=vp9,opus',
+        'video/webm;codecs=vp8,opus',
+        'video/webm;codecs=vp9',
+        'video/webm',
+      ]
+    : ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'];
   return candidates.find((mime) => MediaRecorder.isTypeSupported(mime)) ?? '';
 }
 
@@ -76,7 +78,8 @@ export function useStageRecorder(): StageRecorderState {
           audioStream.getAudioTracks().forEach((track) => tracks.push(track));
         }
         const combined = new MediaStream(tracks);
-        const mimeType = pickSupportedMimeType();
+        const hasAudio = Boolean(audioStream && audioStream.getAudioTracks().length > 0);
+        const mimeType = pickSupportedMimeType(hasAudio);
         const recorder = new MediaRecorder(combined, mimeType ? { mimeType } : undefined);
 
         chunksRef.current = [];
