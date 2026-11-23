@@ -1,154 +1,578 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EasyVtuber Web 🌸</title>
-    <style>
-        :root {
-            --primary: #ffc0cb;
-            --dark: #1a1a1a;
-            --accent: #ff7eb9;
-        }
-        body {
-            margin: 0;
-            padding: 0;
-            background-color: var(--dark);
-            color: white;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            overflow: hidden;
-        }
-        .container {
-            position: relative;
-            width: 100%;
-            max-width: 600px;
-            aspect-ratio: 1 / 1;
-            background: #000;
-            border-radius: 20px;
-            box-shadow: 0 0 30px rgba(255, 192, 203, 0.3);
-            border: 2px solid var(--primary);
-            overflow: hidden;
-        }
-        img#stream {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-        }
-        .controls {
-            margin-top: 20px;
-            display: flex;
-            gap: 10px;
-            background: rgba(255, 255, 255, 0.1);
-            padding: 15px;
-            border-radius: 50px;
-            backdrop-filter: blur(10px);
-        }
-        input {
-            background: transparent;
-            border: 1px solid var(--primary);
-            color: white;
-            padding: 8px 15px;
-            border-radius: 20px;
-            outline: none;
-        }
-        button {
-            background: var(--primary);
-            border: none;
-            color: var(--dark);
-            padding: 8px 20px;
-            border-radius: 20px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: 0.3s;
-        }
-        button:hover {
-            background: var(--accent);
-            transform: scale(1.05);
-        }
-        .badge {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: var(--primary);
-            color: var(--dark);
-            padding: 5px 15px;
-            border-radius: 50px;
-            font-size: 12px;
-            font-weight: bold;
-            text-transform: uppercase;
-        }
-        .status {
-            margin-top: 10px;
-            font-size: 14px;
-            color: var(--primary);
-            opacity: 0.8;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EasyVtuber Live Receiver</title>
+  <style>
+    :root {
+      --bg-base: #08090d;
+      --bg-surface: #0f1118;
+      --bg-elevated: #161925;
+      --bg-hover: #1f2436;
+      --text-primary: #f4f6fb;
+      --text-secondary: #a1a9be;
+      --text-muted: #6c748c;
+      --accent: #f472b6;
+      --accent-strong: #ec4899;
+      --accent-soft: rgba(244, 114, 182, 0.14);
+      --border: rgba(255, 255, 255, 0.08);
+      --border-accent: rgba(244, 114, 182, 0.35);
+      --green: #34d399;
+      --amber: #fbbf24;
+      --rose: #f43f5e;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 18px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html,
+    body {
+      height: 100%;
+      background: var(--bg-base);
+      color: var(--text-primary);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      background-image:
+        radial-gradient(ellipse 60% 50% at 20% 0%, rgba(244, 114, 182, 0.07), transparent 60%),
+        radial-gradient(ellipse 50% 45% at 85% 100%, rgba(139, 92, 246, 0.07), transparent 60%);
+      overflow: hidden;
+    }
+
+    body.clean-mode header,
+    body.clean-mode .dock {
+      display: none;
+    }
+
+    body.clean-mode .stage-area {
+      padding: 0;
+    }
+
+    body.clean-mode .stage-frame {
+      max-width: min(100vw, 100vh);
+      width: min(100vw, 100vh);
+      border: none;
+      border-radius: 0;
+      box-shadow: none;
+    }
+
+    header {
+      height: 56px;
+      padding: 0 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      background: rgba(15, 17, 24, 0.85);
+      backdrop-filter: blur(16px);
+      flex-shrink: 0;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-mark {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--accent), #8b5cf6);
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      font-size: 13px;
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(244, 114, 182, 0.25);
+    }
+
+    .brand-title {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-pill {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 2px 7px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      border: 1px solid var(--border-accent);
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--amber);
+      transition: background 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .status-dot.connected {
+      background: var(--green);
+      box-shadow: 0 0 8px rgba(52, 211, 153, 0.55);
+    }
+
+    .status-dot.error {
+      background: var(--rose);
+      box-shadow: 0 0 8px rgba(244, 63, 94, 0.5);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .stage-area {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      min-height: 0;
+      position: relative;
+    }
+
+    .stage-frame {
+      position: relative;
+      width: min(580px, calc(100vh - 180px), calc(100vw - 40px));
+      aspect-ratio: 1 / 1;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      border: 1px solid var(--border);
+      background: #000;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+      transition: background 0.2s ease;
+    }
+
+    .stage-frame.bg-checker {
+      background-color: #141620;
+      background-image:
+        linear-gradient(45deg, #1d2130 25%, transparent 25%),
+        linear-gradient(-45deg, #1d2130 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #1d2130 75%),
+        linear-gradient(-45deg, transparent 75%, #1d2130 75%);
+      background-size: 20px 20px;
+      background-position: 0 0, 0 10px, 10px -10px, -10px 0;
+    }
+
+    .stage-frame.bg-green {
+      background: #00b140;
+    }
+
+    .stage-frame.bg-blue {
+      background: #0047bb;
+    }
+
+    img#stream {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+      transition: transform 0.18s ease;
+    }
+
+    img#stream.mirrored {
+      transform: scaleX(-1);
+    }
+
+    img#stream:not([src]) {
+      opacity: 0;
+    }
+
+    .stage-placeholder {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 24px;
+      text-align: center;
+      color: var(--text-secondary);
+      pointer-events: none;
+    }
+
+    .stage-placeholder.hidden {
+      display: none;
+    }
+
+    .stage-placeholder svg {
+      width: 36px;
+      height: 36px;
+      color: var(--text-muted);
+    }
+
+    .stage-placeholder p {
+      font-size: 13px;
+      max-width: 280px;
+      line-height: 1.5;
+    }
+
+    .dock {
+      padding: 12px 20px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .dock-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 8px 10px;
+      background: rgba(15, 17, 24, 0.92);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+    }
+
+    .host-input {
+      width: 210px;
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--bg-elevated);
+      color: var(--text-primary);
+      font-family: ui-monospace, 'JetBrains Mono', monospace;
+      font-size: 12px;
+      outline: none;
+      transition: border-color 0.15s ease;
+    }
+
+    .host-input:focus {
+      border-color: var(--accent);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--bg-elevated);
+      color: var(--text-secondary);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .btn:hover {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+      border-color: rgba(255, 255, 255, 0.16);
+    }
+
+    .btn.active {
+      background: var(--accent-soft);
+      border-color: var(--border-accent);
+      color: var(--accent);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent-strong), #8b5cf6);
+      border-color: transparent;
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      filter: brightness(1.08);
+      border-color: transparent;
+      color: #fff;
+    }
+
+    .divider {
+      width: 1px;
+      height: 22px;
+      background: var(--border);
+      margin: 0 2px;
+    }
+
+    .swatch-group {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px;
+      border-radius: var(--radius-sm);
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+    }
+
+    .swatch {
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      cursor: pointer;
+      padding: 0;
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
+    }
+
+    .swatch:hover {
+      transform: scale(1.08);
+    }
+
+    .swatch.active {
+      box-shadow: 0 0 0 2px var(--accent);
+    }
+
+    .swatch.dark { background: #000000; }
+    .swatch.checker {
+      background-color: #202433;
+      background-image: linear-gradient(45deg, #32384f 25%, transparent 25%),
+        linear-gradient(-45deg, #32384f 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #32384f 75%),
+        linear-gradient(-45deg, transparent 75%, #32384f 75%);
+      background-size: 8px 8px;
+      background-position: 0 0, 0 4px, 4px -4px, -4px 0;
+    }
+    .swatch.green { background: #00b140; }
+    .swatch.blue { background: #0047bb; }
+
+    .exit-clean {
+      display: none;
+      position: fixed;
+      top: 14px;
+      right: 14px;
+      z-index: 20;
+      opacity: 0.3;
+      transition: opacity 0.2s ease;
+    }
+
+    .exit-clean:hover {
+      opacity: 1;
+    }
+
+    body.clean-mode .exit-clean {
+      display: inline-flex;
+    }
+  </style>
 </head>
 <body>
-
-    <h1 style="color: var(--primary); margin-bottom: 10px;">EasyVtuber Live 🌸</h1>
-
-    <div class="container">
-        <div class="badge">Live Stream</div>
-        <img id="stream" src="" alt="Live Stream (Connect to Local Backend)">
+  <header>
+    <div class="brand">
+      <div class="brand-mark">EV</div>
+      <span class="brand-title">EasyVtuber</span>
+      <span class="brand-pill">Web Output</span>
     </div>
 
-    <div class="controls">
-        <input type="text" id="ipAddress" placeholder="Local IP (e.g. localhost)">
-        <button onclick="connect()">Connect</button>
+    <div class="status-pill" role="status" aria-live="polite">
+      <span id="statusDot" class="status-dot"></span>
+      <span id="status">Waiting for connection...</span>
     </div>
 
-    <div class="status" id="status">Waiting for connection...</div>
+    <div class="header-actions">
+      <button type="button" class="btn" id="btnClean" title="Hide controls for OBS capture (press Esc to exit)">
+        OBS Clean Mode
+      </button>
+      <button type="button" class="btn" id="btnFullscreen" title="Toggle fullscreen">
+        Fullscreen
+      </button>
+    </div>
+  </header>
 
-    <script>
-        function sanitizeStreamHost(raw) {
-            const trimmed = String(raw || '').trim() || 'localhost';
-            const hostPattern = /^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?)*|\[[0-9a-fA-F:]+\])$/;
-            const match = hostPattern.exec(trimmed);
-            if (!match) {
-                return null;
-            }
-            const safeUrl = new URL('http://localhost:8000/');
-            safeUrl.hostname = match[0];
-            if (safeUrl.protocol !== 'http:' || safeUrl.port !== '8000') {
-                return null;
-            }
-            return safeUrl.origin + '/';
+  <main class="stage-area">
+    <div id="stageFrame" class="stage-frame">
+      <img id="stream" alt="EasyVtuber Live Stream" />
+      <div id="placeholder" class="stage-placeholder">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="4" width="20" height="14" rx="2" />
+          <path d="M8 20h8M12 18v2" />
+        </svg>
+        <p id="placeholderText">Start EasyVtuber Desktop with <strong>Web Server (Browser)</strong> output, then click Connect.</p>
+      </div>
+    </div>
+    <button type="button" class="btn exit-clean" id="btnExitClean">Exit Clean Mode (Esc)</button>
+  </main>
+
+  <footer class="dock">
+    <div class="dock-bar">
+      <input
+        type="text"
+        id="ipAddress"
+        class="host-input"
+        placeholder="localhost or LAN IP"
+        value="localhost"
+        aria-label="Backend host or IP"
+      />
+      <button type="button" class="btn btn-primary" id="btnConnect">Connect</button>
+
+      <div class="divider"></div>
+
+      <button type="button" class="btn" id="btnMirror" title="Mirror stream horizontally">Mirror</button>
+      <button type="button" class="btn active" id="btnAutoReconnect" title="Automatically retry when disconnected">
+        Auto-Retry
+      </button>
+
+      <div class="divider"></div>
+
+      <div class="swatch-group" role="group" aria-label="Stage backdrop">
+        <button type="button" class="swatch dark active" data-bg="" title="Solid Black"></button>
+        <button type="button" class="swatch checker" data-bg="bg-checker" title="Transparency Grid"></button>
+        <button type="button" class="swatch green" data-bg="bg-green" title="Chroma Key Green"></button>
+        <button type="button" class="swatch blue" data-bg="bg-blue" title="Chroma Key Blue"></button>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    let autoReconnect = true;
+    let reconnectTimer = null;
+
+    function sanitizeStreamHost(raw) {
+      const trimmed = String(raw || '').trim() || 'localhost';
+      const hostPattern = /^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?)*|\[[0-9a-fA-F:]+\])$/;
+      const match = hostPattern.exec(trimmed);
+      if (!match) {
+        return null;
+      }
+      const safeUrl = new URL('http://localhost:8000/');
+      safeUrl.hostname = match[0];
+      if (safeUrl.protocol !== 'http:' || safeUrl.port !== '8000') {
+        return null;
+      }
+      return safeUrl.origin + '/';
+    }
+
+    function setStatus(text, state) {
+      const statusEl = document.getElementById('status');
+      const dotEl = document.getElementById('statusDot');
+      statusEl.textContent = text;
+      dotEl.className = 'status-dot' + (state ? ' ' + state : '');
+    }
+
+    function clearReconnect() {
+      if (reconnectTimer !== null) {
+        window.clearTimeout(reconnectTimer);
+        reconnectTimer = null;
+      }
+    }
+
+    function connect() {
+      clearReconnect();
+      const rawIp = document.getElementById('ipAddress').value;
+      const streamImg = document.getElementById('stream');
+      const placeholder = document.getElementById('placeholder');
+      const placeholderText = document.getElementById('placeholderText');
+
+      const streamUrl = sanitizeStreamHost(rawIp);
+      if (!streamUrl) {
+        setStatus('Invalid host or IP address', 'error');
+        placeholderText.textContent = 'Enter a valid hostname or IP address (e.g. localhost or 192.168.1.10).';
+        placeholder.classList.remove('hidden');
+        streamImg.removeAttribute('src');
+        return;
+      }
+
+      setStatus('Connecting to ' + streamUrl + '...', '');
+      streamImg.onload = () => {
+        clearReconnect();
+        placeholder.classList.add('hidden');
+        setStatus('Live — ' + streamUrl, 'connected');
+      };
+
+      streamImg.onerror = () => {
+        streamImg.removeAttribute('src');
+        placeholder.classList.remove('hidden');
+        placeholderText.textContent = 'Could not reach ' + streamUrl + '. Make sure EasyVtuber Desktop is running with Web Output.';
+        setStatus(autoReconnect ? 'Disconnected — retrying in 3s...' : 'Connection failed', 'error');
+        if (autoReconnect) {
+          reconnectTimer = window.setTimeout(connect, 3000);
         }
+      };
 
-        function connect() {
-            const rawIp = document.getElementById('ipAddress').value;
-            const streamImg = document.getElementById('stream');
-            const status = document.getElementById('status');
+      streamImg.setAttribute('src', streamUrl);
+    }
 
-            const streamUrl = sanitizeStreamHost(rawIp);
-            if (!streamUrl) {
-                status.innerText = "❌ Invalid host or IP address.";
-                streamImg.removeAttribute('src');
-                return;
-            }
+    document.getElementById('btnConnect').addEventListener('click', connect);
+    document.getElementById('ipAddress').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') connect();
+    });
 
-            streamImg.setAttribute('src', streamUrl);
-            status.innerText = `Connecting to ${streamUrl}...`;
+    document.getElementById('btnMirror').addEventListener('click', (e) => {
+      const btn = e.currentTarget;
+      const active = btn.classList.toggle('active');
+      document.getElementById('stream').classList.toggle('mirrored', active);
+    });
 
-            streamImg.onload = () => {
-                status.innerText = "🌸 Connected & Streaming";
-            };
+    document.getElementById('btnAutoReconnect').addEventListener('click', (e) => {
+      autoReconnect = e.currentTarget.classList.toggle('active');
+      if (!autoReconnect) clearReconnect();
+    });
 
-            streamImg.onerror = () => {
-                status.innerText = "❌ Connection Failed. Make sure EasyVtuber is running with Web Output.";
-                streamImg.removeAttribute('src');
-            };
-        }
+    document.querySelectorAll('.swatch').forEach((swatch) => {
+      swatch.addEventListener('click', () => {
+        document.querySelectorAll('.swatch').forEach((s) => s.classList.remove('active'));
+        swatch.classList.add('active');
+        const frame = document.getElementById('stageFrame');
+        frame.className = 'stage-frame' + (swatch.dataset.bg ? ' ' + swatch.dataset.bg : '');
+      });
+    });
 
-        // Auto-connect to localhost on start
-        window.onload = connect;
-    </script>
+    function setCleanMode(enabled) {
+      document.body.classList.toggle('clean-mode', enabled);
+    }
+
+    document.getElementById('btnClean').addEventListener('click', () => setCleanMode(true));
+    document.getElementById('btnExitClean').addEventListener('click', () => setCleanMode(false));
+
+    document.getElementById('btnFullscreen').addEventListener('click', () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen?.().catch(() => {});
+      } else {
+        document.exitFullscreen?.().catch(() => {});
+      }
+    });
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && document.body.classList.contains('clean-mode')) {
+        setCleanMode(false);
+      }
+    });
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('clean') === '1') {
+      setCleanMode(true);
+    }
+
+    window.addEventListener('load', connect);
+  </script>
 </body>
 </html>

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { ActivityIcon, XIcon } from './Icons';
 
 interface PerfData {
   fps: number;
@@ -41,13 +42,8 @@ export function PerformanceMonitor({
     domNodes: 0,
     tracking: false,
   });
-  // The sparkline used to read `fpsHistoryRef.current` inside JSX, so it never
-  // re-rendered when the ref mutated and the bars appeared frozen. History is
-  // real state now.
   const [history, setHistory] = useState<number[]>([]);
 
-  // Refs for changing props, so the sampling effect doesn't restart every time
-  // a prop changes.
   const fpsRef = useRef(fps);
   const inferRef = useRef(inferenceTime);
   const trackingRef = useRef(isTracking);
@@ -57,7 +53,6 @@ export function PerformanceMonitor({
     trackingRef.current = isTracking;
   }, [fps, inferenceTime, isTracking]);
 
-  // Only sample while the panel is open.
   useEffect(() => {
     if (!visible) return;
 
@@ -72,9 +67,6 @@ export function PerformanceMonitor({
     };
     rafId = requestAnimationFrame(measureFrame);
 
-    // Sample the DOM node count a few times a second instead of every frame:
-    // `document.querySelectorAll('*')` on a production-sized DOM is expensive
-    // enough to distort the very numbers being measured.
     const sampleId = window.setInterval(() => {
       const currentFps = fpsRef.current;
       setPerfData({
@@ -94,10 +86,8 @@ export function PerformanceMonitor({
     };
   }, [visible]);
 
-  // Toggle with backtick key
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      // Never hijack keystrokes destined for a form control.
       const target = e.target as HTMLElement | null;
       if (target && /^(INPUT|SELECT|TEXTAREA)$/.test(target.tagName)) return;
       if (e.key === '`' && !e.ctrlKey && !e.metaKey && !e.altKey) {
@@ -112,11 +102,13 @@ export function PerformanceMonitor({
   if (!visible) {
     return (
       <button
+        type="button"
         className="perf-toggle"
         onClick={() => setVisible(true)}
+        aria-label="Show Performance Monitor"
         title="Show Performance Monitor (press ` to toggle)"
       >
-        📊
+        <ActivityIcon size={15} />
       </button>
     );
   }
@@ -124,29 +116,37 @@ export function PerformanceMonitor({
   const { fps: displayFps, frameTime, jsHeap, domNodes, tracking } = perfData;
 
   return (
-    <div className="perf-monitor">
+    <div className="perf-monitor" role="region" aria-label="Performance Monitor">
       <div className="perf-header">
-        <span>Performance Monitor</span>
-        <button className="perf-close" onClick={() => setVisible(false)}>
-          ✕
+        <span className="perf-header-title">
+          <ActivityIcon size={12} />
+          Telemetry
+        </span>
+        <button
+          type="button"
+          className="perf-close"
+          onClick={() => setVisible(false)}
+          aria-label="Close Performance Monitor"
+        >
+          <XIcon size={12} />
         </button>
       </div>
       <div className="perf-body">
         <PerfRow label="FPS" value={String(displayFps)} warning={displayFps < 20} />
-        <PerfRow label="Frame" value={`${frameTime}ms`} warning={frameTime > 50} />
-        <PerfRow label="Inference" value={`${inferenceTime}ms`} warning={inferenceTime > 30} />
-        <PerfRow label="Heap" value={jsHeap} />
+        <PerfRow label="Frame" value={`${frameTime} ms`} warning={frameTime > 50} />
+        <PerfRow label="Inference" value={`${inferenceTime} ms`} warning={inferenceTime > 30} />
+        <PerfRow label="JS Heap" value={jsHeap} />
         <PerfRow label="DOM Nodes" value={String(domNodes)} />
         <PerfRow label="Tracking" value={tracking ? 'LIVE' : 'PAUSED'} />
-        {/* Mini FPS sparkline */}
-        <div className="perf-sparkline">
+        <div className="perf-sparkline" aria-hidden="true">
           {history.map((v, i) => (
             <div
               key={`${i}-${v}`}
               className="perf-spark-bar"
               style={{
-                height: `${Math.min((v / 60) * 100, 100)}%`,
-                backgroundColor: v < 20 ? 'var(--red)' : v < 40 ? 'var(--yellow)' : 'var(--green)',
+                height: `${Math.max(12, Math.min((v / 60) * 100, 100))}%`,
+                backgroundColor:
+                  v < 20 ? 'var(--rose)' : v < 40 ? 'var(--amber)' : 'var(--emerald)',
               }}
             />
           ))}

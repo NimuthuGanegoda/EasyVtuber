@@ -259,9 +259,48 @@ def run_preflight(launch_args):
     return errors, warnings
 
 
+_THEME_BG = wx.Colour(20, 22, 31)
+_THEME_CARD = wx.Colour(28, 31, 44)
+_THEME_HEADER = wx.Colour(15, 17, 25)
+_THEME_TEXT = wx.Colour(241, 244, 250)
+_THEME_MUTED = wx.Colour(154, 164, 184)
+_THEME_ACCENT = wx.Colour(244, 114, 182)
+_THEME_DIVIDER = wx.Colour(46, 52, 72)
+
+
+class SectionHeader(wx.Panel):
+    """Compact studio section header inside the scrollable launcher."""
+
+    def __init__(self, parent, title):
+        wx.Panel.__init__(self, parent)
+        self.SetBackgroundColour(_THEME_BG)
+        sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        accent = wx.Panel(self, size=(3, 14))
+        accent.SetBackgroundColour(_THEME_ACCENT)
+        sizer.Add(accent, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+
+        label = wx.StaticText(self, wx.ID_ANY, title.upper())
+        font = label.GetFont()
+        font.SetWeight(wx.FONTWEIGHT_BOLD)
+        font.SetPointSize(max(8, font.GetPointSize() - 1))
+        label.SetFont(font)
+        label.SetForegroundColour(_THEME_ACCENT)
+        sizer.Add(label, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 10)
+
+        line = wx.Panel(self, size=(-1, 1))
+        line.SetBackgroundColour(_THEME_DIVIDER)
+        sizer.Add(line, 1, wx.ALIGN_CENTER_VERTICAL)
+
+        outer = wx.BoxSizer(wx.VERTICAL)
+        outer.Add(sizer, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 6)
+        self.SetSizer(outer)
+
+
 class OptionPanel(wx.Panel):
     def __init__(self, parent, title='', desc='', choices=None, mapping=None, type=0, default=None, disabled=False, mapper=min_cutoff_mapper):
         wx.Panel.__init__(self, parent)
+        self.SetBackgroundColour(_THEME_CARD)
         self.type = type
         if mapping is not None:
             self.mapping = mapping
@@ -274,26 +313,29 @@ class OptionPanel(wx.Panel):
         titleFont = titleText.GetFont()
         titleFont.SetWeight(wx.FONTWEIGHT_SEMIBOLD)
         titleText.SetFont(titleFont)
-        leftSizer.Add(titleText, 0, wx.ALL, 0)
+        titleText.SetForegroundColour(_THEME_TEXT)
+        leftSizer.Add(titleText, 0, wx.BOTTOM, 2)
         descText = wx.StaticText(self, wx.ID_ANY, desc)
         descFont = descText.GetFont()
-        descFont.SetWeight(wx.FONTWEIGHT_EXTRALIGHT)
+        descFont.SetPointSize(max(8, descFont.GetPointSize() - 1))
         descText.SetFont(descFont)
+        descText.SetForegroundColour(_THEME_MUTED)
         leftSizer.Add(descText, 0, wx.ALL, 0)
-        mainSizer.Add(leftSizer, 1, wx.EXPAND | wx.ALL, 0)
+        mainSizer.Add(leftSizer, 1, wx.EXPAND | wx.LEFT | wx.TOP | wx.BOTTOM, 10)
         if self.type == 0:
             self.control = wx.Choice(self, wx.ID_ANY, choices=choices)
-            self.control.SetMinSize(wx.Size(300, -1))
+            self.control.SetMinSize(wx.Size(260, -1))
             try:
                 if default is not None:
                     if self.mapping:
                         self.control.SetSelection(self.mapping.index(default))
                     else:
                         self.control.SetSelection(default)
-            except:
+            except Exception:
                 pass
         elif self.type == 1:
             self.control = wx.CheckBox(self, wx.ID_ANY)
+            self.control.SetForegroundColour(_THEME_TEXT)
             try:
                 if default is not None:
                     if self.mapping:
@@ -301,51 +343,52 @@ class OptionPanel(wx.Panel):
                     else:
                         self.control.SetValue(default)
 
-            except:
+            except Exception:
                 pass
         elif self.type == 2:
             self.control = wx.TextCtrl(self, wx.ID_ANY)
-            self.control.SetMinSize(wx.Size(300, -1))
+            self.control.SetMinSize(wx.Size(260, -1))
             try:
                 if default is not None:
                     if self.mapping:
                         self.control.SetValue(self.mapping[default])
                     else:
                         self.control.SetValue(default)
-            except:
+            except Exception:
                 pass
         elif self.type == 3:
             # Slider type for float values 0.0 to 1.0
             sliderSizer = wx.BoxSizer(wx.HORIZONTAL)
-            self.control = wx.Slider(self, wx.ID_ANY, value=50, minValue=0, maxValue=100, 
-                                    style=wx.SL_HORIZONTAL)
-            self.control.SetMinSize(wx.Size(250, -1))
-            
+            self.control = wx.Slider(self, wx.ID_ANY, value=50, minValue=0, maxValue=100,
+                                     style=wx.SL_HORIZONTAL)
+            self.control.SetMinSize(wx.Size(200, -1))
+
             # Add a label to show the float value
-            self.valueLabel = wx.StaticText(self, wx.ID_ANY, "0.50")
-            self.valueLabel.SetMinSize(wx.Size(50, -1))
-            
+            self.valueLabel = wx.StaticText(self, wx.ID_ANY, "0.5000")
+            self.valueLabel.SetMinSize(wx.Size(56, -1))
+            self.valueLabel.SetForegroundColour(_THEME_ACCENT)
+
             try:
                 if default is not None:
                     self.control.SetValue(default)
                     self.valueLabel.SetLabelText(f"{mapper(default):.4f}")
-            except:
+            except Exception:
                 pass
-            
+
             # Update label when slider changes
             def onSliderChange(event):
                 val = mapper(self.control.GetValue())
                 self.valueLabel.SetLabelText(f"{val:.4f}")
             self.control.Bind(wx.EVT_SLIDER, onSliderChange)
-            
+
             sliderSizer.Add(self.control, 1, wx.ALIGN_CENTER_VERTICAL)
             sliderSizer.Add(self.valueLabel, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 10)
-            mainSizer.Add(sliderSizer, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 20)
+            mainSizer.Add(sliderSizer, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT | wx.RIGHT, 12)
             # Skip the normal control addition below
             self.control._slider_added = True
 
         if not (self.type == 3 and hasattr(self.control, '_slider_added')):
-            mainSizer.Add(self.control, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 20)
+            mainSizer.Add(self.control, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT | wx.RIGHT, 12)
 
     def GetValue(self):
         if self.type == 0:
@@ -447,6 +490,7 @@ def _read_pipe_to_stream(pipe, dest_stream, out_lines=None, on_line_callback=Non
 class LauncherPanel(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
+        self.SetBackgroundColour(_THEME_BG)
         self.number_of_buttons = 0
         self.frame = parent
         self.optionDict = {}
@@ -454,49 +498,92 @@ class LauncherPanel(wx.Panel):
         self.main_stderr_lines = []   # Copy of main stderr
         self._stopping = False
         self.mainSizer = wx.BoxSizer(wx.VERTICAL)
-        controlSizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.widgetSizer = wx.BoxSizer(wx.VERTICAL)
 
-        stEasy = wx.StaticText(self, wx.ID_ANY, "Easy")
+        # Top studio header bar
+        headerPanel = wx.Panel(self)
+        headerPanel.SetBackgroundColour(_THEME_HEADER)
+        controlSizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        self.charPreview = wx.StaticBitmap(headerPanel, size=(48, 48))
+        controlSizer.Add(self.charPreview, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT | wx.TOP | wx.BOTTOM, 12)
+
+        brandSizer = wx.BoxSizer(wx.VERTICAL)
+        titleRow = wx.BoxSizer(wx.HORIZONTAL)
+        stEasy = wx.StaticText(headerPanel, wx.ID_ANY, "Easy")
         f = stEasy.GetFont()
         f.SetWeight(wx.FONTWEIGHT_HEAVY)
         f = f.MakeLarger()
         stEasy.SetFont(f)
-        stVtuber = wx.StaticText(self, wx.ID_ANY, "Vtuber")
-        f = stVtuber.GetFont()
-        f.SetWeight(wx.FONTWEIGHT_LIGHT)
-        f = f.MakeLarger()
-        stVtuber.SetFont(f)
-        controlSizer.Add(stEasy, 0, wx.ALL | wx.CENTER, 0)
-        controlSizer.Add(stVtuber, 0, wx.RIGHT | wx.CENTER, 30)
+        stEasy.SetForegroundColour(_THEME_TEXT)
+        stVtuber = wx.StaticText(headerPanel, wx.ID_ANY, "Vtuber")
+        f2 = stVtuber.GetFont()
+        f2.SetWeight(wx.FONTWEIGHT_LIGHT)
+        f2 = f2.MakeLarger()
+        stVtuber.SetFont(f2)
+        stVtuber.SetForegroundColour(_THEME_ACCENT)
+        titleRow.Add(stEasy, 0, wx.ALIGN_CENTER_VERTICAL)
+        titleRow.Add(stVtuber, 0, wx.ALIGN_CENTER_VERTICAL)
+        brandSizer.Add(titleRow, 0)
+
+        subtitle = wx.StaticText(headerPanel, wx.ID_ANY, "DESKTOP STUDIO LAUNCHER")
+        subFont = subtitle.GetFont()
+        subFont.SetPointSize(max(7, subFont.GetPointSize() - 2))
+        subFont.SetWeight(wx.FONTWEIGHT_BOLD)
+        subtitle.SetFont(subFont)
+        subtitle.SetForegroundColour(_THEME_MUTED)
+        brandSizer.Add(subtitle, 0, wx.TOP, 2)
+        controlSizer.Add(brandSizer, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 12)
 
         self.statusCtrl = wx.TextCtrl(
-            self, wx.ID_ANY, '',
+            headerPanel, wx.ID_ANY, '',
             style=wx.TE_READONLY | wx.BORDER_NONE | wx.TE_RIGHT,
         )
-        self.statusCtrl.SetHint('Status')
-        f = self.statusCtrl.GetFont()
-        self.statusCtrl.SetFont(f.Smaller())
-        controlSizer.Add(self.statusCtrl, 1, wx.ALIGN_CENTER_VERTICAL | wx.LEFT | wx.RIGHT, 8)
+        self.statusCtrl.SetBackgroundColour(_THEME_HEADER)
+        self.statusCtrl.SetForegroundColour(_THEME_MUTED)
+        self.statusCtrl.SetHint('Ready')
+        sf = self.statusCtrl.GetFont()
+        self.statusCtrl.SetFont(sf.Smaller())
+        controlSizer.Add(self.statusCtrl, 1, wx.ALIGN_CENTER_VERTICAL | wx.LEFT | wx.RIGHT, 12)
 
-        self.btnLaunch = wx.Button(self, label="Save && Launch")
+        self.btnLaunch = wx.Button(headerPanel, label="Save && Launch")
+        self.btnLaunch.SetMinSize(wx.Size(136, 36))
+        self.btnLaunch.SetBackgroundColour(_THEME_ACCENT)
+        self.btnLaunch.SetForegroundColour(wx.Colour(15, 17, 25))
+        bf = self.btnLaunch.GetFont()
+        bf.SetWeight(wx.FONTWEIGHT_BOLD)
+        self.btnLaunch.SetFont(bf)
         self.btnLaunch.Bind(wx.EVT_BUTTON, self.OnLaunch)
-        controlSizer.Add(self.btnLaunch, 0, wx.CENTER | wx.ALL, 10)
+        controlSizer.Add(self.btnLaunch, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 14)
 
-        self.mainSizer.Add(self.widgetSizer, 0, wx.CENTER | wx.ALL, 10)
-        self.mainSizer.Add(controlSizer, 0, wx.CENTER | wx.EXPAND | wx.LEFT, 10)
-        self.mainSizer.Add(wx.StaticLine(self), 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 8)
-        self.SetSizer(self.mainSizer)
+        headerPanel.SetSizer(controlSizer)
+        self.mainSizer.Add(headerPanel, 0, wx.EXPAND)
+
+        headerDivider = wx.Panel(self, size=(-1, 1))
+        headerDivider.SetBackgroundColour(_THEME_DIVIDER)
+        self.mainSizer.Add(headerDivider, 0, wx.EXPAND)
+
+        # Scrollable studio options container (prevents overflowing 1080p screens)
+        self.scrollArea = wx.ScrolledWindow(self, style=wx.VSCROLL)
+        self.scrollArea.SetScrollRate(0, 18)
+        self.scrollArea.SetBackgroundColour(_THEME_BG)
         self.optionSizer = wx.BoxSizer(wx.VERTICAL)
-        self.mainSizer.Add(self.optionSizer, 0, wx.EXPAND | wx.CENTER | wx.ALL, 2)
+        self.scrollArea.SetSizer(self.optionSizer)
+        self.mainSizer.Add(self.scrollArea, 1, wx.EXPAND | wx.ALL, 0)
+        self.SetSizer(self.mainSizer)
+
+        def addSection(title):
+            header = SectionHeader(self.scrollArea, title)
+            self.optionSizer.Add(header, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 14)
+            return header
 
         def addOption(key, **kwargs):
             kwargs['default'] = args[key]
-            t = OptionPanel(self, **kwargs)
-            self.optionSizer.Add(t, 0, wx.EXPAND | wx.ALL, 5)
+            t = OptionPanel(self.scrollArea, **kwargs)
+            self.optionSizer.Add(t, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 6)
             self.optionDict[key] = t
             return t
 
+        addSection('Character & Input Source')
         addOption('character', title='Character', desc='Select character image from data/images',
                   choices=characterList)
 
@@ -515,15 +602,16 @@ class LauncherPanel(wx.Panel):
         addOption('blink_interval', title='Blink Interval', desc='Auto-blink frequency for mouse input',
                   choices=['No Blink', '3 seconds', '5 seconds', '7 seconds'],
                   mapping=['inf', '3.0', '5.0', '7.0'])
-        addOption('min_cutoff', title='Min CutOff', desc='Filter frequency cutoff (Lower = smoother, Higher = responsive)', 
+        addOption('min_cutoff', title='Min CutOff', desc='Filter frequency cutoff (Lower = smoother, Higher = responsive)',
                   type=3, mapper=min_cutoff_mapper)
-        addOption('beta', title='Beta', desc='Filter speed compensation (Lower = smoother, Higher = responsive)', 
+        addOption('beta', title='Beta', desc='Filter speed compensation (Lower = smoother, Higher = responsive)',
                   type=3, mapper=beta_mapper)
 
         addOption('breath_cycle', title='Breath Cycle', desc='Auto-breath cycle (increases CPU usage)',
                   choices=['No Breath', '3 seconds', '5 seconds', '7 seconds'],
                   mapping=['inf', '3.0', '5.0', '7.0'])
 
+        addSection('Output & Runtime')
         addOption('output', title='Output', desc='Select video output target',
                   choices=['Spout2', 'OBS VirtualCam', 'Debug Output', 'Web Server (Browser)'],
                   mapping=[0, 1, 2, 3])
@@ -535,6 +623,7 @@ class LauncherPanel(wx.Panel):
                   desc='Bypass preflight blocks for unsupported/missing dependencies',
                   type=1)
 
+        addSection('Performance & AI Model')
         addOption('frame_rate_limit', title='FPS Limit', desc='Frame rate cap',
                   choices=['10', '15', '20', '30', '60'])
         addOption('preset', title='Performance Preset', desc='Presets will override detailed settings below',
@@ -566,6 +655,7 @@ class LauncherPanel(wx.Panel):
                   desc='Higher simplification = more cache hits but less smooth',
                   choices=['Off', 'Low', 'Medium', 'High', 'Higher', 'Highest', 'Gaming'])
 
+        addSection('Visual Effects & Post-Processing')
         addOption('sr', title='SuperResolution', desc='AI upscaling model (ESRGAN is high quality but heavy)',
                   choices=['Off', 'anime4k_x2', 'waifu2x_x2_half', 'real-esrgan_x4_half', 'waifu2x_x2_full',
                            'real-esrgan_x4_full'])
@@ -580,6 +670,33 @@ class LauncherPanel(wx.Panel):
         addOption('is_bongo', title='Bongocat Mode', desc='Rotate output to fit Bongocat desktop pet', type=1)
         addOption('is_alpha_split', title='Alpha Split', desc='Split alpha channel to right side of video stream',
                   type=1)
+
+        def refreshLayout():
+            self.optionSizer.Layout()
+            self.scrollArea.FitInside()
+            self.Layout()
+
+        def updateCharacterPreview(e=None):
+            name = self.optionDict['character'].GetValue() or ''
+            img_path = os.path.join(dirPath, f'{name}.png') if name else ''
+            if img_path and os.path.isfile(img_path):
+                try:
+                    img = wx.Image(img_path, wx.BITMAP_TYPE_PNG)
+                    if img.IsOk():
+                        img = img.Scale(48, 48, wx.IMAGE_QUALITY_HIGH)
+                        self.charPreview.SetBitmap(wx.Bitmap(img))
+                        return
+                except Exception:
+                    pass
+            placeholder = wx.Bitmap(48, 48)
+            dc = wx.MemoryDC(placeholder)
+            dc.SetBackground(wx.Brush(_THEME_CARD))
+            dc.Clear()
+            dc.SelectObject(wx.NullBitmap)
+            self.charPreview.SetBitmap(placeholder)
+
+        self.optionDict['character'].Bind(wx.EVT_CHOICE, updateCharacterPreview)
+        updateCharacterPreview()
 
         def inputChoice(e=None):
             s = self.optionDict['input'].GetValue()
@@ -614,8 +731,7 @@ class LauncherPanel(wx.Panel):
                 self.optionSizer.Show(self.optionDict['blink_interval'])
                 audioInputChoice()
 
-            self.frame.fSizer.Layout()
-            self.frame.Fit()
+            refreshLayout()
 
         def audioInputChoice(e=None):
             """Handle mouse_audio_input checkbox changes"""
@@ -628,8 +744,7 @@ class LauncherPanel(wx.Panel):
             else:
                 self.optionSizer.Hide(self.optionDict['audio_sensitivity'])
                 self.optionSizer.Hide(self.optionDict['audio_threshold'])
-            self.frame.fSizer.Layout()
-            self.frame.Fit()
+            refreshLayout()
 
         self.optionDict['input'].Bind(wx.EVT_CHOICE, inputChoice)
         self.optionDict['mouse_audio_input'].Bind(wx.EVT_CHECKBOX, audioInputChoice)
@@ -651,15 +766,17 @@ class LauncherPanel(wx.Panel):
             }
 
             if s == 'Custom':
-                for c in presetControls: self.optionSizer.Show(c)
+                for c in presetControls:
+                    self.optionSizer.Show(c)
             else:
-                for c in presetControls: self.optionSizer.Hide(c)
+                for c in presetControls:
+                    self.optionSizer.Hide(c)
             if s in presets:
                 opt = presets[s]
-                for i in range(4): presetControls[i].control.SetSelection(opt[i])
+                for i in range(4):
+                    presetControls[i].control.SetSelection(opt[i])
 
-            self.frame.fSizer.Layout()
-            self.frame.Fit()
+            refreshLayout()
 
         self.optionDict['preset'].Bind(wx.EVT_CHOICE, presetChoice)
         presetChoice()
@@ -699,6 +816,7 @@ class LauncherPanel(wx.Panel):
                 if characterList:
                     char_ctrl.SetSelection(0)
             onModelSelect()
+            updateCharacterPreview()
 
         if not hasTRTSupport:
             self.optionDict['use_tensorrt'].control.SetValue(False)
@@ -965,13 +1083,14 @@ class MainFrame(wx.Frame):
         e.Skip()
 
     def InitUi(self):
-        self.SetTitle("EasyVtuber Launcher")
+        self.SetTitle("EasyVtuber Studio Launcher")
+        self.SetBackgroundColour(_THEME_BG)
         self.fSizer = wx.BoxSizer(wx.VERTICAL)
         panel = LauncherPanel(self)
         self.fSizer.Add(panel, 1, wx.EXPAND)
         self.SetSizer(self.fSizer)
-        self.SetMinSize(wx.Size(600, 0))
-        self.Fit()
+        self.SetMinSize(wx.Size(660, 520))
+        self.SetSize(wx.Size(760, 720))
         self.Centre()
 
 
