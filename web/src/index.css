@@ -480,6 +480,111 @@ a:focus-visible {
   gap: 6px;
 }
 
+.preset-grid.cols-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.card-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 11px 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+/* ============ Microphone Lip-Sync ============ */
+
+.mic-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 11px 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.mic-meter-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.vu-track {
+  flex: 1;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.vu-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--emerald), var(--accent), var(--violet));
+  transition: width 0.07s linear;
+}
+
+/* ============ Scene Profiles ============ */
+
+.profile-notice {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--emerald);
+}
+
+.profile-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.profile-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.profile-load-btn {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 2px 4px;
+  text-align: left;
+}
+
+.profile-name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.profile-meta {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: capitalize;
+}
+
+.profile-load-btn:hover .profile-name {
+  color: var(--accent);
+}
+
 .preset-chip {
   padding: 9px 10px;
   border-radius: var(--radius-sm);
@@ -1220,9 +1325,107 @@ a:focus-visible {
   overflow: hidden;
   border: 1px solid var(--border-strong);
   box-shadow: var(--shadow-lg);
+  cursor: grab;
   transition:
     border-color var(--ease),
     box-shadow var(--ease);
+}
+
+.render-canvas-wrapper:active {
+  cursor: grabbing;
+}
+
+.stage-bg-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+}
+
+.placeholder-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+/* Recording Indicator */
+.rec-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--rose-glow);
+  background: var(--rose-soft);
+  color: var(--rose);
+  font-family: 'JetBrains Mono', monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.rec-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--rose);
+  animation: pulse-dot 1s ease-in-out infinite;
+}
+
+.hud-left-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hud-pill.rec {
+  border-color: var(--rose-glow);
+  color: var(--rose);
+  background: rgba(24, 10, 14, 0.85);
+}
+
+.dock-btn.danger {
+  background: var(--rose-soft);
+  border-color: var(--rose-glow);
+  color: var(--rose);
+}
+
+/* Webcam Face Mesh PiP */
+.webcam-pip {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  z-index: 22;
+  width: 176px;
+  background: rgba(14, 16, 23, 0.92);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+  backdrop-filter: blur(12px);
+}
+
+.webcam-pip-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border);
+}
+
+.webcam-pip-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
 }
 
 .app.clean-mode .render-canvas-wrapper {

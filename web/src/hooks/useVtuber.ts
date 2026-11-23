@@ -60,6 +60,9 @@ const DEFAULT_EXPRESSION: ExpressionState = {
   eyebrowRaise: 0,
   eyeSmile: 0,
   cheekPuff: 0,
+  angry: 0,
+  sad: 0,
+  relaxed: 0,
 };
 
 const DEFAULT_OVERLAYS: OverlayItem[] = [
@@ -80,6 +83,7 @@ export const BACKGROUND_DEFAULTS: Record<BackgroundType, string> = {
   none: 'transparent',
   gradient: 'linear-gradient(135deg, #0a0a0c 0%, #1a1a2e 50%, #16213e 100%)',
   blur: 'rgba(0,0,0,0.6)',
+  image: 'transparent',
 };
 
 const BACKGROUND_ORDER: BackgroundType[] = ['gradient', 'none', 'blur'];
@@ -574,6 +578,11 @@ export function useVtuber() {
     setState((prev) => ({ ...prev, overlays: overlaysRef.current }));
   }, []);
 
+  const setOverlays = useCallback((overlays: OverlayItem[]) => {
+    overlaysRef.current = overlays;
+    setState((prev) => ({ ...prev, overlays }));
+  }, []);
+
   const cycleBackground = useCallback(() => {
     const idx = BACKGROUND_ORDER.indexOf(backgroundRef.current);
     const next = BACKGROUND_ORDER[(idx + 1) % BACKGROUND_ORDER.length] ?? 'gradient';
@@ -653,6 +662,7 @@ export function useVtuber() {
     addOverlay,
     removeOverlay,
     updateOverlay,
+    setOverlays,
     setState: updateState,
     // Expose refs for the canvas draw loop to read without React re-renders
     poseRef,

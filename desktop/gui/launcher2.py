@@ -93,6 +93,13 @@ if _DESKTOP_ROOT not in sys.path:
 from backend.utils.mappers import beta_mapper, min_cutoff_mapper  # noqa: E402
 from backend.utils.net import parse_host_port  # noqa: E402
 from backend.utils.proc import terminate_process  # noqa: E402
+from backend.utils.scene_profiles import (  # noqa: E402
+    delete_profile as delete_saved_profile,
+    load_profiles as load_saved_profiles,
+    save_profile as save_named_profile,
+)
+
+_PROFILES_PATH = os.path.join(_DESKTOP_ROOT, 'profiles.json')
 
 dirPath = os.path.join(_DESKTOP_ROOT, 'backend', 'data', 'images')
 characterList = []
@@ -562,6 +569,36 @@ class LauncherPanel(wx.Panel):
         headerDivider.SetBackgroundColour(_THEME_DIVIDER)
         self.mainSizer.Add(headerDivider, 0, wx.EXPAND)
 
+        # Named Profile bar (Save / Load / Delete desktop studio profiles)
+        profileBar = wx.Panel(self)
+        profileBar.SetBackgroundColour(_THEME_CARD)
+        profileSizer = wx.BoxSizer(wx.HORIZONTAL)
+        profileLabel = wx.StaticText(profileBar, wx.ID_ANY, "Profile:")
+        pf = profileLabel.GetFont()
+        pf.SetWeight(wx.FONTWEIGHT_BOLD)
+        profileLabel.SetFont(pf)
+        profileLabel.SetForegroundColour(_THEME_MUTED)
+        profileSizer.Add(profileLabel, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 14)
+
+        self._profiles = load_saved_profiles(_PROFILES_PATH)
+        self.profileChoice = wx.Choice(profileBar, choices=sorted(self._profiles.keys()))
+        self.profileChoice.SetMinSize(wx.Size(210, -1))
+        profileSizer.Add(self.profileChoice, 1, wx.ALIGN_CENTER_VERTICAL | wx.LEFT | wx.RIGHT, 8)
+
+        self.btnLoadProfile = wx.Button(profileBar, label="Load")
+        self.btnSaveProfile = wx.Button(profileBar, label="Save As...")
+        self.btnDeleteProfile = wx.Button(profileBar, label="Delete")
+        for b in (self.btnLoadProfile, self.btnSaveProfile, self.btnDeleteProfile):
+            b.SetMinSize(wx.Size(78, 28))
+            profileSizer.Add(b, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 6)
+        profileSizer.AddSpacer(8)
+        profileBar.SetSizer(profileSizer)
+        self.mainSizer.Add(profileBar, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 0)
+
+        profileDivider = wx.Panel(self, size=(-1, 1))
+        profileDivider.SetBackgroundColour(_THEME_DIVIDER)
+        self.mainSizer.Add(profileDivider, 0, wx.EXPAND)
+
         # Scrollable studio options container (prevents overflowing 1080p screens)
         self.scrollArea = wx.ScrolledWindow(self, style=wx.VSCROLL)
         self.scrollArea.SetScrollRate(0, 18)
@@ -823,6 +860,76 @@ class LauncherPanel(wx.Panel):
             self.optionDict['use_tensorrt'].control.Enable(False)
             self.optionDict['use_tensorrt'].control.SetToolTip(
                 'NVIDIA GPU required for TensorRT acceleration')
+
+        def refreshProfileList(select_name=None):
+            self._profiles = load_saved_profiles(_PROFILES_PATH)
+            names = sorted(self._profiles.keys())
+            self.profileChoice.SetItems(names)
+            if select_name and select_name in names:
+                self.profileChoice.SetSelection(names.index(select_name))
+            elif names:
+                self.profileChoice.SetSelection(0)
+
+        def collectCurrentArgs():
+            return {k: self.optionDict[k].GetValue() for k in self.optionDict.keys()}
+
+        def applyProfileArgs(data):
+            for key, val in data.items():
+                opt = self.optionDict.get(key)
+                if opt is None:
+                    continue
+                try:
+                    if opt.type == 0:
+                        idx = opt.mapping.index(val) if opt.mapping else int(val)
+                        opt.control.SetSelection(idx)
+                    elif opt.type == 1:
+                        opt.control.SetValue(bool(val))
+                    elif opt.type == 2:
+                        opt.control.SetValue('' if val is None else str(val))
+                    elif opt.type == 3:
+                        opt.control.SetValue(int(val))
+                except Exception:
+                    pass
+            inputChoice()
+            presetChoice()
+            onModelSelect()
+            updateCharacterPreview()
+
+        def onLoadProfile(e):
+            sel = self.profileChoice.GetStringSelection()
+            if sel and sel in self._profiles:
+                applyProfileArgs(self._profiles[sel])
+                self.statusCtrl.SetValue(f'Loaded profile: {sel}')
+
+        def onSaveProfile(e):
+            current = self.profileChoice.GetStringSelection() or 'Stream Setup'
+            dlg = wx.TextEntryDialog(self, 'Enter a name for this launcher profile:', 'Save Profile', current)
+            try:
+                if dlg.ShowModal() == wx.ID_OK:
+                    name = dlg.GetValue()
+                    save_named_profile(_PROFILES_PATH, name, collectCurrentArgs())
+                    refreshProfileList(name.strip())
+                    self.statusCtrl.SetValue(f'Saved profile: {name.strip()}')
+            except ValueError as exc:
+                wx.MessageBox(str(exc), 'Invalid Profile Name', wx.ICON_WARNING)
+            finally:
+                dlg.Destroy()
+
+        def onDeleteProfile(e):
+            sel = self.profileChoice.GetStringSelection()
+            if not sel:
+                return
+            try:
+                delete_saved_profile(_PROFILES_PATH, sel)
+                refreshProfileList()
+                self.statusCtrl.SetValue(f'Deleted profile: {sel}')
+            except (KeyError, ValueError):
+                pass
+
+        self.btnLoadProfile.Bind(wx.EVT_BUTTON, onLoadProfile)
+        self.btnSaveProfile.Bind(wx.EVT_BUTTON, onSaveProfile)
+        self.btnDeleteProfile.Bind(wx.EVT_BUTTON, onDeleteProfile)
+        refreshProfileList()
 
         self.frame.Bind(wx.EVT_ACTIVATE, onActivate)
 

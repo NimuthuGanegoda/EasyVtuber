@@ -11,9 +11,12 @@ export interface ExpressionState {
   eyebrowRaise: number;
   eyeSmile: number;
   cheekPuff: number;
+  angry?: number;
+  sad?: number;
+  relaxed?: number;
 }
 
-export type BackgroundType = 'none' | 'gradient' | 'blur';
+export type BackgroundType = 'none' | 'gradient' | 'blur' | 'image';
 
 export interface OverlayItem {
   id: string;
@@ -37,3 +40,44 @@ export interface HotkeyAction {
 
 /** MediaPipe's face landmarker delegate. */
 export type InferenceDelegate = 'GPU' | 'CPU';
+
+export interface StageCameraConfig {
+  zoom: number;
+  offsetX: number;
+  offsetY: number;
+  orbitYaw: number;
+}
+
+export interface StageLightingConfig {
+  preset: 'studio' | 'neon' | 'sunset' | 'moonlight';
+  keyIntensity: number;
+  rimIntensity: number;
+  ambientIntensity: number;
+  keyColor: string;
+  rimColor: string;
+}
+
+export interface TrackingTuning {
+  headSensitivity: number;
+  smoothing: number;
+  autoBlink: boolean;
+  idleBreathing: boolean;
+}
+
+export interface StudioProfileData {
+  expression: ExpressionState;
+  background: BackgroundType;
+  backgroundValue: string;
+  overlays: OverlayItem[];
+  camera: StageCameraConfig;
+  lighting: StageLightingConfig;
+  tuning: TrackingTuning;
+  mirrored: boolean;
+}
+
+export interface StudioProfile {
+  id: string;
+  name: string;
+  updatedAt: number;
+  data: StudioProfileData;
+}

@@ -206,7 +206,11 @@ export function drawCharacter(
       continue;
     }
 
-    const openAmt = side === -1 ? openness.left : openness.right;
+    const relaxedClose = (expression.relaxed ?? 0) * 0.48;
+    const openAmt = Math.max(
+      0.06,
+      (side === -1 ? openness.left : openness.right) * (1 - relaxedClose),
+    );
     const eh = EYE_H * openAmt;
 
     ctx.save();
@@ -301,16 +305,20 @@ export function drawCharacter(
     ctx.stroke();
   }
 
-  // ---- Eyebrows ---- (manual "raise" override shifts them up)
+  // ---- Eyebrows ---- (raise / angry furrow / sad droop)
   const browLift = expression.eyebrowRaise * HEAD_R * 0.12;
+  const angryTilt = (expression.angry ?? 0) * HEAD_R * 0.11;
+  const sadTilt = (expression.sad ?? 0) * HEAD_R * 0.1;
   for (const side of [-1, 1]) {
+    const innerY = -HEAD_R * 0.42 - browLift + angryTilt - sadTilt;
+    const outerY = -HEAD_R * 0.4 - browLift - angryTilt * 0.6 + sadTilt * 0.8;
     ctx.beginPath();
-    ctx.moveTo(side * (EYE_SPACING - 14), -HEAD_R * 0.42 - browLift);
+    ctx.moveTo(side * (EYE_SPACING - 14), innerY);
     ctx.quadraticCurveTo(
       side * EYE_SPACING,
-      -HEAD_R * 0.5 - browLift,
+      -HEAD_R * 0.5 - browLift + angryTilt * 0.3,
       side * (EYE_SPACING + 13),
-      -HEAD_R * 0.4 - browLift,
+      outerY,
     );
     ctx.strokeStyle = COL_HAIR_DARK;
     ctx.lineWidth = 3;
@@ -370,9 +378,11 @@ export function drawCharacter(
   // ---- Mouth ---- (manual "mouth open" override forces it wide, whichever is bigger wins)
   const mouthOpen = mouthOpening(pose ? pose.mouthRatio : null, expression.mouthOpen);
   if (mouthOpen < 2) {
+    const moodCurve =
+      5 + expression.eyeSmile * 4 - (expression.sad ?? 0) * 9 - (expression.angry ?? 0) * 7;
     ctx.beginPath();
     ctx.moveTo(-MOUTH_MAX_W * 0.55, MOUTH_Y);
-    ctx.quadraticCurveTo(0, MOUTH_Y + 5, MOUTH_MAX_W * 0.55, MOUTH_Y);
+    ctx.quadraticCurveTo(0, MOUTH_Y + moodCurve, MOUTH_MAX_W * 0.55, MOUTH_Y);
     ctx.strokeStyle = COL_MOUTH;
     ctx.lineWidth = 2.2;
     ctx.lineCap = 'round';
