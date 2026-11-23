@@ -14,9 +14,13 @@ export type PoseData = PoseExtractData;
 export type { BackgroundType, ExpressionState, HotkeyAction, InferenceDelegate, OverlayItem };
 
 export const MP_VERSION = '1.2.3';
-const WASM_BASE = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MP_VERSION}/wasm`;
+const WASM_SOURCES = [
+  `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MP_VERSION}/wasm`,
+  `https://unpkg.com/@mediapipe/tasks-vision@${MP_VERSION}/wasm`,
+];
 const FACE_MODEL_URL =
   'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task';
+const HOTKEYS_STORAGE_KEY = 'easyvtuber.hotkeys.v1';
 
 /** How long to wait for the camera to report metadata before failing loudly. */
 const CAMERA_METADATA_TIMEOUT_MS = 5000;
@@ -78,6 +82,35 @@ const DEFAULT_HOTKEYS: HotkeyAction[] = [
   { key: 'b', action: 'cycle_background', label: 'Cycle BG' },
   { key: ' ', action: 'toggle_tracking', label: 'Toggle Track' },
 ];
+
+function readSavedHotkeys(): HotkeyAction[] {
+  try {
+    if (typeof window === 'undefined' || !window.localStorage) return DEFAULT_HOTKEYS;
+    const raw = window.localStorage.getItem(HOTKEYS_STORAGE_KEY);
+    if (!raw) return DEFAULT_HOTKEYS;
+    const map = JSON.parse(raw) as Record<string, unknown> | null;
+    if (!map || typeof map !== 'object') return DEFAULT_HOTKEYS;
+    return DEFAULT_HOTKEYS.map((hk) => {
+      const bound = map[hk.action];
+      if (typeof bound === 'string' && bound.length > 0 && bound.length <= 12) {
+        return { ...hk, key: bound };
+      }
+      return hk;
+    });
+  } catch {
+    return DEFAULT_HOTKEYS;
+  }
+}
+
+function writeSavedHotkeys(hotkeys: HotkeyAction[]): void {
+  try {
+    if (typeof window === 'undefined' || !window.localStorage) return;
+    const map = Object.fromEntries(hotkeys.map((hk) => [hk.action, hk.key]));
+    window.localStorage.setItem(HOTKEYS_STORAGE_KEY, JSON.stringify(map));
+  } catch {
+    // Storage disabled or full.
+  }
+}
 
 export const BACKGROUND_DEFAULTS: Record<BackgroundType, string> = {
   none: 'transparent',
@@ -159,13 +192,14 @@ export function useVtuber() {
   const landmarksRef = useRef<Landmark[] | null>(null);
   const overlaysRef = useRef<OverlayItem[]>(DEFAULT_OVERLAYS);
   const expressionRef = useRef<ExpressionState>(DEFAULT_EXPRESSION);
-  const hotkeysRef = useRef<HotkeyAction[]>(DEFAULT_HOTKEYS);
+  const [initialHotkeys] = useState<HotkeyAction[]>(readSavedHotkeys);
+  const hotkeysRef = useRef<HotkeyAction[]>(initialHotkeys);
   const trackingRef = useRef(true);
   const maxFpsRef = useRef(30);
   const backgroundRef = useRef<BackgroundType>('gradient');
 
   const [state, setState] = useState<VtuberState>({
-    status: 'Initializing Core Systems...',
+    status: 'Ready — Start Camera or Mic',
     isLoaded: false,
     error: null,
     trackingError: null,
@@ -177,7 +211,7 @@ export function useVtuber() {
     background: 'gradient',
     backgroundValue: BACKGROUND_DEFAULTS.gradient,
     overlays: DEFAULT_OVERLAYS,
-    hotkeys: DEFAULT_HOTKEYS,
+    hotkeys: initialHotkeys,
     isTracking: true,
     useWorker: true,
     maxFps: 30,
@@ -201,6 +235,7 @@ export function useVtuber() {
   const fpsFrames = useRef<number[]>([]);
   const lastStateSyncRef = useRef(0);
   const lastDetectRef = useRef(0);
+  const lastVideoTimestampRef = useRef(0);
   const frameIdRef = useRef(0);
   const generationRef = useRef(0);
   const lastErrorRef = useRef<{ message: string; at: number } | null>(null);
@@ -284,40 +319,95 @@ export function useVtuber() {
     workerInFlightRef.current = false;
   }, []);
 
+  const stopCamera = useCallback(() => {
+    generationRef.current += 1;
+    disposeSession();
+    lastVideoTimestampRef.current = 0;
+    fpsFrames.current = [];
+    updateState({
+      status: 'Camera Off — Preview Mode',
+      isLoaded: false,
+      progress: 0,
+      error: null,
+      trackingError: null,
+      pose: null,
+      fps: 0,
+      inferenceTime: 0,
+    });
+  }, [disposeSession, updateState]);
+
   const loadModels = useCallback(
     async (videoElement: HTMLVideoElement, options: LoadModelOptions = {}) => {
       const generation = ++generationRef.current;
-      const delegate = options.delegate ?? 'GPU';
+      let activeDelegate: InferenceDelegate = options.delegate ?? 'GPU';
       disposeSession();
       videoRef.current = videoElement;
       updateState({
         status: 'Loading Face Landmarker...',
-        progress: 10,
+        progress: 12,
         error: null,
         trackingError: null,
         isLoaded: false,
-        delegate,
+        delegate: activeDelegate,
       });
 
       try {
-        const vision = await FilesetResolver.forVisionTasks(WASM_BASE);
+        let vision: Awaited<ReturnType<typeof FilesetResolver.forVisionTasks>> | null = null;
+        let lastCdnErr: unknown = null;
+        for (const base of WASM_SOURCES) {
+          try {
+            vision = await FilesetResolver.forVisionTasks(base);
+            break;
+          } catch (cdnErr) {
+            lastCdnErr = cdnErr;
+          }
+        }
+        if (!vision) {
+          throw lastCdnErr instanceof Error
+            ? lastCdnErr
+            : new Error('Failed to fetch MediaPipe Vision WASM runtime.');
+        }
         if (generation !== generationRef.current) return;
 
-        updateState({ status: 'Initializing Face Mesh...', progress: 25 });
-        const faceLandmarker = await FaceLandmarker.createFromOptions(vision, {
-          baseOptions: { modelAssetPath: FACE_MODEL_URL, delegate },
-          outputFaceBlendshapes: true,
-          outputFacialTransformationMatrixes: true,
-          runningMode: 'VIDEO',
-          numFaces: 1,
-        });
+        updateState({ status: 'Initializing Face Mesh...', progress: 35 });
+        let faceLandmarker: FaceLandmarker;
+        try {
+          faceLandmarker = await FaceLandmarker.createFromOptions(vision, {
+            baseOptions: { modelAssetPath: FACE_MODEL_URL, delegate: activeDelegate },
+            outputFaceBlendshapes: true,
+            outputFacialTransformationMatrixes: true,
+            runningMode: 'VIDEO',
+            numFaces: 1,
+          });
+        } catch (delegateErr) {
+          if (activeDelegate !== 'GPU') throw delegateErr;
+          console.warn('[EasyVtuber] GPU delegate unavailable, falling back to CPU:', delegateErr);
+          activeDelegate = 'CPU';
+          updateState({
+            status: 'Switching to CPU Face Mesh...',
+            progress: 42,
+            delegate: 'CPU',
+          });
+          faceLandmarker = await FaceLandmarker.createFromOptions(vision, {
+            baseOptions: { modelAssetPath: FACE_MODEL_URL, delegate: 'CPU' },
+            outputFaceBlendshapes: true,
+            outputFacialTransformationMatrixes: true,
+            runningMode: 'VIDEO',
+            numFaces: 1,
+          });
+        }
         if (generation !== generationRef.current) {
           faceLandmarker.close();
           return;
         }
         faceLandmarkerRef.current = faceLandmarker;
 
-        updateState({ status: 'Opening Camera...', progress: 50 });
+        updateState({ status: 'Opening Camera...', progress: 65 });
+        if (!navigator.mediaDevices?.getUserMedia) {
+          throw new Error(
+            'Webcam API unavailable (requires HTTPS or localhost). You can still use Preview or Mic mode.',
+          );
+        }
         let stream: MediaStream;
         try {
           stream = await navigator.mediaDevices.getUserMedia({
@@ -343,15 +433,17 @@ export function useVtuber() {
 
         lastStateSyncRef.current = 0;
         lastDetectRef.current = 0;
+        lastVideoTimestampRef.current = 0;
         fpsFrames.current = [];
         const videoResolution =
           videoElement.videoWidth > 0 && videoElement.videoHeight > 0
             ? `${videoElement.videoWidth}×${videoElement.videoHeight}`
             : '640×480';
         updateState({
-          status: 'Core Systems Online',
+          status: activeDelegate === 'CPU' ? 'Tracking Live (CPU)' : 'Tracking Live',
           progress: 100,
           isLoaded: true,
+          delegate: activeDelegate,
           videoResolution,
         });
         // Labels are only exposed after permission is granted, so this is the
@@ -362,8 +454,8 @@ export function useVtuber() {
         const message = err instanceof Error ? err.message : String(err);
         disposeSession();
         updateState({
-          error: `Boot Failure: ${message}`,
-          status: 'System Restoration Required',
+          error: message,
+          status: 'Camera Unavailable',
           isLoaded: false,
           progress: 0,
         });
@@ -380,6 +472,8 @@ export function useVtuber() {
       !video ||
       !faceLandmarker ||
       video.paused ||
+      video.videoWidth === 0 ||
+      video.videoHeight === 0 ||
       video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA
     ) {
       return;
@@ -394,7 +488,10 @@ export function useVtuber() {
 
     try {
       const detectStart = performance.now();
-      const faceResult = faceLandmarker.detectForVideo(video, now);
+      // MediaPipe VIDEO mode requires strictly monotonically increasing integer ms timestamps.
+      const timestampMs = Math.max(lastVideoTimestampRef.current + 1, Math.round(now));
+      lastVideoTimestampRef.current = timestampMs;
+      const faceResult = faceLandmarker.detectForVideo(video, timestampMs);
       const detectMs = performance.now() - detectStart;
 
       // FPS counts frames actually pushed through the model — measuring the
@@ -583,6 +680,36 @@ export function useVtuber() {
     setState((prev) => ({ ...prev, overlays }));
   }, []);
 
+  const updateHotkey = useCallback((actionName: string, nextKey: string) => {
+    const cleanKey = nextKey === ' ' ? ' ' : nextKey.toLowerCase();
+    if (!cleanKey) return;
+    setState((prev) => {
+      const nextHotkeys = prev.hotkeys.map((hk) =>
+        hk.action === actionName ? { ...hk, key: cleanKey } : hk,
+      );
+      hotkeysRef.current = nextHotkeys;
+      writeSavedHotkeys(nextHotkeys);
+      return { ...prev, hotkeys: nextHotkeys };
+    });
+  }, []);
+
+  const resetHotkeys = useCallback(() => {
+    hotkeysRef.current = DEFAULT_HOTKEYS;
+    writeSavedHotkeys(DEFAULT_HOTKEYS);
+    setState((prev) => ({ ...prev, hotkeys: DEFAULT_HOTKEYS }));
+  }, []);
+
+  // Keep camera list synced when USB cameras or OBS Virtual Camera are plugged in/out
+  useEffect(() => {
+    const md = navigator.mediaDevices;
+    if (!md?.addEventListener) return;
+    const onChange = () => {
+      void refreshCameras();
+    };
+    md.addEventListener('devicechange', onChange);
+    return () => md.removeEventListener('devicechange', onChange);
+  }, [refreshCameras]);
+
   const cycleBackground = useCallback(() => {
     const idx = BACKGROUND_ORDER.indexOf(backgroundRef.current);
     const next = BACKGROUND_ORDER[(idx + 1) % BACKGROUND_ORDER.length] ?? 'gradient';
@@ -652,6 +779,7 @@ export function useVtuber() {
   return {
     ...state,
     loadModels,
+    stopCamera,
     refreshCameras,
     setExpression,
     resetExpression,
@@ -663,6 +791,8 @@ export function useVtuber() {
     removeOverlay,
     updateOverlay,
     setOverlays,
+    updateHotkey,
+    resetHotkeys,
     setState: updateState,
     // Expose refs for the canvas draw loop to read without React re-renders
     poseRef,

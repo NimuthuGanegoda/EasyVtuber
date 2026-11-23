@@ -64,6 +64,33 @@ export interface TrackingTuning {
   idleBreathing: boolean;
 }
 
+export type AvatarMode = 'studio' | 'png' | 'vrm';
+
+export type AvatarAccessory = 'none' | 'fox-ears' | 'cat-ears' | 'halo' | 'glasses' | 'horns';
+
+export type AvatarPresetId = 'sakura' | 'kitsune' | 'neko' | 'cyber' | 'midnight' | 'custom';
+
+export interface AvatarAppearance {
+  presetId: AvatarPresetId;
+  hairColor: string;
+  hairDark: string;
+  hairLight: string;
+  eyeColor: string;
+  eyeDark: string;
+  skinColor: string;
+  skinShade: string;
+  outfitColor: string;
+  outfitAccent: string;
+  accessory: AvatarAccessory;
+}
+
+export interface PngAvatarConfig {
+  name: string;
+  bounceStrength: number;
+  talkThreshold: number;
+  parallaxStrength: number;
+}
+
 export interface StudioProfileData {
   expression: ExpressionState;
   background: BackgroundType;
@@ -73,6 +100,7 @@ export interface StudioProfileData {
   lighting: StageLightingConfig;
   tuning: TrackingTuning;
   mirrored: boolean;
+  appearance?: AvatarAppearance;
 }
 
 export interface StudioProfile {

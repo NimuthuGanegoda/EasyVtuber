@@ -49,6 +49,10 @@ export class VRMCharacterRenderer {
   private vrm: VRM | null = null;
   private loading = false;
   private ready = false;
+  private contextLost = false;
+  private lastError: string | null = null;
+  private onContextLostHandler: (e: Event) => void;
+  private onContextRestoredHandler: () => void;
   private clock: THREE.Clock;
   private elapsedSec = 0;
 
@@ -89,6 +93,15 @@ export class VRMCharacterRenderer {
     this.camera.position.set(0, 1.42, 1.1);
     this.camera.lookAt(0, 1.4, 0);
     this.clock = new THREE.Clock();
+    this.onContextLostHandler = (e: Event) => {
+      e.preventDefault();
+      this.contextLost = true;
+    };
+    this.onContextRestoredHandler = () => {
+      this.contextLost = false;
+    };
+    canvas.addEventListener('webglcontextlost', this.onContextLostHandler);
+    canvas.addEventListener('webglcontextrestored', this.onContextRestoredHandler);
 
     try {
       this.renderer = new THREE.WebGLRenderer({
@@ -101,6 +114,7 @@ export class VRMCharacterRenderer {
       this.renderer.setPixelRatio(1);
     } catch (e) {
       console.warn('VRM: WebGL renderer init failed, falling back', e);
+      this.lastError = e instanceof Error ? e.message : String(e);
       this.renderer = null;
     }
 
@@ -121,11 +135,15 @@ export class VRMCharacterRenderer {
   }
 
   isReady(): boolean {
-    return this.ready;
+    return this.ready && !this.contextLost;
   }
 
   isLoading(): boolean {
     return this.loading;
+  }
+
+  getLastError(): string | null {
+    return this.lastError;
   }
 
   calibrateHead(): void {
@@ -174,8 +192,12 @@ export class VRMCharacterRenderer {
   }
 
   async loadModel(url: string): Promise<boolean> {
-    if (!this.renderer) return false;
+    if (!this.renderer) {
+      this.lastError = 'WebGL 3D context is unavailable in this browser.';
+      return false;
+    }
     this.loading = true;
+    this.lastError = null;
     try {
       const loader = new GLTFLoader();
       loader.register((parser) => new VRMLoaderPlugin(parser));
@@ -200,6 +222,7 @@ export class VRMCharacterRenderer {
       this.ready = true;
       return true;
     } catch (e) {
+      this.lastError = e instanceof Error ? e.message : String(e);
       console.warn('VRM: failed to load model:', e);
       return false;
     } finally {
@@ -437,6 +460,8 @@ export class VRMCharacterRenderer {
   }
 
   destroy(): void {
+    this.canvas.removeEventListener('webglcontextlost', this.onContextLostHandler);
+    this.canvas.removeEventListener('webglcontextrestored', this.onContextRestoredHandler);
     if (this.vrm) {
       this.scene.remove(this.vrm.scene);
       VRMUtils.deepDispose(this.vrm.scene);

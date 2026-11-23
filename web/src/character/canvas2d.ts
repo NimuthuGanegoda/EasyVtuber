@@ -1,28 +1,20 @@
 /**
- * Canvas 2D character renderer — the fallback used when no VRM model is
- * present and WebGL is unavailable (see App.tsx's render fallback chain).
- *
- * Kept separate from App.tsx so the component file stays about UI and the
- * drawing code stays reviewable/testable on its own terms.
+ * Canvas 2D character renderer — HD studio anime avatar with customizable
+ * palette, hair physics sway, anime collar/ribbon outfit, accessories
+ * (fox ears, cat ears, halo, glasses, horns), and full 7-emotion support.
  */
 
-import type { ExpressionState, OverlayItem } from '../hooks/useVtuber';
+import type { AvatarAppearance, ExpressionState, OverlayItem } from '../types';
 import type { PoseData } from '../utils/poseExtractor';
+import { DEFAULT_AVATAR_APPEARANCE } from './avatarAppearance';
 import {
   CANVAS_SIZE,
   CHAR_CENTER_X,
   CHAR_CENTER_Y,
-  COL_HAIR,
-  COL_HAIR_DARK,
-  COL_HAIR_LIGHT,
-  COL_IRIS,
-  COL_IRIS_DARK,
   COL_MOUTH,
   COL_MOUTH_INNER,
   COL_OUTLINE,
   COL_PUPIL,
-  COL_SKIN,
-  COL_SKIN_SHADE,
   EYE_H,
   EYE_SPACING,
   EYE_W,
@@ -42,13 +34,6 @@ import {
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
-/**
- * Per-frame pose values come straight from tracking with no temporal
- * smoothing, so tiny per-frame tracking noise reads as mechanical jitter.
- * Lerp toward the target each frame instead of snapping to it — different
- * rates per field, since blinks should stay snappy while head rotation
- * (the most jitter-visible signal) benefits from heavier smoothing.
- */
 export function smoothPose(target: PoseData | null, prev: PoseData | null): PoseData | null {
   if (!target) return null;
   if (!prev) return target;
@@ -68,8 +53,6 @@ export function smoothPose(target: PoseData | null, prev: PoseData | null): Pose
 }
 
 function faceOutline(ctx: CanvasRenderingContext2D, r: number) {
-  // Anime-style face: wider through the temples/cheeks, tapering to a
-  // rounded chin, instead of a plain circle.
   ctx.beginPath();
   ctx.moveTo(0, -r * 1.02);
   ctx.bezierCurveTo(r * 0.92, -r, r * 1.02, -r * 0.15, r * 0.78, r * 0.48);
@@ -79,54 +62,214 @@ function faceOutline(ctx: CanvasRenderingContext2D, r: number) {
   ctx.closePath();
 }
 
+function drawBackAccessory(
+  ctx: CanvasRenderingContext2D,
+  appearance: AvatarAppearance,
+  sway: number,
+) {
+  if (appearance.accessory === 'halo') {
+    ctx.save();
+    ctx.translate(sway * 5, -HEAD_R * 1.48);
+    ctx.strokeStyle = 'rgba(253, 224, 71, 0.95)';
+    ctx.shadowColor = 'rgba(253, 224, 71, 0.75)';
+    ctx.shadowBlur = 14;
+    ctx.lineWidth = 4.5;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, HEAD_R * 0.62, HEAD_R * 0.15, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+function drawTopAccessory(
+  ctx: CanvasRenderingContext2D,
+  appearance: AvatarAppearance,
+  sway: number,
+) {
+  if (appearance.accessory === 'fox-ears') {
+    for (const side of [-1, 1]) {
+      ctx.save();
+      ctx.translate(side * HEAD_R * 0.56, -HEAD_R * 0.82);
+      ctx.rotate(side * 0.22 + sway * 0.08);
+      // Outer fox ear
+      ctx.beginPath();
+      ctx.moveTo(-side * 18, 12);
+      ctx.quadraticCurveTo(side * 4, -52, side * 34, -44);
+      ctx.quadraticCurveTo(side * 28, -4, side * 14, 24);
+      ctx.closePath();
+      ctx.fillStyle = appearance.hairColor;
+      ctx.fill();
+      ctx.strokeStyle = appearance.hairDark;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      // White/cream inner ear fluff
+      ctx.beginPath();
+      ctx.moveTo(-side * 8, 8);
+      ctx.quadraticCurveTo(side * 6, -34, side * 24, -30);
+      ctx.quadraticCurveTo(side * 18, -4, side * 8, 14);
+      ctx.closePath();
+      ctx.fillStyle = '#fff5f7';
+      ctx.fill();
+      ctx.restore();
+    }
+  } else if (appearance.accessory === 'cat-ears') {
+    for (const side of [-1, 1]) {
+      ctx.save();
+      ctx.translate(side * HEAD_R * 0.54, -HEAD_R * 0.84);
+      ctx.rotate(side * 0.14 + sway * 0.06);
+      ctx.beginPath();
+      ctx.moveTo(-side * 16, 10);
+      ctx.quadraticCurveTo(side * 2, -38, side * 22, -26);
+      ctx.quadraticCurveTo(side * 20, 2, side * 12, 18);
+      ctx.closePath();
+      ctx.fillStyle = appearance.hairColor;
+      ctx.fill();
+      ctx.strokeStyle = appearance.hairDark;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(-side * 7, 7);
+      ctx.quadraticCurveTo(side * 3, -22, side * 14, -16);
+      ctx.quadraticCurveTo(side * 13, 0, side * 7, 10);
+      ctx.closePath();
+      ctx.fillStyle = '#fbcfe8';
+      ctx.fill();
+      ctx.restore();
+    }
+  } else if (appearance.accessory === 'horns') {
+    for (const side of [-1, 1]) {
+      ctx.save();
+      ctx.translate(side * HEAD_R * 0.48, -HEAD_R * 0.86);
+      ctx.rotate(side * 0.16);
+      ctx.beginPath();
+      ctx.moveTo(-side * 8, 8);
+      ctx.quadraticCurveTo(side * 16, -20, side * 26, -36);
+      ctx.quadraticCurveTo(side * 10, -8, side * 10, 12);
+      ctx.closePath();
+      ctx.fillStyle = appearance.outfitAccent;
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,0.45)';
+      ctx.lineWidth = 1.6;
+      ctx.stroke();
+      ctx.restore();
+    }
+  } else if (appearance.accessory === 'glasses') {
+    ctx.save();
+    ctx.strokeStyle = 'rgba(244, 246, 251, 0.88)';
+    ctx.lineWidth = 2.1;
+    for (const side of [-1, 1]) {
+      const gx = side * EYE_SPACING;
+      const gy = -HEAD_R * 0.1;
+      ctx.fillStyle = 'rgba(186, 230, 253, 0.12)';
+      ctx.beginPath();
+      ctx.roundRect(gx - EYE_W - 4, gy - EYE_H * 0.85, (EYE_W + 4) * 2, EYE_H * 1.75, 7);
+      ctx.fill();
+      ctx.stroke();
+    }
+    // Bridge
+    ctx.beginPath();
+    ctx.moveTo(-EYE_SPACING + EYE_W + 4, -HEAD_R * 0.1);
+    ctx.lineTo(EYE_SPACING - EYE_W - 4, -HEAD_R * 0.1);
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
 export function drawCharacter(
   ctx: CanvasRenderingContext2D,
   pose: PoseData | null,
   expression: ExpressionState,
+  appearance: AvatarAppearance = DEFAULT_AVATAR_APPEARANCE,
+  hairSway = 0,
 ) {
   ctx.save();
 
   const headTilt = pose ? (pose.xAngle || 0) * HEAD_TILT_GAIN : 0;
   const headTurn = pose ? (pose.yAngle || 0) * HEAD_TURN_GAIN : 0;
   const headRoll = pose ? (pose.zAngle || 0) * HEAD_ROLL_GAIN : 0;
+  const sway = Math.max(-1, Math.min(1, hairSway));
 
   ctx.translate(CHAR_CENTER_X + headTurn, CHAR_CENTER_Y + headTilt);
   ctx.rotate((headRoll * Math.PI) / 180);
 
-  // ---- Body ----
-  ctx.beginPath();
-  ctx.ellipse(0, HEAD_R * 2.4, HEAD_R * 1.25, HEAD_R * 1.6, 0, 0, Math.PI * 2);
-  ctx.fillStyle = 'rgba(255, 150, 190, 0.4)';
-  ctx.fill();
+  drawBackAccessory(ctx, appearance, sway);
 
-  // ---- Long hair tails (flow down past the shoulders, drawn before the
-  // back-hair mass so they read as strands rather than a uniform halo) ----
+  // ---- Long hair tails (with dynamic sway physics) ----
   for (const side of [-1, 1]) {
+    const tailShift = sway * 14;
     ctx.beginPath();
     ctx.moveTo(side * HEAD_R * 0.55, -HEAD_R * 0.1);
-    ctx.quadraticCurveTo(side * HEAD_R * 1.35, HEAD_R * 1.0, side * HEAD_R * 0.9, HEAD_R * 2.3);
-    ctx.quadraticCurveTo(side * HEAD_R * 0.75, HEAD_R * 2.4, side * HEAD_R * 0.55, HEAD_R * 2.15);
-    ctx.quadraticCurveTo(side * HEAD_R * 0.85, HEAD_R * 1.0, side * HEAD_R * 0.35, -HEAD_R * 0.05);
+    ctx.quadraticCurveTo(
+      side * HEAD_R * 1.35 + tailShift * 0.5,
+      HEAD_R * 1.0,
+      side * HEAD_R * 0.9 + tailShift,
+      HEAD_R * 2.32,
+    );
+    ctx.quadraticCurveTo(
+      side * HEAD_R * 0.75 + tailShift,
+      HEAD_R * 2.42,
+      side * HEAD_R * 0.55 + tailShift * 0.8,
+      HEAD_R * 2.15,
+    );
+    ctx.quadraticCurveTo(
+      side * HEAD_R * 0.85 + tailShift * 0.35,
+      HEAD_R * 1.0,
+      side * HEAD_R * 0.35,
+      -HEAD_R * 0.05,
+    );
     ctx.closePath();
-    ctx.fillStyle = COL_HAIR_DARK;
+    ctx.fillStyle = appearance.hairDark;
     ctx.fill();
   }
 
-  // ---- Back hair mass (behind head) — hugs the face closely instead of
-  // forming a big halo, so the face reads as the dominant shape, not a
-  // small window inside a hair blob ----
-  ctx.beginPath();
-  ctx.ellipse(0, HEAD_R * 0.1, HEAD_R * 0.82, HEAD_R * 1.12, 0, 0, Math.PI * 2);
-  ctx.fillStyle = COL_HAIR_DARK;
-  ctx.fill();
-
-  // Subtle hair strand shading (a few darker streaks for depth, instead of
-  // one flat fill) — kept faint, just enough to break up the flatness.
+  // ---- Shoulders & Anime Outfit ----
   ctx.save();
   ctx.beginPath();
-  ctx.ellipse(0, HEAD_R * 0.1, HEAD_R * 0.82, HEAD_R * 1.12, 0, 0, Math.PI * 2);
+  ctx.ellipse(0, HEAD_R * 2.38, HEAD_R * 1.32, HEAD_R * 1.56, 0, 0, Math.PI * 2);
+  ctx.fillStyle = appearance.outfitColor;
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+  ctx.lineWidth = 1.6;
+  ctx.stroke();
+
+  // Sailor / studio collar accent
+  ctx.beginPath();
+  ctx.moveTo(-HEAD_R * 0.56, HEAD_R * 1.15);
+  ctx.lineTo(0, HEAD_R * 1.62);
+  ctx.lineTo(HEAD_R * 0.56, HEAD_R * 1.15);
+  ctx.lineTo(HEAD_R * 0.34, HEAD_R * 1.04);
+  ctx.lineTo(0, HEAD_R * 1.38);
+  ctx.lineTo(-HEAD_R * 0.34, HEAD_R * 1.04);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(255,255,255,0.92)';
+  ctx.fill();
+
+  // Center ribbon / tie
+  ctx.beginPath();
+  ctx.moveTo(-11, HEAD_R * 1.52);
+  ctx.lineTo(11, HEAD_R * 1.52);
+  ctx.lineTo(6, HEAD_R * 1.88);
+  ctx.lineTo(-6, HEAD_R * 1.88);
+  ctx.closePath();
+  ctx.fillStyle = appearance.outfitAccent;
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(0, HEAD_R * 1.54, 7.5, 0, Math.PI * 2);
+  ctx.fillStyle = appearance.outfitAccent;
+  ctx.fill();
+  ctx.restore();
+
+  // ---- Back hair mass ----
+  ctx.beginPath();
+  ctx.ellipse(0, HEAD_R * 0.1, HEAD_R * 0.84, HEAD_R * 1.12, 0, 0, Math.PI * 2);
+  ctx.fillStyle = appearance.hairDark;
+  ctx.fill();
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.ellipse(0, HEAD_R * 0.1, HEAD_R * 0.84, HEAD_R * 1.12, 0, 0, Math.PI * 2);
   ctx.clip();
-  ctx.strokeStyle = 'rgba(0,0,0,0.12)';
+  ctx.strokeStyle = 'rgba(0,0,0,0.14)';
   ctx.lineWidth = 3;
   ctx.lineCap = 'round';
   for (const sx of [-0.5, -0.15, 0.2, 0.5]) {
@@ -140,12 +283,12 @@ export function drawCharacter(
   // ---- Neck ----
   ctx.beginPath();
   ctx.rect(-13, HEAD_R * 0.75, 26, HEAD_R * 0.55);
-  ctx.fillStyle = COL_SKIN_SHADE;
+  ctx.fillStyle = appearance.skinShade;
   ctx.fill();
 
   // ---- Face ----
   faceOutline(ctx, HEAD_R);
-  ctx.fillStyle = COL_SKIN;
+  ctx.fillStyle = appearance.skinColor;
   ctx.fill();
   ctx.save();
   ctx.globalAlpha = 0.35;
@@ -167,18 +310,18 @@ export function drawCharacter(
     HEAD_R * 0.85,
   );
   cheekGrad.addColorStop(0, 'rgba(255, 170, 150, 0)');
-  cheekGrad.addColorStop(1, 'rgba(255, 150, 130, 0.22)');
+  cheekGrad.addColorStop(1, 'rgba(255, 150, 130, 0.2)');
   ctx.fillStyle = cheekGrad;
   ctx.fillRect(-HEAD_R * 1.2, -HEAD_R * 1.2, HEAD_R * 2.4, HEAD_R * 2.4);
   ctx.restore();
 
-  // ---- Blush ---- (manual "cheek puff" override enlarges + darkens it)
+  // ---- Blush ----
   const puffR = blushRadius(expression.cheekPuff);
   for (const side of [-1, 1]) {
     const bx = side * HEAD_R * 0.55;
     const by = HEAD_R * 0.35;
     const gradient = ctx.createRadialGradient(bx, by, 0, bx, by, puffR);
-    gradient.addColorStop(0, `rgba(255, 110, 150, ${0.45 + expression.cheekPuff * 0.25})`);
+    gradient.addColorStop(0, `rgba(255, 110, 150, ${0.42 + expression.cheekPuff * 0.28})`);
     gradient.addColorStop(1, 'rgba(255, 110, 150, 0)');
     ctx.beginPath();
     ctx.arc(bx, by, puffR, 0, Math.PI * 2);
@@ -194,8 +337,6 @@ export function drawCharacter(
     const ex = side * EYE_SPACING;
     const ey = -HEAD_R * 0.12;
 
-    // Manual "eye smile" override (from the Expressions panel): classic
-    // anime closed-happy-eye curve, replacing the tracked eye entirely.
     if (expression.eyeSmile > 0.5) {
       ctx.beginPath();
       ctx.arc(ex, ey + EYE_H * 0.3, EYE_W * 0.9, Math.PI * 1.15, Math.PI * 1.85, true);
@@ -221,10 +362,6 @@ export function drawCharacter(
     ctx.fillStyle = '#fff8fb';
     ctx.fillRect(ex - EYE_W, ey - eh, EYE_W * 2, eh * 2);
 
-    // Iris sits slightly low in the eye (a sliver of white above it, like a
-    // real eye socket) rather than perfectly centered — centered pupils
-    // with even white all around is a big part of what reads as a "dead"
-    // doll stare.
     const irisY = ey + eh * 0.15 + eyeOffset.y;
     const irisX = ex + eyeOffset.x;
 
@@ -238,15 +375,14 @@ export function drawCharacter(
         irisY,
         irisR,
       );
-      irisGrad.addColorStop(0, COL_IRIS);
-      irisGrad.addColorStop(0.7, COL_IRIS);
-      irisGrad.addColorStop(1, COL_IRIS_DARK);
+      irisGrad.addColorStop(0, appearance.eyeColor);
+      irisGrad.addColorStop(0.7, appearance.eyeColor);
+      irisGrad.addColorStop(1, appearance.eyeDark);
       ctx.beginPath();
       ctx.arc(irisX, irisY, irisR, 0, Math.PI * 2);
       ctx.fillStyle = irisGrad;
       ctx.fill();
 
-      // Pupil with a faint gradient instead of a flat dot
       const pupilGrad = ctx.createRadialGradient(irisX, irisY, 0, irisX, irisY, PUPIL_R);
       pupilGrad.addColorStop(0, '#3a1c40');
       pupilGrad.addColorStop(1, COL_PUPIL);
@@ -255,8 +391,6 @@ export function drawCharacter(
       ctx.fillStyle = pupilGrad;
       ctx.fill();
 
-      // Primary highlight (upper-left, biggest) + secondary sparkle +
-      // a faint lower rim-light for a bit of catch-light life
       ctx.beginPath();
       ctx.arc(irisX - 3.5, irisY - 4.5, 2.6, 0, Math.PI * 2);
       ctx.fillStyle = 'rgba(255,255,255,0.95)';
@@ -267,12 +401,10 @@ export function drawCharacter(
       ctx.fill();
       ctx.beginPath();
       ctx.arc(irisX, irisY + irisR * 0.7, irisR * 0.45, Math.PI, Math.PI * 2);
-      ctx.fillStyle = 'rgba(255,255,255,0.18)';
+      ctx.fillStyle = 'rgba(255,255,255,0.2)';
       ctx.fill();
     }
 
-    // Soft under-eye/socket shadow at the top, inside the clip — gives the
-    // eye a socket instead of floating on flat skin
     const socketShade = ctx.createLinearGradient(ex, ey - eh, ex, ey - eh * 0.3);
     socketShade.addColorStop(0, 'rgba(120,60,80,0.22)');
     socketShade.addColorStop(1, 'rgba(120,60,80,0)');
@@ -280,9 +412,6 @@ export function drawCharacter(
     ctx.fillRect(ex - EYE_W, ey - eh, EYE_W * 2, eh);
     ctx.restore();
 
-    // Eyelid crease (a second, higher arc above the lash line) — this is
-    // what mainly separates "flat circle with a line" from an eye that
-    // reads as sitting in a face.
     ctx.beginPath();
     ctx.ellipse(ex, ey - eh * 0.55, EYE_W * 0.85, eh * 0.4, 0, Math.PI * 1.15, Math.PI * 1.85);
     ctx.strokeStyle = 'rgba(92,44,71,0.22)';
@@ -290,7 +419,6 @@ export function drawCharacter(
     ctx.lineCap = 'round';
     ctx.stroke();
 
-    // Upper lash line (bold) and lower lid (subtle)
     ctx.beginPath();
     ctx.ellipse(ex, ey, EYE_W, eh, 0, Math.PI * 1.08, Math.PI * 1.92);
     ctx.strokeStyle = COL_OUTLINE;
@@ -305,7 +433,7 @@ export function drawCharacter(
     ctx.stroke();
   }
 
-  // ---- Eyebrows ---- (raise / angry furrow / sad droop)
+  // ---- Eyebrows ----
   const browLift = expression.eyebrowRaise * HEAD_R * 0.12;
   const angryTilt = (expression.angry ?? 0) * HEAD_R * 0.11;
   const sadTilt = (expression.sad ?? 0) * HEAD_R * 0.1;
@@ -320,15 +448,13 @@ export function drawCharacter(
       side * (EYE_SPACING + 13),
       outerY,
     );
-    ctx.strokeStyle = COL_HAIR_DARK;
+    ctx.strokeStyle = appearance.hairDark;
     ctx.lineWidth = 3;
     ctx.lineCap = 'round';
     ctx.stroke();
   }
 
-  // ---- Nose: a bridge shadow + tip highlight instead of a single faint
-  // line — the previous version was nearly invisible and left the face
-  // reading as flat with features pasted on rather than actual structure ----
+  // ---- Nose ----
   ctx.save();
   ctx.beginPath();
   ctx.moveTo(-1.5, HEAD_R * 0.02);
@@ -337,8 +463,6 @@ export function drawCharacter(
   ctx.lineWidth = 2;
   ctx.lineCap = 'round';
   ctx.stroke();
-  // Tip highlight + nostril shadow give it a slight 3D bump instead of a
-  // flat line
   ctx.beginPath();
   ctx.ellipse(1.5, HEAD_R * 0.26, 2.6, 1.6, 0.3, 0, Math.PI * 2);
   ctx.fillStyle = 'rgba(255,235,225,0.5)';
@@ -349,18 +473,15 @@ export function drawCharacter(
   ctx.fill();
   ctx.restore();
 
-  // ---- Jaw/chin shading — a soft shadow along the lower face gives it
-  // actual structure instead of reading as a flat skin-colored oval ----
+  // ---- Jaw/chin & forehead shading ----
   ctx.save();
   faceOutline(ctx, HEAD_R);
   ctx.clip();
   const jawGrad = ctx.createLinearGradient(0, HEAD_R * 0.55, 0, HEAD_R * 1.15);
   jawGrad.addColorStop(0, 'rgba(180,110,95,0)');
-  jawGrad.addColorStop(1, 'rgba(180,110,95,0.28)');
+  jawGrad.addColorStop(1, 'rgba(180,110,95,0.26)');
   ctx.fillStyle = jawGrad;
   ctx.fillRect(-HEAD_R * 1.2, HEAD_R * 0.4, HEAD_R * 2.4, HEAD_R * 0.9);
-  // Forehead highlight — a touch of light from above so the face isn't
-  // uniformly flat-lit
   const foreheadGrad = ctx.createRadialGradient(
     0,
     -HEAD_R * 0.55,
@@ -375,7 +496,7 @@ export function drawCharacter(
   ctx.fillRect(-HEAD_R * 1.2, -HEAD_R * 1.2, HEAD_R * 2.4, HEAD_R * 1.2);
   ctx.restore();
 
-  // ---- Mouth ---- (manual "mouth open" override forces it wide, whichever is bigger wins)
+  // ---- Mouth ----
   const mouthOpen = mouthOpening(pose ? pose.mouthRatio : null, expression.mouthOpen);
   if (mouthOpen < 2) {
     const moodCurve =
@@ -407,18 +528,41 @@ export function drawCharacter(
   ctx.quadraticCurveTo(-HEAD_R * 0.55, -HEAD_R * 0.55, -HEAD_R * 0.95, -HEAD_R * 0.15);
   ctx.closePath();
   const hairGrad = ctx.createLinearGradient(0, -HEAD_R, 0, -HEAD_R * 0.3);
-  hairGrad.addColorStop(0, COL_HAIR_LIGHT);
-  hairGrad.addColorStop(1, COL_HAIR);
+  hairGrad.addColorStop(0, appearance.hairLight);
+  hairGrad.addColorStop(1, appearance.hairColor);
   ctx.fillStyle = hairGrad;
   ctx.fill();
 
-  // ---- Side locks (brighter than the back hair mass so they read as
-  // distinct strands framing the face rather than blending into it) ----
+  // Anime hair highlight halo arc
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.32)';
+  ctx.lineWidth = 4;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.arc(0, -HEAD_R * 0.45, HEAD_R * 0.5, Math.PI * 1.18, Math.PI * 1.44);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(0, -HEAD_R * 0.45, HEAD_R * 0.5, Math.PI * 1.56, Math.PI * 1.82);
+  ctx.stroke();
+  ctx.restore();
+
+  // ---- Side locks (with dynamic sway) ----
   for (const side of [-1, 1]) {
+    const lockShift = sway * 7;
     ctx.beginPath();
     ctx.moveTo(side * HEAD_R * 0.82, -HEAD_R * 0.32);
-    ctx.quadraticCurveTo(side * HEAD_R * 1.1, HEAD_R * 0.3, side * HEAD_R * 0.8, HEAD_R * 0.95);
-    ctx.quadraticCurveTo(side * HEAD_R * 0.62, HEAD_R * 0.5, side * HEAD_R * 0.6, -HEAD_R * 0.22);
+    ctx.quadraticCurveTo(
+      side * HEAD_R * 1.1 + lockShift * 0.5,
+      HEAD_R * 0.3,
+      side * HEAD_R * 0.8 + lockShift,
+      HEAD_R * 0.96,
+    );
+    ctx.quadraticCurveTo(
+      side * HEAD_R * 0.62 + lockShift * 0.4,
+      HEAD_R * 0.5,
+      side * HEAD_R * 0.6,
+      -HEAD_R * 0.22,
+    );
     ctx.closePath();
     const lockGrad = ctx.createLinearGradient(
       side * HEAD_R * 0.6,
@@ -426,14 +570,17 @@ export function drawCharacter(
       side * HEAD_R * 1.1,
       HEAD_R * 0.9,
     );
-    lockGrad.addColorStop(0, COL_HAIR_LIGHT);
-    lockGrad.addColorStop(1, COL_HAIR);
+    lockGrad.addColorStop(0, appearance.hairLight);
+    lockGrad.addColorStop(1, appearance.hairColor);
     ctx.fillStyle = lockGrad;
     ctx.fill();
     ctx.strokeStyle = 'rgba(92,44,71,0.2)';
     ctx.lineWidth = 1;
     ctx.stroke();
   }
+
+  // ---- Foreground Accessories (ears / horns / glasses) ----
+  drawTopAccessory(ctx, appearance, sway);
 
   ctx.restore();
 }
@@ -490,17 +637,14 @@ export function drawOverlays(ctx: CanvasRenderingContext2D, overlays: OverlayIte
   }
 }
 
-/** Small tracking readout drawn into the canvas, plus the "paused" watermark. */
 export function drawHUD(
   ctx: CanvasRenderingContext2D,
   pose: PoseData | null,
   tracking: boolean,
   size = CANVAS_SIZE,
 ) {
-  // The readout needs a pose, but the paused watermark must appear even when
-  // tracking has not produced one yet.
   if (pose) {
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.24)';
     ctx.font = '11px monospace';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';

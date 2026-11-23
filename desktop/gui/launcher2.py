@@ -1,12 +1,53 @@
 import ctypes
 import importlib.util
+import multiprocessing
 import os
 import subprocess
 import threading
 
-import wx
 import json
 import sys
+
+# Ensure the desktop root is importable before loading backend helpers or wx.
+_FROZEN = bool(getattr(sys, 'frozen', False))
+_MEIPASS = getattr(sys, '_MEIPASS', None)
+_EARLY_ROOT = (
+    os.path.normpath(_MEIPASS)
+    if (_FROZEN and _MEIPASS)
+    else os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
+)
+if _EARLY_ROOT not in sys.path:
+    sys.path.append(_EARLY_ROOT)
+
+from backend.utils.runtime_paths import (  # noqa: E402
+    build_backend_command,
+    get_bundle_root,
+    get_user_data_dir,
+)
+
+
+def _maybe_run_frozen_backend():
+    """Dispatch `--run-backend` inside frozen PyInstaller builds before starting wx."""
+    if '--run-backend' not in sys.argv:
+        return False
+    multiprocessing.freeze_support()
+    sys.argv = [arg for arg in sys.argv if arg != '--run-backend']
+    for extra in (
+        _EARLY_ROOT,
+        os.path.join(_EARLY_ROOT, 'backend'),
+        os.path.join(_EARLY_ROOT, 'backend', 'core'),
+    ):
+        if extra not in sys.path:
+            sys.path.append(extra)
+    from backend.managers.main import main as start_easyvtuber
+    start_easyvtuber()
+    return True
+
+
+if __name__ == '__main__' and _maybe_run_frozen_backend():
+    sys.exit(0)
+
+import wx  # noqa: E402
 
 if sys.platform == 'win32':
     ctypes.windll.shcore.SetProcessDpiAwareness(1)
@@ -65,19 +106,16 @@ p = None
 
 
 def _runtime_desktop_root():
-    if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
-        return os.path.normpath(sys._MEIPASS)
-    return os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
+    return get_bundle_root(_FROZEN, _MEIPASS, __file__)
 
 
-# Resolve relative to this file/runtime bundle, not the process CWD.
+# Resolve bundle assets relative to this file/runtime bundle, and persist user
+# settings/profiles in a writable folder (next to the .exe when frozen, never
+# inside the ephemeral _MEIPASS temp directory).
 _DESKTOP_ROOT = _runtime_desktop_root()
+_USER_DATA_DIR = get_user_data_dir(_FROZEN, sys.executable, _DESKTOP_ROOT)
 
-# Saved launcher settings live next to the runtime, not in whatever directory
-# the process happened to start in. The .bat wrappers `cd` into desktop/scripts,
-# so the old relative `open('launcher.json')` wrote settings somewhere the next
-# launch never read back.
-_LAUNCHER_STATE_PATH = os.path.join(_DESKTOP_ROOT, 'launcher.json')
+_LAUNCHER_STATE_PATH = os.path.join(_USER_DATA_DIR, 'launcher.json')
 
 try:
     with open(_LAUNCHER_STATE_PATH) as f:
@@ -99,7 +137,7 @@ from backend.utils.scene_profiles import (  # noqa: E402
     save_profile as save_named_profile,
 )
 
-_PROFILES_PATH = os.path.join(_DESKTOP_ROOT, 'profiles.json')
+_PROFILES_PATH = os.path.join(_USER_DATA_DIR, 'profiles.json')
 
 dirPath = os.path.join(_DESKTOP_ROOT, 'backend', 'data', 'images')
 characterList = []
@@ -976,14 +1014,7 @@ class LauncherPanel(wx.Panel):
                     self.btnLaunch.SetLabelText("Save & Launch")
                     return
 
-            python_exe = sys.executable
-            if 'pythonw' in python_exe.lower():
-                python_exe = python_exe.replace('pythonw.exe', 'python.exe').replace('pythonw', 'python')
-            
-            # Call the new root main.py
-            project_root = os.path.normpath(os.path.join(os.path.dirname(__file__), '..'))
-            main_script = os.path.join(project_root, 'main.py')
-            run_args = [python_exe, main_script]
+            run_args = build_backend_command(_FROZEN, sys.executable, _DESKTOP_ROOT, [])
             if len(args['character']):
                 run_args.append('--character')
                 run_args.append(args['character'])
@@ -1202,6 +1233,7 @@ class MainFrame(wx.Frame):
 
 
 def main():
+    multiprocessing.freeze_support()
     app = wx.App()
 
     # Offline-only local check: warns if no model weights are installed yet,
